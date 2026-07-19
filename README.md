@@ -3,8 +3,7 @@
 A React/Vite web experience that combines a business landing site with a connected player application.
 
 The UI follows the Flutter player app's shared `AppColors`, `AppSpacing`, and
-`AppRadius` tokens. All site typography currently uses the locally bundled
-Michroma typeface.
+`AppRadius` tokens. All site typography currently uses Oswald.
 
 ## Run locally
 
