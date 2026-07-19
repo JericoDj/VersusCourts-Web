@@ -13,7 +13,7 @@ const steps = [
 export default function LandingPage() {
   return (
     <div className="landing">
-      <PublicHeader />
+      <PublicHeader lightTheme />
       <section className="hero-section">
         <div className="hero-grid container">
           <div className="hero-copy">
