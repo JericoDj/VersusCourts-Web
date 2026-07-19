@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Compass, Home, MapPin, Menu, MessageCircle, Search, Trophy, UserRound, UsersRound, X } from 'lucide-react'
+import { Bell, CalendarDays, Compass, Gamepad2, Home, MapPin, Menu, MessageCircle, Search, Trophy, UserRound, UsersRound, X } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -7,10 +7,10 @@ import Brand from './Brand'
 
 const links = [
   { to: '/app', label: 'Home', icon: Home, end: true },
-  { to: '/app/discover', label: 'Discover', icon: Compass },
-  { to: '/app/queues', label: 'Open play', icon: UsersRound },
-  { to: '/app/bookings', label: 'My bookings', icon: CalendarDays },
+  { to: '/app/clubs', label: 'Clubs', icon: UsersRound },
+  { to: '/app/queues', label: 'Play', icon: Gamepad2, featured: true },
   { to: '/app/events', label: 'Events', icon: Trophy },
+  { to: '/app/profile', label: 'Profile', icon: UserRound },
 ]
 
 export default function AppShell() {
@@ -23,7 +23,7 @@ export default function AppShell() {
     <div className="app-shell">
       <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
         <div className="sidebar__top">
-          <Brand light />
+          <Brand />
           <button className="sidebar-close" onClick={() => setMobileOpen(false)}><X /></button>
         </div>
         <nav className="app-nav">
@@ -33,9 +33,11 @@ export default function AppShell() {
               <Icon size={19} /><span>{label}</span>
             </NavLink>
           ))}
+          <p className="nav-label nav-label--second">EXPLORE</p>
+          <NavLink to="/app/discover" onClick={() => setMobileOpen(false)}><Compass size={19} /><span>Discover courts</span></NavLink>
+          <NavLink to="/app/bookings" onClick={() => setMobileOpen(false)}><CalendarDays size={19} /><span>My bookings</span></NavLink>
           <p className="nav-label nav-label--second">CONNECT</p>
           <a href="#clubs"><MessageCircle size={19} /><span>Messages</span><i>3</i></a>
-          <a href="#clubs"><UsersRound size={19} /><span>My clubs</span></a>
         </nav>
         <div className="sidebar-card">
           <span className="eyebrow">YOUR WEEK</span>
@@ -65,9 +67,8 @@ export default function AppShell() {
         <div className="app-content" key={location.pathname}><Outlet /></div>
         {notice && <div className="toast">✓ <span>{notice}</span></div>}
       </main>
-      <nav className="mobile-bottom-nav">
-        {links.slice(0, 4).map(({ to, label, icon: Icon, end }) => <NavLink key={to} to={to} end={end}><Icon size={20} /><span>{label}</span></NavLink>)}
-        <NavLink to="/app/profile"><UserRound size={20} /><span>Profile</span></NavLink>
+      <nav className="mobile-bottom-nav" aria-label="Player navigation">
+        {links.map(({ to, label, icon: Icon, end, featured }) => <NavLink className={featured ? 'mobile-play-link' : ''} key={to} to={to} end={end}><span className="mobile-nav-icon"><Icon size={featured ? 24 : 20} /></span><span>{label}</span></NavLink>)}
       </nav>
     </div>
   )

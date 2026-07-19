@@ -59,3 +59,19 @@ export function EventCard({ event }) {
     </article>
   )
 }
+
+export function ClubCard({ club }) {
+  return (
+    <article className="club-card">
+      <div className="club-card__cover" style={{ backgroundImage: `linear-gradient(180deg, transparent, rgba(15,23,42,.72)), url(${club.image})` }}>
+        <SportPill sport={club.sport} />
+        <span className="club-card__logo">{club.initials}</span>
+      </div>
+      <div className="club-card__body">
+        <div><h3>{club.name}</h3><span className="rating"><Star size={14} fill="currentColor" /> {club.rating}</span></div>
+        <p><MapPin size={15} /> {club.area}</p>
+        <div className="club-card__footer"><span><Users size={15} /> {club.members.toLocaleString()} members</span><button>View club <span>›</span></button></div>
+      </div>
+    </article>
+  )
+}

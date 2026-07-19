@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { events, queues, venues } from '../data/mockData'
+import { clubs, events, queues, venues } from '../data/mockData'
 
 const PlayerContext = createContext(null)
 
@@ -40,7 +40,7 @@ export function PlayerProvider({ children }) {
     return hasJoined ? current.filter((item) => item !== id) : [...current, id]
   })
 
-  const value = { sport, setSport, search, setSearch, favorites, joinedQueues, toggleFavorite, toggleQueue, filteredVenues, venues, queues, events, notice, setNotice }
+  const value = { sport, setSport, search, setSearch, favorites, joinedQueues, toggleFavorite, toggleQueue, filteredVenues, venues, queues, events, clubs, notice, setNotice }
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>
 }
 

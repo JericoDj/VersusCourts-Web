@@ -22,6 +22,7 @@ Build for production with `npm run build`.
 - `/login` — player authentication experience
 - `/app` — player home dashboard
 - `/app/discover` — court discovery and filters
+- `/app/clubs` — player clubs and local communities
 - `/app/courts/:courtId` — venue detail and booking flow
 - `/app/queues` — live/open play directory
 - `/app/bookings` — player schedule and booking history

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import BookingPage from '../pages/BookingPage'
+import ClubsPage from '../pages/ClubsPage'
 import BusinessPage from '../pages/BusinessPage'
 import CourtDetailPage from '../pages/CourtDetailPage'
 import DiscoverPage from '../pages/DiscoverPage'
@@ -22,6 +23,7 @@ export default function AppRoutes() {
       <Route path="/app" element={<AppShell />}>
         <Route index element={<HomePage />} />
         <Route path="discover" element={<DiscoverPage />} />
+        <Route path="clubs" element={<ClubsPage />} />
         <Route path="courts/:courtId" element={<CourtDetailPage />} />
         <Route path="queues" element={<QueuesPage />} />
         <Route path="bookings" element={<BookingPage />} />

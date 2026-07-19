@@ -58,6 +58,12 @@ export const events = [
   { id: 'e3', title: 'Padel Masters', organizer: 'Padel Republic', venue: 'BGC, Taguig', date: 'AUG 16', sport: 'padel', registered: 14, capacity: 24, prize: '₱30K', image: 'https://images.unsplash.com/photo-1622163642998-1ea32b0bbc67?auto=format&fit=crop&w=1000&q=85' },
 ]
 
+export const clubs = [
+  { id: 'c1', name: 'Metro Ballers', sport: 'basketball', area: 'Quezon City', members: 1240, rating: 4.8, image: 'https://images.unsplash.com/photo-1608245449230-4ac19066d2d0?auto=format&fit=crop&w=900&q=85', initials: 'MB' },
+  { id: 'c2', name: 'Shuttle Smashers', sport: 'badminton', area: 'Makati', members: 860, rating: 4.7, image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&w=900&q=85', initials: 'SS' },
+  { id: 'c3', name: 'Padel Pros PH', sport: 'padel', area: 'Taguig', members: 410, rating: 4.9, image: 'https://images.unsplash.com/photo-1622163642998-1ea32b0bbc67?auto=format&fit=crop&w=900&q=85', initials: 'PP' },
+]
+
 export const activity = [
   { label: 'Friday Night Runs', meta: 'Basketball · Tonight, 7:30 PM', status: 'Joined' },
   { label: 'Elite Sports Center', meta: 'Court 2 · Jul 23, 6:00 PM', status: 'Confirmed' },
