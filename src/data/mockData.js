@@ -1,10 +1,10 @@
 export const sports = [
   { id: 'all', label: 'All sports', icon: '✦' },
-  { id: 'basketball', label: 'Basketball', icon: '●' },
-  { id: 'badminton', label: 'Badminton', icon: '◒' },
-  { id: 'pickleball', label: 'Pickleball', icon: '◉' },
-  { id: 'tennis', label: 'Tennis', icon: '◍' },
-  { id: 'padel', label: 'Padel', icon: '◇' },
+  { id: 'basketball', label: 'Basketball', icon: '🏀' },
+  { id: 'badminton', label: 'Badminton', icon: '🏸' },
+  { id: 'pickleball', label: 'Pickleball', icon: '🥒' },
+  { id: 'tennis', label: 'Tennis', icon: '🎾' },
+  { id: 'padel', label: 'Padel', icon: '🎾' },
 ]
 
 export const venues = [

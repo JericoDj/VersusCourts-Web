@@ -7,9 +7,12 @@ import CourtDetailPage from '../pages/CourtDetailPage'
 import DiscoverPage from '../pages/DiscoverPage'
 import EventsPage from '../pages/EventsPage'
 import HomePage from '../pages/HomePage'
+import HowItWorksPage from '../pages/HowItWorksPage'
 import LandingPage from '../pages/LandingPage'
-import LoginPage from '../pages/LoginPage'
 import ProfilePage from '../pages/ProfilePage'
+import PublicClubsPage from '../pages/PublicClubsPage'
+import PublicEventsPage from '../pages/PublicEventsPage'
+import PublicQueuesPage from '../pages/PublicQueuesPage'
 import QueuesPage from '../pages/QueuesPage'
 import VenuesPage from '../pages/VenuesPage'
 
@@ -19,7 +22,10 @@ export default function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/venues" element={<VenuesPage />} />
       <Route path="/for-business" element={<BusinessPage />} />
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/queues" element={<PublicQueuesPage />} />
+      <Route path="/events" element={<PublicEventsPage />} />
+      <Route path="/clubs" element={<PublicClubsPage />} />
+      <Route path="/how-it-works" element={<HowItWorksPage />} />
       <Route path="/app" element={<AppShell />}>
         <Route index element={<HomePage />} />
         <Route path="discover" element={<DiscoverPage />} />

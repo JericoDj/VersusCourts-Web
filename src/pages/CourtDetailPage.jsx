@@ -1,6 +1,6 @@
 import { ArrowLeft, Calendar, Check, Clock3, Heart, MapPin, Navigation, Share2, ShieldCheck, Star } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { SportPill } from '../components/Cards'
 import { usePlayer } from '../context/PlayerContext'
 
@@ -33,7 +33,7 @@ export default function CourtDetailPage() {
           <label><Calendar size={16} /> Select date</label><button className="date-input">Today, July 19 <span>⌄</span></button>
           <label><Clock3 size={16} /> Available times</label><div className="time-grid">{times.map((time) => <button className={selectedTime === time ? 'is-active' : ''} onClick={() => setSelectedTime(time)} key={time}>{time}</button>)}</div>
           <div className="booking-total"><span>Court reservation</span><b>₱{venue.price}</b><span>Service fee</span><b>₱25</b><strong>Total</strong><strong>₱{venue.price + 25}</strong></div>
-          <button onClick={book} className="button button--lime button--full">{booked ? 'Booking confirmed ✓' : 'Reserve this court'}</button>
+          <button onClick={book} className="button button--primary button--full">{booked ? 'Booking confirmed ✓' : 'Reserve this court'}</button>
           <small className="booking-note">You won’t be charged until the venue confirms.</small>
         </aside>
       </div>
