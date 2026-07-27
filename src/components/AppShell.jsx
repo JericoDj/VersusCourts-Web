@@ -23,7 +23,7 @@ export default function AppShell() {
     <div className="app-shell">
       <aside className={`sidebar ${mobileOpen ? 'is-open' : ''}`}>
         <div className="sidebar__top">
-          <Brand />
+          <Brand playerLogo stacked />
           <button className="sidebar-close" onClick={() => setMobileOpen(false)}><X /></button>
         </div>
         <nav className="app-nav">

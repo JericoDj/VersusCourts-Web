@@ -39,9 +39,9 @@ export default function DirectoryLayout({
             </label>
           </div>
           <div className="directory-stats" aria-label="Directory summary">
-            {stats.map(({ value, label, icon: Icon }) => (
+            {stats.map(({ value, label, icon: Icon, color }, index) => (
               <article key={label}>
-                <span className="icon-chip" style={{ '--chip-color': accent }}><Icon size={19} /></span>
+                <span className="icon-chip" style={{ '--chip-color': color ?? [accent, 'var(--vc-success)', 'var(--vc-warning)'][index % 3] }}><Icon size={19} /></span>
                 <div><b>{value}</b><small>{label}</small></div>
               </article>
             ))}

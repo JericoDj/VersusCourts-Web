@@ -1,7 +1,5 @@
 import {
   ArrowRight,
-  BarChart3,
-  Check,
   ChevronRight,
   CircleCheck,
   MapPin,
@@ -16,7 +14,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PublicFooter from '../components/PublicFooter'
 import PublicHeader from '../components/PublicHeader'
-import { venues } from '../data/mockData'
 
 const heroMessages = [
   { text: 'Join Queue / Open Play', body: 'Find upcoming games near you, match your level, and claim your spot.', color: 'var(--vc-accent)' },
@@ -107,7 +104,7 @@ export default function LandingPage() {
             <h1 className="hero-type-heading" aria-label={item.text}><span aria-hidden="true">{text}</span><i className="hero-type-heading__caret" aria-hidden="true" /></h1>
             <div className="hero-message-slot" aria-live="polite"><p key={index} className={`hero-message ${bodyVisible ? 'is-visible' : ''}`}>{item.body}</p></div>
             <div className="hero-actions">
-              <Link to="/app" className="button button--primary button--large">Find a game <ArrowRight size={18} /></Link>
+              <Link to="/app" className="button button--primary hero-find-game">Find a game <ArrowRight size={18} /></Link>
               <Link to="/how-it-works" className="play-link"><span><Play fill="currentColor" size={15} /></span> See how it works</Link>
             </div>
             <div className="hero-trust-row">
@@ -139,12 +136,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="business-callout">
-        <div className="container business-callout__inner">
-          <div className="business-photo" style={{ backgroundImage: `url(${venues[1].image})` }}><span><BarChart3 /> +28%<small>court occupancy</small></span></div>
-          <div className="business-copy"><span className="eyebrow">FOR COURT OWNERS</span><h2>FILL MORE COURTS.<br /><em>RUN A SMARTER VENUE.</em></h2><p>Manage bookings, queues, staff, and community from one powerful business workspace.</p><div className="benefit-list"><span><Check /> Real-time booking management</span><span><Check /> Revenue and occupancy insights</span><span><Check /> Community tools and live queues</span><span><Check /> Staff roles and multi-court control</span></div><Link className="button button--dark" to="/for-business">Grow your venue <ArrowRight size={17} /></Link></div>
-        </div>
-      </section>
       <section className="trust-strip"><div className="container"><div><ShieldCheck /><span><b>Verified venues</b><small>Quality courts, trusted operators</small></span></div><div><Sparkles /><span><b>One connected platform</b><small>Booking, play, events, and clubs</small></span></div><div><UsersRound /><span><b>Built for every player</b><small>From first-timers to competitors</small></span></div></div></section>
       <section className="final-cta"><div className="container"><span className="eyebrow eyebrow--accent">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span><h2>READY TO<br /><em>STEP ON COURT?</em></h2><Link to="/app" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link></div></section>
       <PublicFooter />

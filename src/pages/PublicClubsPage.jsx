@@ -27,9 +27,9 @@ export default function PublicClubsPage() {
       title={<>FIND YOUR<br /><em>PEOPLE.</em></>}
       lede="Join a club, train with regulars, and never look for a game alone again."
       stats={[
-        { value: clubs.length, label: 'active clubs', icon: ShieldCheck },
-        { value: clubs.reduce((sum, club) => sum + club.members, 0).toLocaleString(), label: 'members', icon: UsersRound },
-        { value: '4.8', label: 'average rating', icon: Star },
+        { value: clubs.length, label: 'active clubs', icon: ShieldCheck, color: 'var(--vc-brand-green)' },
+        { value: clubs.reduce((sum, club) => sum + club.members, 0).toLocaleString(), label: 'members', icon: UsersRound, color: 'var(--vc-brand-green)' },
+        { value: '4.8', label: 'average rating', icon: Star, color: 'var(--vc-warning)' },
       ]}
       search={query}
       onSearch={setQuery}

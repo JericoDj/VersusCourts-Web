@@ -1,5 +1,6 @@
 import { Building2, Clock3, MapPin, Star } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { VenueCard } from '../components/Cards'
 import DirectoryLayout from '../components/DirectoryLayout'
 import { usePlayer } from '../context/PlayerContext'
@@ -7,11 +8,18 @@ import { sports } from '../data/mockData'
 
 export default function VenuesPage() {
   const { venues } = usePlayer()
-  const [query, setQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const query = searchParams.get('search') ?? ''
   const [sport, setSport] = useState('all')
   const [openOnly, setOpenOnly] = useState(false)
   const [priceDirection, setPriceDirection] = useState('none')
   const [area, setArea] = useState('')
+  const setQuery = (value) => {
+    const next = new URLSearchParams(searchParams)
+    if (value.trim()) next.set('search', value)
+    else next.delete('search')
+    setSearchParams(next, { replace: true })
+  }
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     const filtered = venues.filter((venue) =>

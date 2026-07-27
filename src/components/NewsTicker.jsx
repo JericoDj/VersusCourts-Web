@@ -1,11 +1,9 @@
-import { MapPin, ShieldCheck, Sparkles, Ticket, Users } from 'lucide-react'
-
 const items = [
-  { icon: MapPin, text: '24 courts open near Quezon City' },
-  { icon: Users, text: '11 open games looking for players tonight' },
-  { icon: Ticket, text: 'Free to join — no booking fees, ever' },
-  { icon: ShieldCheck, text: 'Trusted by 2,000+ players across Metro Manila' },
-  { icon: Sparkles, text: 'New: padel courts now live in BGC' },
+  { icon: 'location_on', text: '24 courts open near Quezon City' },
+  { icon: 'groups', text: '11 open games looking for players tonight' },
+  { icon: 'local_activity', text: 'Free to join — no booking fees, ever' },
+  { icon: 'verified_user', text: 'Trusted by 2,000+ players across Metro Manila' },
+  { icon: 'auto_awesome', text: 'New: padel courts now live in BGC' },
 ]
 
 /// Scrolling announcement bar tucked under the floating app bar. The item
@@ -17,9 +15,9 @@ export default function NewsTicker() {
         <div className="news-ticker__track">
           {[0, 1].map((pass) => (
             <div className="news-ticker__group" key={pass} aria-hidden={pass === 1}>
-              {items.map(({ icon: Icon, text }) => (
+              {items.map(({ icon, text }) => (
                 <span className="news-ticker__item" key={text}>
-                  <Icon size={14} />{text}
+                  <span className="news-ticker__icon material-symbols-rounded" aria-hidden="true">{icon}</span>{text}
                 </span>
               ))}
             </div>

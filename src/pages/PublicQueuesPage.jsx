@@ -25,9 +25,9 @@ export default function PublicQueuesPage() {
       title={<>THERE&apos;S ALWAYS<br />A <em>GAME ON.</em></>}
       lede="Join a public game, bring your energy, and meet your next teammates."
       stats={[
-        { value: queues.length, label: 'open games', icon: Zap },
-        { value: queues.reduce((sum, queue) => sum + Math.max(0, queue.max - queue.players), 0), label: 'spots available', icon: UsersRound },
-        { value: 'Tonight', label: 'next games', icon: Clock3 },
+        { value: queues.length, label: 'open games', icon: Zap, color: 'var(--vc-accent)' },
+        { value: queues.reduce((sum, queue) => sum + Math.max(0, queue.max - queue.players), 0), label: 'spots available', icon: UsersRound, color: 'var(--vc-brand-green)' },
+        { value: 'Tonight', label: 'next games', icon: Clock3, color: 'var(--vc-warning)' },
       ]}
       search={query}
       onSearch={setQuery}

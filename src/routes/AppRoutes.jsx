@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from '../components/AppShell'
 import BookingPage from '../pages/BookingPage'
 import ClubsPage from '../pages/ClubsPage'
-import BusinessPage from '../pages/BusinessPage'
 import CourtDetailPage from '../pages/CourtDetailPage'
 import DiscoverPage from '../pages/DiscoverPage'
 import EventsPage from '../pages/EventsPage'
@@ -21,7 +20,6 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/venues" element={<VenuesPage />} />
-      <Route path="/for-business" element={<BusinessPage />} />
       <Route path="/queues" element={<PublicQueuesPage />} />
       <Route path="/events" element={<PublicEventsPage />} />
       <Route path="/clubs" element={<PublicClubsPage />} />

@@ -74,7 +74,7 @@ export default function HowItWorksPage() {
             {steps.map(([title, body, type], index) => (
               <article className="journey-step" key={title}>
                 <span className="journey-step__number">{String(index + 1).padStart(2, '0')}</span>
-                <div className="journey-step__copy"><small>STEP {index + 1}</small><h3>{title}</h3><p>{body}</p>{owner && index === steps.length - 1 && <Link to="/for-business">Explore Versus for Business <ArrowRight size={15} /></Link>}</div>
+                <div className="journey-step__copy"><small>STEP {index + 1}</small><h3>{title}</h3><p>{body}</p>{owner && index === steps.length - 1 && <a href="mailto:hello@versuscourts.com">Contact Versus Courts <ArrowRight size={15} /></a>}</div>
                 <JourneyVignette type={type} owner={owner} />
               </article>
             ))}
@@ -90,7 +90,7 @@ export default function HowItWorksPage() {
 
       <section className="how-faq"><div className="container"><div className="section-heading"><span className="eyebrow">PLAYER FAQ</span><h2>GOOD TO KNOW<br />BEFORE <em>GAME TIME.</em></h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></div></section>
 
-      <section className="final-cta"><div className="container"><span className="eyebrow eyebrow--accent">{owner ? 'YOUR VENUE CAN DO MORE' : 'YOUR NEXT GAME IS CLOSER THAN YOU THINK'}</span><h2>{owner ? <>READY TO RUN<br /><em>SMARTER?</em></> : <>READY TO<br /><em>STEP ON COURT?</em></>}</h2><Link to={owner ? '/for-business' : '/app'} className="button button--primary button--large">{owner ? 'See Versus for Business' : 'Find your game'} <ArrowRight size={18} /></Link></div></section>
+      <section className="final-cta"><div className="container"><span className="eyebrow eyebrow--accent">{owner ? 'YOUR VENUE CAN DO MORE' : 'YOUR NEXT GAME IS CLOSER THAN YOU THINK'}</span><h2>{owner ? <>READY TO RUN<br /><em>SMARTER?</em></> : <>READY TO<br /><em>STEP ON COURT?</em></>}</h2>{owner ? <a href="mailto:hello@versuscourts.com" className="button button--primary button--large">Contact our team <ArrowRight size={18} /></a> : <Link to="/app" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link>}</div></section>
       <PublicFooter />
     </div>
   )

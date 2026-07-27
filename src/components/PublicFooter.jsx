@@ -24,7 +24,6 @@ export default function PublicFooter() {
         </div>
         <div className="footer-links">
           <b>VERSUS</b>
-          <Link to="/for-business">Software for Court Owners</Link>
           <Link to="/how-it-works">How Versus Works</Link>
           <a href="mailto:hello@versuscourts.com">Contact Versus Courts</a>
         </div>
