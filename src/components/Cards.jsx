@@ -25,21 +25,40 @@ export function VenueCard({ venue, compact = false }) {
   )
 }
 
-export function QueueCard({ queue }) {
-  const { joinedQueues, toggleQueue } = usePlayer()
-  const joined = joinedQueues.includes(queue.id)
+export function QueueCard({ queue, onOpen }) {
   const fill = Math.round((queue.players / queue.max) * 100)
+  // Matches VersusCourts-Player's SportMeta.icon mapping.
+  const sportSymbols = {
+    basketball: 'sports_basketball',
+    badminton: 'sports_tennis',
+    pickleball: 'sports_cricket',
+    tennis: 'sports_tennis',
+    padel: 'sports_tennis',
+  }
   return (
-    <article className="queue-card stripe-card" style={{ '--stripe-color': 'var(--vc-accent)' }}>
+    <article
+      className={`queue-card stripe-card ${onOpen ? 'queue-card--interactive' : ''}`}
+      style={{ '--stripe-color': 'var(--vc-accent)' }}
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (onOpen && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          onOpen()
+        }
+      }}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+    >
+      <span className={`queue-card__mobile-icon queue-card__mobile-icon--${queue.sport} material-symbols-rounded`} aria-hidden="true">{sportSymbols[queue.sport] || 'sports'}</span>
       <div className="queue-card__top">
         <SportPill sport={queue.sport} />
         {queue.featured && <span className="featured-badge">FEATURED</span>}
       </div>
       <h3>{queue.title}</h3>
       <p><MapPin size={15} /> {queue.venue}</p>
-      <div className="queue-meta"><span className="info-pill"><Clock3 size={15} /> {queue.time}</span><span className="info-pill"><Users size={15} /> {queue.level}</span></div>
+      <div className="queue-meta"><span className="info-pill"><Clock3 size={15} /> {queue.time}</span><span className="info-pill queue-meta__level"><Users size={15} /> {queue.level}</span><span className="info-pill queue-meta__players"><Users size={15} /> {queue.players}/{queue.max}</span></div>
       <div className="queue-fill"><div><span>Players</span><b className="queue-spots">{queue.players}/{queue.max}</b></div><div className="progress"><i style={{ width: `${fill}%` }} /></div></div>
-      <div className="queue-card__footer"><span><small>ENTRY</small><b>{queue.fee ? `₱${queue.fee}` : 'FREE'}</b></span><button className={joined ? 'button button--joined' : 'button button--dark'} onClick={() => toggleQueue(queue.id)}>{joined ? 'Joined ✓' : 'Join game'}</button></div>
+      <div className="queue-card__footer"><span><small>ENTRY</small><b>{queue.fee ? `₱${queue.fee}` : 'FREE'}</b></span><span className="button button--dark"><span className="queue-card__view-long">View game</span><span className="queue-card__view-short">View</span></span></div>
     </article>
   )
 }
@@ -61,18 +80,40 @@ export function EventCard({ event }) {
   )
 }
 
-export function ClubCard({ club }) {
+export function ClubCard({ club, onOpen }) {
+  const { userLocation, locationStatus, requestLocation } = usePlayer()
+  const clubSports = club.sports?.length ? club.sports : [club.sport].filter(Boolean)
+  const hasCoordinates = Number.isFinite(club.latitude) && Number.isFinite(club.longitude)
+  const distance = userLocation && hasCoordinates ? distanceFrom(userLocation, club) : null
   return (
-    <article className="club-card stripe-card" style={{ '--stripe-color': 'var(--vc-brand-green)' }}>
+    <article className={`club-card stripe-card ${onOpen ? 'club-card--interactive' : ''}`} style={{ '--stripe-color': 'var(--vc-brand-green)' }} onClick={onOpen} onKeyDown={(event) => { if (onOpen && (event.key === 'Enter' || event.key === ' ')) onOpen() }} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}>
       <div className="club-card__cover" style={{ backgroundImage: `linear-gradient(180deg, transparent, rgba(15,23,42,.72)), url(${club.image})` }}>
-        <SportPill sport={club.sport} />
         <span className="club-card__logo">{club.initials}</span>
       </div>
       <div className="club-card__body">
-        <div><h3>{club.name} {club.private && <Lock size={14} aria-label="Private club" />}</h3><span className="rating"><Star size={14} fill="currentColor" /> {club.rating}</span></div>
-        <p><MapPin size={15} /> {club.area}</p>
-        <div className="club-card__footer"><span className="info-pill"><Users size={15} /> {club.members.toLocaleString()} members</span><button>View club <span>›</span></button></div>
+        <div><h3>{club.name} {club.private && <Lock size={14} aria-label="Private club" />}</h3></div>
+        <div className="club-card__meta">
+          <span><Users size={15} /> {club.members.toLocaleString()} members</span>
+          {club.rating > 0 && <span className="club-card__rating"><Star size={15} fill="currentColor" /> {club.rating.toFixed(1)}</span>}
+          {distance ? <span><MapPin size={15} /> {distance}</span> : hasCoordinates ? (
+            <button type="button" className="club-card__distance-button" onClick={(event) => { event.stopPropagation(); requestLocation() }} disabled={locationStatus === 'requesting'}>
+              <MapPin size={15} /> {locationStatus === 'requesting' ? 'Finding location…' : 'See distance'}
+            </button>
+          ) : <span><MapPin size={15} /> {club.area}</span>}
+        </div>
+        <div className="card-pills club-card__sports">{clubSports.map((sport) => <SportPill sport={sport} key={sport} />)}</div>
       </div>
     </article>
   )
+}
+
+function distanceFrom(from, to) {
+  const toRadians = (value) => value * (Math.PI / 180)
+  const earthRadiusKm = 6371
+  const latitudeDelta = toRadians(to.latitude - from.latitude)
+  const longitudeDelta = toRadians(to.longitude - from.longitude)
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(toRadians(from.latitude)) * Math.cos(toRadians(to.latitude)) * Math.sin(longitudeDelta / 2) ** 2
+  const kilometers = earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return kilometers < 1 ? `${Math.max(50, Math.round(kilometers * 1000 / 50) * 50)} m` : `${kilometers.toFixed(1)} km`
 }

@@ -4,6 +4,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signOut as firebaseSignOut,
+  onAuthStateChanged,
 } from 'firebase/auth'
 
 const firebaseConfig = {
@@ -53,6 +54,11 @@ function messageForErrorCode(code) {
 export const firebaseAuth = {
   get isReady() {
     return auth !== null
+  },
+
+  onAuthStateChanged(callback) {
+    if (!auth) return () => {}
+    return onAuthStateChanged(auth, callback)
   },
 
   async signInWithGoogle() {

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { clubs, events, players, queues, venues } from '../data/mockData'
 
 const PlayerContext = createContext(null)
@@ -13,6 +13,29 @@ export function PlayerProvider({ children }) {
   const [favorites, setFavorites] = useState(() => readSaved('vc-favorites', ['grand-slam']))
   const [joinedQueues, setJoinedQueues] = useState(() => readSaved('vc-queues', ['q1']))
   const [notice, setNotice] = useState('')
+  const [userLocation, setUserLocation] = useState(null)
+  const [locationStatus, setLocationStatus] = useState(() => (typeof navigator?.geolocation === 'undefined' ? 'unsupported' : 'idle'))
+
+  const requestLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setLocationStatus('unsupported')
+      setNotice('Location is not supported by this browser.')
+      return
+    }
+    setLocationStatus('requesting')
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setUserLocation({ latitude: coords.latitude, longitude: coords.longitude })
+        setLocationStatus('granted')
+      },
+      (error) => {
+        const denied = error.code === error.PERMISSION_DENIED
+        setLocationStatus(denied ? 'denied' : 'unavailable')
+        setNotice(denied ? 'Allow location access in your browser to see distances.' : 'We could not get your location. Try again to see distances.')
+      },
+      { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 },
+    )
+  }, [])
 
   useEffect(() => localStorage.setItem('vc-favorites', JSON.stringify(favorites)), [favorites])
   useEffect(() => localStorage.setItem('vc-queues', JSON.stringify(joinedQueues)), [joinedQueues])
@@ -21,6 +44,10 @@ export function PlayerProvider({ children }) {
     const timer = window.setTimeout(() => setNotice(''), 2800)
     return () => window.clearTimeout(timer)
   }, [notice])
+  useEffect(() => {
+    const timer = window.setTimeout(requestLocation, 0)
+    return () => window.clearTimeout(timer)
+  }, [requestLocation])
 
   const filteredVenues = useMemo(() => venues.filter((venue) => {
     const sportMatch = sport === 'all' || venue.sports.includes(sport)
@@ -40,7 +67,7 @@ export function PlayerProvider({ children }) {
     return hasJoined ? current.filter((item) => item !== id) : [...current, id]
   })
 
-  const value = { sport, setSport, search, setSearch, favorites, joinedQueues, toggleFavorite, toggleQueue, filteredVenues, venues, queues, events, clubs, players, notice, setNotice }
+  const value = { sport, setSport, search, setSearch, favorites, joinedQueues, toggleFavorite, toggleQueue, filteredVenues, venues, queues, events, clubs, players, notice, setNotice, userLocation, locationStatus, requestLocation }
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>
 }
 

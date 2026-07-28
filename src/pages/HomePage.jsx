@@ -2,16 +2,15 @@ import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { ClubCard, EventCard, QueueCard, VenueCard } from '../components/Cards'
 import DiscoveryMap from '../components/DiscoveryMap'
-import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
+import { useQueues } from '../context/QueueContext'
 import { sports } from '../data/mockData'
 
 export default function HomePage() {
-  const { user } = useAuth()
-  const { sport, setSport, filteredVenues, queues, events, clubs } = usePlayer()
+  const { sport, setSport, filteredVenues, events, clubs } = usePlayer()
+  const { queues } = useQueues()
   return (
     <>
-      <div className="app-page-heading app-page-heading--home"><div><h1>Hi, {user?.firstName} 👋</h1><p>Ready to play today?</p></div><Link to="/app/discover" className="button button--primary">Book a court <ArrowRight size={17} /></Link></div>
       <DiscoveryMap />
       <section className="dashboard-section sport-section"><div className="section-title"><div><h2>What are you playing?</h2><p>Filter everything near you by sport</p></div></div><div className="sport-selector">{sports.map((item) => <button key={item.id} className={sport === item.id ? 'is-active' : ''} onClick={() => setSport(item.id)}><span>{item.icon}</span>{item.label}</button>)}</div></section>
       <section className="dashboard-section"><div className="section-title"><div><h2>Nearby Courts</h2></div><Link to="/app/discover">See all <ArrowRight size={16} /></Link></div><div className="cards-grid cards-grid--venues">{filteredVenues.slice(0, 3).map((venue) => <VenueCard key={venue.id} venue={venue} />)}</div></section>

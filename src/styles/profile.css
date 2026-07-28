@@ -1,0 +1,492 @@
+/* profile — owned by workstream profile. Do not edit from other workstreams. */
+
+/* Mirrors Flutter's ProfileScreen (profile_screen.dart). New `pf-` namespace:
+   the legacy `.profile-*` rules in global.css describe the OLD layout, and
+   reusing those names would mean fighting them. Loads after global.css, so no
+   rule here needs `!important`. */
+
+/* `.app-content` is `min(1180px, 100% - 48px)` with 32px top padding, and
+   `min(100% - 32px, 1180px)` / 24px below 850px. The cover bleeds back out
+   through those gutters — no `100vw`, which would overflow past a scrollbar. */
+.profile-page {
+  --pf-bleed: 24px;
+  --pf-bleed-top: 32px;
+}
+
+@media (max-width: 850px) {
+  .profile-page {
+    --pf-bleed: 16px;
+    --pf-bleed-top: 24px;
+  }
+}
+
+/* ---- header: cover + overlapping identity card ---- */
+.pf-header {
+  position: relative;
+  padding-top: 130px;
+}
+
+.pf-cover {
+  position: absolute;
+  top: calc(-1 * var(--pf-bleed-top));
+  left: calc(-1 * var(--pf-bleed));
+  right: calc(-1 * var(--pf-bleed));
+  height: calc(180px + var(--pf-bleed-top));
+  background: var(--vc-gradient-hero);
+  background-size: cover;
+  background-position: center;
+}
+
+.pf-card {
+  position: relative;
+  background: var(--vc-surface);
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-lg);
+  box-shadow: 0 8px 18px rgba(17, 24, 39, 0.06);
+  padding: var(--vc-space-lg);
+}
+
+.pf-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.pf-avatar-ring {
+  flex: none;
+  padding: 3px;
+  background: var(--vc-gradient-primary);
+  border-radius: var(--vc-radius-pill);
+}
+
+.pf-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--vc-radius-pill);
+  object-fit: cover;
+  display: grid;
+  place-items: center;
+  background: var(--vc-surface-alt);
+  color: var(--vc-primary);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pf-identity__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-identity__text h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.pf-handle {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--vc-text-secondary);
+}
+
+.pf-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.pf-role {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: color-mix(in srgb, var(--vc-text-secondary) 10%, transparent);
+  color: var(--vc-text-secondary);
+}
+
+.pf-role--accent {
+  background: color-mix(in srgb, var(--vc-accent) 10%, transparent);
+  color: var(--vc-accent);
+}
+
+.pf-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border-radius: var(--vc-radius-pill);
+  background: var(--vc-surface-alt);
+  color: var(--vc-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pf-info-pill svg {
+  color: var(--vc-primary);
+}
+
+.pf-icon-button {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--vc-primary);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background var(--vc-transition);
+}
+
+.pf-icon-button:hover {
+  background: color-mix(in srgb, var(--vc-primary) 10%, transparent);
+}
+
+/* bio — Flutter's own empty state, no invented copy */
+.pf-bio {
+  margin: var(--vc-space-lg) 0 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--vc-text-secondary);
+  white-space: pre-line;
+}
+
+.pf-bio--clamped {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pf-bio-toggle,
+.pf-add-bio {
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--vc-primary);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pf-add-bio {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--vc-space-lg);
+  font-size: 13.5px;
+}
+
+/* ---- level bar ---- */
+.pf-level {
+  margin-top: var(--vc-space-lg);
+}
+
+.pf-level__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pf-level__badge {
+  padding: 3px 8px;
+  border-radius: var(--vc-radius-sm);
+  background: var(--vc-gradient-hero);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pf-mini-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pf-mini-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--vc-surface-alt);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pf-level__xp {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--vc-text-secondary);
+}
+
+.pf-level__track {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: var(--vc-radius-pill);
+  background: var(--vc-surface-alt);
+  overflow: hidden;
+}
+
+.pf-level__fill {
+  display: block;
+  height: 100%;
+  background: var(--vc-accent);
+  border-radius: var(--vc-radius-pill);
+  transition: width var(--vc-transition);
+}
+
+/* ---- stats grid ---- */
+.pf-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: var(--vc-space-xxl);
+}
+
+.pf-stat {
+  --pf-stat-color: var(--vc-primary);
+  padding: 14px 8px;
+  border-radius: var(--vc-radius-md);
+  background: color-mix(in srgb, var(--pf-stat-color) 10%, transparent);
+  text-align: center;
+}
+
+.pf-stat--primary { --pf-stat-color: var(--vc-primary); }
+.pf-stat--green { --pf-stat-color: var(--vc-brand-green); }
+.pf-stat--accent { --pf-stat-color: var(--vc-accent); }
+.pf-stat--padel { --pf-stat-color: var(--vc-sport-padel); }
+
+.pf-stat b {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--pf-stat-color);
+}
+
+.pf-stat span {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--vc-text-secondary);
+}
+
+.pf-share {
+  margin-top: 10px;
+  gap: 8px;
+}
+
+/* ---- achievements: one slim row, deliberately quiet ---- */
+.pf-achievements {
+  display: flex;
+  align-items: center;
+  gap: var(--vc-space-lg);
+  width: 100%;
+  margin-top: var(--vc-space-xxl);
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.pf-achievements > svg:first-child {
+  flex: none;
+  color: var(--vc-text-secondary);
+}
+
+.pf-achievements div {
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-achievements b {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pf-achievements small {
+  display: block;
+  font-size: 12px;
+  color: var(--vc-text-secondary);
+}
+
+.pf-achievements > svg:last-child {
+  flex: none;
+  color: var(--vc-text-secondary);
+}
+
+/* ---- sections & rows ---- */
+.pf-section-title {
+  margin: var(--vc-space-xxl) 0 var(--vc-space-md);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pf-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pf-club-row,
+.pf-menu-row {
+  display: flex;
+  align-items: center;
+  gap: var(--vc-space-lg);
+  width: 100%;
+  padding: 8px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--vc-radius-md);
+  transition: background var(--vc-transition);
+}
+
+.pf-club-row:hover,
+.pf-menu-row:hover {
+  background: var(--vc-surface-alt);
+}
+
+.pf-club-logo {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--vc-radius-sm);
+  object-fit: cover;
+  background: var(--vc-surface-alt);
+}
+
+.pf-club-row div {
+  flex: 1;
+  min-width: 0;
+}
+
+.pf-club-row b {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.pf-club-row small {
+  display: block;
+  font-size: 12px;
+  color: var(--vc-text-secondary);
+}
+
+.pf-tag {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: var(--vc-radius-pill);
+  background: color-mix(in srgb, var(--vc-primary) 12%, transparent);
+  color: var(--vc-primary-dark);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.pf-menu-icon {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--vc-radius-md);
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--vc-primary) 10%, transparent);
+  color: var(--vc-primary);
+}
+
+.pf-menu-row span:not(.pf-menu-icon) {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pf-menu-row > svg:last-child {
+  flex: none;
+  color: var(--vc-text-tertiary);
+}
+
+.pf-menu-row--logout {
+  margin-top: 8px;
+}
+
+.pf-menu-row--logout .pf-menu-icon {
+  background: color-mix(in srgb, var(--vc-danger) 10%, transparent);
+  color: var(--vc-danger);
+}
+
+.pf-menu-row--logout span:not(.pf-menu-icon) {
+  color: var(--vc-danger);
+  font-weight: 700;
+}
+
+/* ---- logout confirm dialog ---- */
+.pf-logout-dialog {
+  width: min(380px, 100%);
+}
+
+.pf-logout-dialog h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pf-logout-dialog p {
+  margin: 0;
+  color: var(--vc-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pf-logout-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vc-space-sm);
+  margin-top: var(--vc-space-xxl);
+}
+
+.pf-button--danger {
+  background: var(--vc-danger);
+  color: #fff;
+}
+
+.pf-button--danger:hover {
+  background: color-mix(in srgb, var(--vc-danger) 85%, black);
+}
+
+/* ---- responsive ---- */
+@media (max-width: 580px) {
+  .pf-header { padding-top: 118px; }
+  .pf-cover { height: calc(160px + var(--pf-bleed-top)); }
+  .pf-avatar { width: 56px; height: 56px; font-size: 19px; }
+  .pf-identity__text h1 { font-size: 19px; }
+  .pf-stats { grid-template-columns: repeat(2, 1fr); }
+  .pf-section-title { font-size: 18px; }
+
+  .pf-logout-dialog__actions {
+    flex-direction: column-reverse;
+  }
+
+  .pf-logout-dialog__actions .button {
+    width: 100%;
+  }
+}

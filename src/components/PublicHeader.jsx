@@ -1,19 +1,21 @@
-import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Gamepad2, HelpCircle, LayoutDashboard, LogOut, MapPin, Search, Star, TrendingUp, User, UsersRound, X, Zap } from 'lucide-react'
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Gamepad2, HelpCircle, LayoutDashboard, LogOut, MapPin, Search, TrendingUp, User, UsersRound, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Brand from './Brand'
+import ComingSoonDialog from './ComingSoonDialog'
 import LoginDialog from './LoginDialog'
 import NewsTicker from './NewsTicker'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
+import { useQueues } from '../context/QueueContext'
 
 /// Primary destinations, surfaced directly in the bar rather than hidden
 /// behind a menu.
 const highlights = [
-  { to: '/venues', label: 'Find Courts', icon: MapPin },
-  { to: '/queues', label: 'Join Queues / Open Play', icon: Gamepad2 },
   { to: '/clubs', label: 'Explore Sports Clubs', icon: UsersRound },
-  { to: '/events', label: 'Sports Events', icon: CalendarDays },
+  { to: '/queues', label: 'Join Queues / Open Play', icon: Gamepad2 },
+  { to: '/venues', label: 'Book Courts', icon: MapPin, badge: 'Coming Soon' },
+  { to: '/events', label: 'Sports Events', icon: CalendarDays, badge: 'Coming Soon' },
 ]
 
 const searchTerms = ['courts', 'clubs', 'queues', 'open play']
@@ -56,9 +58,11 @@ function SearchResultList({ mobile = false, groups, hasResults, query, category,
 }
 
 export default function PublicHeader() {
-  const { venues, clubs, events, players, queues } = usePlayer()
+  const { venues, clubs, events, players } = usePlayer()
+  const { queues } = useQueues()
   const { user, signOut } = useAuth()
   const [loginOpen, setLoginOpen] = useState(false)
+  const [comingSoonLabel, setComingSoonLabel] = useState(null)
   const [accountOpen, setAccountOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -67,16 +71,13 @@ export default function PublicHeader() {
   const [searchTermIndex, setSearchTermIndex] = useState(0)
   const [typedLength, setTypedLength] = useState(0)
   const [deletingSearchTerm, setDeletingSearchTerm] = useState(false)
-  const [avatarError, setAvatarError] = useState(false)
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState(null)
   const searchInputRef = useRef(null)
   const mobileSearchInputRef = useRef(null)
   const accountRef = useRef(null)
 
-  const userPhoto = (!avatarError && (user?.photoURL || user?.avatarUrl)) ? (user.photoURL || user.avatarUrl) : null
-
-  useEffect(() => {
-    setAvatarError(false)
-  }, [user?.photoURL, user?.avatarUrl])
+  const avatarUrl = user?.photoURL || user?.avatarUrl
+  const userPhoto = avatarUrl && failedAvatarUrl !== avatarUrl ? avatarUrl : null
 
   useEffect(() => {
     if (!accountOpen) return undefined
@@ -244,7 +245,7 @@ export default function PublicHeader() {
                           src={userPhoto}
                           alt=""
                           className="header-account__avatar-img"
-                          onError={() => setAvatarError(true)}
+                          onError={() => setFailedAvatarUrl(userPhoto)}
                         />
                       ) : (
                         <span>{user.initials || user.firstName?.[0] || 'A'}</span>
@@ -262,7 +263,7 @@ export default function PublicHeader() {
                             <img
                               src={userPhoto}
                               alt={user.name}
-                              onError={() => setAvatarError(true)}
+                              onError={() => setFailedAvatarUrl(userPhoto)}
                             />
                           ) : (
                             <span>{user.initials || user.firstName?.[0] || 'A'}</span>
@@ -350,14 +351,31 @@ export default function PublicHeader() {
 
         <nav className="header-highlights" aria-label="Versus Courts primary navigation">
           <div className="container header-highlights__inner">
-            {highlights.map(({ to, label, icon: Icon }) => (
-              <NavLink to={to} key={to}><Icon size={15} />{label}</NavLink>
+            {highlights.map(({ to, label, icon: Icon, badge }) => (
+              badge ? (
+                <button
+                  type="button"
+                  className="header-highlight-item"
+                  key={to}
+                  onClick={() => setComingSoonLabel(label)}
+                >
+                  <Icon size={15} />
+                  <span>{label}</span>
+                  <span className="header-highlight-badge">{badge}</span>
+                </button>
+              ) : (
+                <NavLink to={to} key={to}>
+                  <Icon size={15} />
+                  <span>{label}</span>
+                </NavLink>
+              )
             ))}
-            <NavLink to="/how-it-works"><HelpCircle size={15} />How It Works</NavLink>
+            {/* <NavLink to="/how-it-works"><HelpCircle size={15} />How It Works</NavLink> */}
           </div>
         </nav>
       </header>
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <ComingSoonDialog open={!!comingSoonLabel} label={comingSoonLabel} onClose={() => setComingSoonLabel(null)} />
     </>
   )
 }
