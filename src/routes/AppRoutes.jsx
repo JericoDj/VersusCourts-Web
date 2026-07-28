@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from '../components/AppShell'
+import { useAuth } from '../context/AuthContext'
 import BookingPage from '../pages/BookingPage'
 import ClubsPage from '../pages/ClubsPage'
 import CourtDetailPage from '../pages/CourtDetailPage'
@@ -20,6 +21,16 @@ import SupportPage from '../pages/SupportPage'
 import TermsPage from '../pages/TermsPage'
 import VenuesPage from '../pages/VenuesPage'
 
+/// Gate for everything under /app. While a stored token is still being
+/// validated `isLoading` is true — render nothing rather than redirect, or a
+/// signed-in user gets bounced to the landing page on every refresh.
+function RequireAuth({ children }) {
+  const { user, isLoading } = useAuth()
+  if (isLoading) return null
+  if (!user) return <Navigate to="/" replace />
+  return children
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
@@ -34,7 +45,7 @@ export default function AppRoutes() {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/security" element={<SecurityPage />} />
       <Route path="/support" element={<SupportPage />} />
-      <Route path="/app" element={<AppShell />}>
+      <Route path="/app" element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route index element={<HomePage />} />
         <Route path="discover" element={<DiscoverPage />} />
         <Route path="clubs" element={<ClubsPage />} />

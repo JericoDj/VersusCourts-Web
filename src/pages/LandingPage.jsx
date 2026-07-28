@@ -137,7 +137,7 @@ export default function LandingPage() {
       </section>
 
       <section className="trust-strip"><div className="container"><div><ShieldCheck /><span><b>Verified venues</b><small>Quality courts, trusted operators</small></span></div><div><Sparkles /><span><b>One connected platform</b><small>Booking, play, events, and clubs</small></span></div><div><UsersRound /><span><b>Built for every player</b><small>From first-timers to competitors</small></span></div></div></section>
-      <section className="final-cta"><div className="container"><span className="eyebrow eyebrow--accent">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span><h2>READY TO<br /><em>STEP ON COURT?</em></h2><Link to="/app" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link></div></section>
+      <section className="final-cta"><div className="container"><span className="eyebrow eyebrow--accent">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span><h2>READY TO<br /><em>STEP ON COURT?</em></h2><Link to="/queues" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link></div></section>
       <PublicFooter />
     </div>
   )

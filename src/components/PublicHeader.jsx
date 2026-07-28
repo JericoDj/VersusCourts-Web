@@ -174,9 +174,17 @@ export default function PublicHeader() {
 
         <div className="header-main">
           <div className="container header-inner">
-            <Link to="/app" className="button button--primary header-cta">
-              <Zap size={16} /> Start playing
-            </Link>
+            {/* Signed out, this is the entry point to auth rather than a dead
+                link into /app, which the route guard would bounce straight back. */}
+            {user ? (
+              <Link to="/app" className="button button--primary header-cta">
+                <Zap size={16} /> Start playing
+              </Link>
+            ) : (
+              <button type="button" className="button button--primary header-cta" onClick={() => setLoginOpen(true)}>
+                <Zap size={16} /> Start playing
+              </button>
+            )}
 
             <Brand playerLogo />
 

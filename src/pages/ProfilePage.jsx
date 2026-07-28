@@ -15,7 +15,7 @@ import {
   Trophy,
 } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import ComingSoonDialog from '../components/ComingSoonDialog'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
@@ -63,9 +63,22 @@ const MENU_ITEMS = [
 export default function ProfilePage() {
   const { user, signOut } = useAuth()
   const { clubs, setNotice } = usePlayer()
+  const navigate = useNavigate()
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [comingSoon, setComingSoon] = useState('')
   const [bioExpanded, setBioExpanded] = useState(false)
+
+  /// Land on the public site root — that is versuscourts.com/ in production, and
+  /// still works on localhost and staging, which an absolute URL would not.
+  /// `replace` keeps Back from returning to the signed-in profile.
+  const handleLogout = async () => {
+    setConfirmLogout(false)
+    try {
+      await signOut()
+    } finally {
+      navigate('/', { replace: true })
+    }
+  }
 
   const stats = PROFILE_STATS
   const winRate = winRateOf(stats)
@@ -258,11 +271,10 @@ export default function ProfilePage() {
             <p>You will need to sign in again to continue.</p>
             <div className="pf-logout-dialog__actions">
               <button type="button" className="button button--outline" onClick={() => setConfirmLogout(false)}>Cancel</button>
-              {/* Fire and forget — awaiting then setting state would touch an unmounted tree. */}
               <button
                 type="button"
                 className="button pf-button--danger"
-                onClick={() => { setConfirmLogout(false); signOut() }}
+                onClick={handleLogout}
               >
                 Log out
               </button>
