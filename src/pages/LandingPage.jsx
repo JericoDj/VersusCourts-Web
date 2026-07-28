@@ -104,7 +104,7 @@ export default function LandingPage() {
             <h1 className="hero-type-heading" aria-label={item.text}><span aria-hidden="true">{text}</span><i className="hero-type-heading__caret" aria-hidden="true" /></h1>
             <div className="hero-message-slot" aria-live="polite"><p key={index} className={`hero-message ${bodyVisible ? 'is-visible' : ''}`}>{item.body}</p></div>
             <div className="hero-actions">
-              <Link to="/app" className="button button--primary hero-find-game">Find a game <ArrowRight size={18} /></Link>
+              <Link to="/queues" className="button button--primary hero-find-game">Find a game <ArrowRight size={18} /></Link>
               <Link to="/how-it-works" className="play-link"><span><Play fill="currentColor" size={15} /></span> See how it works</Link>
             </div>
             <div className="hero-trust-row">
