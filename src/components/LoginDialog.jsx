@@ -16,7 +16,7 @@ export default function LoginDialog({ open, onClose }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { signIn, signUp, forgotPassword } = useAuth()
+  const { signIn, signUp, signInWithGoogle, forgotPassword } = useAuth()
   const navigate = useNavigate()
 
   // Esc to dismiss, and lock background scroll while the dialog is up.
@@ -50,8 +50,18 @@ export default function LoginDialog({ open, onClose }) {
     }
   }
 
-  const continueWithGoogle = () => {
-    setError('Google sign-in needs the Firebase web configuration before it can be enabled.')
+  const continueWithGoogle = async () => {
+    setError('')
+    setIsSubmitting(true)
+    try {
+      await signInWithGoogle()
+      onClose()
+      navigate('/app')
+    } catch (requestError) {
+      setError(requestError.message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const submitReset = async (event) => {
@@ -100,7 +110,7 @@ export default function LoginDialog({ open, onClose }) {
             <button className="button button--primary button--full" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}</button>
           </form>
           <div className="auth-divider"><span>or</span></div>
-          <div className="social-buttons"><button type="button" onClick={continueWithGoogle}><img src="/google-g.svg" alt="" /> Continue with Google</button></div>
+          <div className="social-buttons"><button type="button" onClick={continueWithGoogle} disabled={isSubmitting}><img src="/google-g.svg" alt="" /> Continue with Google</button></div>
           <small>By continuing you agree to our Terms &amp; Privacy Policy.</small>
         </> : flow === 'reset' ? <>
           <h2>Reset your password</h2>

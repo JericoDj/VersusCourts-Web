@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { firebaseAuth } from '../lib/firebase'
 
 const AuthContext = createContext(null)
 const TOKEN_KEY = 'vc-auth-token'
@@ -73,9 +74,34 @@ export function AuthProvider({ children }) {
     return session.user
   }, [startSession])
 
+  const signInWithGoogle = useCallback(async () => {
+    const idToken = await firebaseAuth.signInWithGoogle()
+    const session = await request('/auth/firebase', {
+      method: 'POST',
+      body: JSON.stringify({ idToken, role: 'PLAYER' }),
+    })
+    startSession(session)
+    return session.user
+  }, [startSession])
+
+  const signOut = useCallback(async () => {
+    await firebaseAuth.signOut()
+    clearSession()
+  }, [clearSession])
+
   const forgotPassword = useCallback((email) => request('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }), [])
 
-  const value = useMemo(() => ({ user, isLoading, isAuthenticated: Boolean(user), signIn, signUp, forgotPassword, signOut: clearSession }), [clearSession, forgotPassword, isLoading, signIn, signUp, user])
+  const value = useMemo(() => ({
+    user,
+    isLoading,
+    isAuthenticated: Boolean(user),
+    signIn,
+    signUp,
+    signInWithGoogle,
+    forgotPassword,
+    signOut,
+    firebaseReady: firebaseAuth.isReady,
+  }), [clearSession, forgotPassword, isLoading, signIn, signUp, signInWithGoogle, signOut, user])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 

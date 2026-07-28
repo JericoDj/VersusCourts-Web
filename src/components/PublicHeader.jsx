@@ -1,4 +1,4 @@
-import { ArrowLeft, CalendarDays, Gamepad2, HelpCircle, MapPin, Search, Star, TrendingUp, UsersRound, X, Zap } from 'lucide-react'
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Gamepad2, HelpCircle, LayoutDashboard, LogOut, MapPin, Search, Star, TrendingUp, User, UsersRound, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Brand from './Brand'
@@ -38,22 +38,16 @@ function SearchResultList({ mobile = false, groups, hasResults, query, category,
           return (
             <Link key={result.id} to={result.to} className="header-search__event-card" onClick={onSelect}>
               <div className="header-search__event-banner"><img src={result.image} alt="" /><span>Upcoming</span></div>
-              <div className="header-search__event-content">
-                <time><small>{dateParts[0]}</small><b>{dateParts[1]}</b></time>
-                <span><b>{result.label}</b><small><MapPin size={13} />{result.meta}</small></span>
-              </div>
+              <div className="header-search__event-body"><b className="header-search__event-title">{result.label}</b><p className="header-search__event-meta">{result.meta}</p></div>
+              {dateParts.length >= 2 && <div className="header-search__event-date"><span className="month">{dateParts[0]}</span><span className="day">{dateParts[1]}</span></div>}
             </Link>
           )
         }
         return (
-          <Link key={result.id} to={result.to} className={`header-search__result header-search__result--${result.kind}`} onClick={onSelect}>
-            {result.image ? <img src={result.image} alt="" /> : <span className="header-search__result-icon"><ResultIcon size={mobile ? 20 : 15} /></span>}
-            <span>
-              <b>{result.label}</b>
-              <small>{mobile && <MapPin size={13} />}{result.kind === 'club' ? `${result.members.toLocaleString()} members` : result.meta}</small>
-              {result.kind !== 'player' && <em>{result.distance && <i className="result-distance">{result.distance}</i>}{result.sports?.map((sport) => <i key={sport} className={`sport-pill sport-pill--${sport}`}>{sport}</i>)}</em>}
-            </span>
-            {result.kind === 'player' && <span className="header-search__player-level"><Star size={14} fill="currentColor" />Lv {result.sports[0]?.replace('Lv ', '')}</span>}
+          <Link key={result.id} to={result.to} className={`header-search__result-item ${mobile ? 'is-mobile' : ''}`} onClick={onSelect}>
+            <div className="header-search__result-icon">{result.image ? <img src={result.image} alt="" /> : <ResultIcon size={16} />}</div>
+            <div className="header-search__result-details"><b className="header-search__result-title">{result.label}</b><p className="header-search__result-meta">{result.meta}</p></div>
+            {result.distance && <span className="header-search__result-badge">{result.distance}</span>}
           </Link>
         )
       })}
@@ -73,8 +67,27 @@ export default function PublicHeader() {
   const [searchTermIndex, setSearchTermIndex] = useState(0)
   const [typedLength, setTypedLength] = useState(0)
   const [deletingSearchTerm, setDeletingSearchTerm] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   const searchInputRef = useRef(null)
   const mobileSearchInputRef = useRef(null)
+  const accountRef = useRef(null)
+
+  const userPhoto = (!avatarError && (user?.photoURL || user?.avatarUrl)) ? (user.photoURL || user.avatarUrl) : null
+
+  useEffect(() => {
+    setAvatarError(false)
+  }, [user?.photoURL, user?.avatarUrl])
+
+  useEffect(() => {
+    if (!accountOpen) return undefined
+    const handleClickOutside = (event) => {
+      if (accountRef.current && !accountRef.current.contains(event.target)) {
+        setAccountOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [accountOpen])
 
   const openSearch = () => {
     setSearchFocused(true)
@@ -212,15 +225,78 @@ export default function PublicHeader() {
                   </div>
                 )}
               </div>
-              {user ? <div className="header-account" onMouseEnter={() => setAccountOpen(true)} onMouseLeave={() => setAccountOpen(false)}>
-                <button className="button header-enquiry header-account__trigger" onClick={() => setAccountOpen((value) => !value)} aria-expanded={accountOpen}>
-                  Hi, {user.firstName}
-                </button>
-                {accountOpen && <div className="header-account__menu">
-                  <Link to="/app" onClick={() => setAccountOpen(false)}>Go to dashboard</Link>
-                  <button type="button" onClick={() => { signOut(); setAccountOpen(false) }}>Log out</button>
-                </div>}
-              </div> : <button className="button header-enquiry" onClick={() => setLoginOpen(true)}>
+              {user ? (
+                <div
+                  className="header-account"
+                  ref={accountRef}
+                  onMouseEnter={() => setAccountOpen(true)}
+                  onMouseLeave={() => setAccountOpen(false)}
+                >
+                  <button
+                    type="button"
+                    className="header-account__trigger"
+                    onClick={() => setAccountOpen((value) => !value)}
+                    aria-expanded={accountOpen}
+                  >
+                    <span className="header-account__avatar">
+                      {userPhoto ? (
+                        <img
+                          src={userPhoto}
+                          alt=""
+                          className="header-account__avatar-img"
+                          onError={() => setAvatarError(true)}
+                        />
+                      ) : (
+                        <span>{user.initials || user.firstName?.[0] || 'A'}</span>
+                      )}
+                    </span>
+                    <span className="header-account__label">Account</span>
+                    {accountOpen ? <ChevronUp size={15} className="header-account__chevron" /> : <ChevronDown size={15} className="header-account__chevron" />}
+                  </button>
+
+                  {accountOpen && (
+                    <div className="header-account__menu">
+                      <div className="header-account__user-header">
+                        <div className="header-account__user-avatar">
+                          {userPhoto ? (
+                            <img
+                              src={userPhoto}
+                              alt={user.name}
+                              onError={() => setAvatarError(true)}
+                            />
+                          ) : (
+                            <span>{user.initials || user.firstName?.[0] || 'A'}</span>
+                          )}
+                        </div>
+                        <div className="header-account__user-info">
+                          <strong className="header-account__user-name">{user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Player Account'}</strong>
+                          <span className="header-account__user-email">{user.email || 'player@versuscourts.com'}</span>
+                        </div>
+                      </div>
+
+                      <div className="header-account__menu-list">
+                        <Link to="/app" className="header-account__menu-item header-account__menu-item--primary" onClick={() => setAccountOpen(false)}>
+                          <LayoutDashboard size={17} />
+                          <span>Go To Dashboard</span>
+                        </Link>
+                        <Link to="/app/profile" className="header-account__menu-item" onClick={() => setAccountOpen(false)}>
+                          <User size={17} />
+                          <span>Profile &amp; Settings</span>
+                        </Link>
+                        <a href="#help" className="header-account__menu-item" onClick={(e) => { e.preventDefault(); setAccountOpen(false); }}>
+                          <HelpCircle size={17} />
+                          <span>Help Support</span>
+                        </a>
+                        <div className="header-account__divider" />
+                        <button type="button" className="header-account__menu-item header-account__menu-item--logout" onClick={() => { signOut(); setAccountOpen(false); }}>
+                          <LogOut size={17} />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : <button className="button header-enquiry" onClick={() => setLoginOpen(true)}>
                 <span className="header-enquiry__long">Log in / Register</span>
                 <span className="header-enquiry__short">Log in</span>
               </button>}

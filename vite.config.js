@@ -6,8 +6,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:4000',
+        target: process.env.VITE_PROXY_TARGET || 'https://versuscourts-backend-production.up.railway.app',
         changeOrigin: true,
+        secure: false,
       },
     },
   },
