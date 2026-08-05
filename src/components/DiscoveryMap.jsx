@@ -14,12 +14,10 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  DEFAULT_DISCOVERY_CENTER,
-  fetchDiscoveryPlaces,
-  formatDate,
-  formatMoney,
-} from '../data/discoveryApi'
+import { DEFAULT_DISCOVERY_CENTER, formatDate } from '../data/discoveryApi'
+import { formatMoney, toMapPlaces } from '../controllers/discoveryController'
+import { useDiscovery } from '../context/DiscoveryContext'
+import { useQueues } from '../context/QueueContext'
 
 const markerStyle = {
   court: { color: 'var(--vc-warning)', glyph: '▦' },
@@ -71,25 +69,16 @@ function groupPlaces(places) {
   return groups
 }
 
+/// Map pins are a projection of the feeds DiscoveryContext and QueueContext
+/// already hold — no separate round trip, so the map can't drift from the
+/// lists below it.
 function useDiscoveryPlaces() {
-  const [discovery, setDiscovery] = useState({
-    places: [],
-    counts: { courts: 0, queues: 0, clubs: 0 },
-    status: 'loading',
-    partial: false,
-  })
-  useEffect(() => {
-    const controller = new AbortController()
-    fetchDiscoveryPlaces({ signal: controller.signal })
-      .then((result) => setDiscovery({ ...result, status: 'ready' }))
-      .catch((error) => {
-        if (error.name !== 'AbortError') {
-          setDiscovery((current) => ({ ...current, status: 'error' }))
-        }
-      })
-    return () => controller.abort()
-  }, [])
-  return discovery
+  const { businesses, clubs, isLoading, hasLoadedOnce, error } = useDiscovery()
+  const { queues, isLoading: queuesLoading } = useQueues()
+  return useMemo(() => ({
+    ...toMapPlaces({ businesses, clubs, queues }),
+    status: error ? 'error' : (isLoading || queuesLoading) && !hasLoadedOnce ? 'loading' : 'ready',
+  }), [businesses, clubs, error, hasLoadedOnce, isLoading, queues, queuesLoading])
 }
 
 function GoogleMapCanvas({ places, onSelect, expanded = false }) {

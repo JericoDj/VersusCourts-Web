@@ -1,9 +1,18 @@
 import { Clock3, Heart, Lock, MapPin, Star, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext'
+import { SportGlyph } from './SportIcon'
+import { sportLabel } from '../data/sports'
 
-export function SportPill({ sport }) {
-  return <span className={`sport-tag sport-tag--${sport}`}>{sport}</span>
+/// Sport tag — carries the Material Symbol alongside the label so it reads the
+/// same as the mobile app's sport chips.
+export function SportPill({ sport, icon = true }) {
+  return (
+    <span className={`sport-tag sport-tag--${sport}`}>
+      {icon && <SportGlyph sport={sport} size={13} />}
+      {sportLabel(sport)}
+    </span>
+  )
 }
 
 export function VenueCard({ venue, compact = false }) {
@@ -26,15 +35,7 @@ export function VenueCard({ venue, compact = false }) {
 }
 
 export function QueueCard({ queue, onOpen }) {
-  const fill = Math.round((queue.players / queue.max) * 100)
-  // Matches VersusCourts-Player's SportMeta.icon mapping.
-  const sportSymbols = {
-    basketball: 'sports_basketball',
-    badminton: 'sports_tennis',
-    pickleball: 'sports_cricket',
-    tennis: 'sports_tennis',
-    padel: 'sports_tennis',
-  }
+  const fill = queue.max > 0 ? Math.round((queue.players / queue.max) * 100) : 0
   return (
     <article
       className={`queue-card stripe-card ${onOpen ? 'queue-card--interactive' : ''}`}
@@ -49,7 +50,7 @@ export function QueueCard({ queue, onOpen }) {
       role={onOpen ? 'button' : undefined}
       tabIndex={onOpen ? 0 : undefined}
     >
-      <span className={`queue-card__mobile-icon queue-card__mobile-icon--${queue.sport} material-symbols-rounded`} aria-hidden="true">{sportSymbols[queue.sport] || 'sports'}</span>
+      <SportGlyph sport={queue.sport} size={24} className={`queue-card__mobile-icon queue-card__mobile-icon--${queue.sport}`} />
       <div className="queue-card__top">
         <SportPill sport={queue.sport} />
         {queue.featured && <span className="featured-badge">FEATURED</span>}

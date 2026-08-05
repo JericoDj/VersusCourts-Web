@@ -40,10 +40,21 @@
   --vc-sport-tennis: #1976d2;
   --vc-sport-padel: #06b6d4;
 
+  /* Each sport accent lerped 25% toward black — the second stop of the sport
+     gradients, matching Flutter's `SportMeta.gradient`. */
+  --vc-sport-basketball-dark: #bb5611;
+  --vc-sport-badminton-dark: #19943f;
+  --vc-sport-pickleball-dark: #b08606;
+  --vc-sport-tennis-dark: #13599e;
+  --vc-sport-padel-dark: #04899f;
+
   /* Gradients */
   --vc-gradient-primary: linear-gradient(135deg, #2563eb, #3b82f6);
   --vc-gradient-hero: linear-gradient(135deg, #1d4ed8, #2563eb 55%, #22c55e);
   --vc-gradient-live: linear-gradient(135deg, #0d9488, #2dd4bf);
+  /* Flutter's `AppColors.heroGradient` — the "All sports" chip fill. Kept
+     separate from --vc-gradient-hero, which the web hero sections tint green. */
+  --vc-gradient-sport-all: linear-gradient(135deg, #04339f, #1d4ed8 55%, #2563eb);
 
   /* Spacing */
   --vc-space-xs: 4px;
@@ -547,34 +558,54 @@ img { max-width: 100%; }
 }
 .section-title > a:hover { gap: 9px; }
 
-/* Sport selector — icon-chip tiles, selected-pill contrast rule */
-.sport-selector { display: flex; gap: 20px; }
-.sport-selector button {
-  min-width: 76px; padding: 0; border: 0; background: transparent;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
+/* Sport selector — a port of the Flutter `CategoryFilter` chip row. Each tile
+   carries its own sport colour via --sport-color / --sport-gradient (set by
+   components/SportIcon.jsx), so there are no positional colour rules. */
+.sport-selector { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.sport-selector::-webkit-scrollbar { display: none; }
+.sport-chip {
+  min-width: 76px; padding: 0; border: 0; background: transparent; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 600; color: var(--vc-text-secondary);
 }
-.sport-selector button span {
+.sport-chip__tile {
   width: 62px; height: 62px;
   border-radius: var(--vc-radius-lg);
-  display: grid; place-items: center; font-size: 26px;
-  background: var(--vc-surface);
-  border: 1px solid var(--vc-border);
+  display: grid; place-items: center;
+  color: var(--sport-color);
+  background: color-mix(in srgb, var(--sport-color) 12%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--sport-color) 25%, transparent);
   transition: var(--vc-transition);
 }
-/* Tile 1 is the "All sports" catch-all; 2–6 map to the five sport colours. */
-.sport-selector button:nth-child(1) span { background: rgba(37, 99, 235, 0.12);  border-color: rgba(37, 99, 235, 0.28); }
-.sport-selector button:nth-child(2) span { background: rgba(249, 115, 22, 0.12); border-color: rgba(249, 115, 22, 0.28); }
-.sport-selector button:nth-child(3) span { background: rgba(34, 197, 94, 0.12);  border-color: rgba(34, 197, 94, 0.28); }
-.sport-selector button:nth-child(4) span { background: rgba(234, 179, 8, 0.14);  border-color: rgba(234, 179, 8, 0.3); }
-.sport-selector button:nth-child(5) span { background: rgba(25, 118, 210, 0.12); border-color: rgba(25, 118, 210, 0.28); }
-.sport-selector button:nth-child(6) span { background: rgba(6, 182, 212, 0.12);  border-color: rgba(6, 182, 212, 0.28); }
-.sport-selector button:hover span { transform: translateY(-2px); }
-.sport-selector button.is-active { color: var(--vc-text-primary); font-weight: 700; }
-.sport-selector button.is-active span {
-  background: var(--vc-gradient-primary) !important;
-  border-color: transparent !important;
-  box-shadow: var(--vc-shadow-primary);
+.sport-chip:hover .sport-chip__tile { transform: translateY(-2px); }
+.sport-chip.is-active { color: var(--vc-text-primary); font-weight: 800; }
+.sport-chip.is-active .sport-chip__tile {
+  background: var(--sport-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--sport-color) 40%, transparent);
+}
+.sport-chip__label { line-height: 1; }
+/* `.material-symbols-rounded` sets its own accent colour, and a rule matching
+   the glyph directly beats any colour it would inherit from its container —
+   so sport glyphs have to opt back into inheriting. Doubled up on the symbol
+   class to win regardless of source order. */
+.sport-glyph.material-symbols-rounded { color: inherit; line-height: 1; }
+
+/* Loading / empty states for the live feed sections */
+.card-skeleton {
+  min-height: 220px; border-radius: var(--vc-radius-lg);
+  background: linear-gradient(100deg, var(--vc-surface-alt) 30%, var(--vc-surface) 50%, var(--vc-surface-alt) 70%);
+  background-size: 250% 100%;
+  animation: card-skeleton-sweep 1.4s ease-in-out infinite;
+  border: 1px solid var(--vc-border);
+}
+@keyframes card-skeleton-sweep { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { .card-skeleton { animation: none; } }
+.section-empty {
+  margin: 0; padding: 26px 18px; text-align: center;
+  border: 1px dashed var(--vc-border); border-radius: var(--vc-radius-lg);
+  color: var(--vc-text-secondary); font-size: 14px; background: var(--vc-surface);
 }
 
 .cards-grid { display: grid; gap: 16px; }
@@ -2088,6 +2119,13 @@ img { max-width: 100%; }
 .public-footer .container > div { display: flex; flex-direction: column; gap: 12px; }
 .public-footer .brand, .public-footer .brand--light { color: var(--vc-surface); }
 .public-footer .brand--light .brand__name b { color: var(--vc-brand-green); }
+.public-footer .brand__mark--player-logo {
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: var(--vc-shadow-primary);
+  padding: 6px;
+}
+.public-footer .brand__mark--player-logo img { width: 28px; height: 28px; }
 .public-footer b { color: var(--vc-surface); font-size: 12px; letter-spacing: 0.09em; }
 .public-footer p { line-height: 1.65; font-size: 14px; }
 .public-footer a:hover { color: var(--vc-accent); transform: translateX(2px); }
@@ -2864,12 +2902,13 @@ h1 em, h2 em { color: var(--em-color, var(--vc-primary)); }
 }
 .sport-tag {
   --sport-color: var(--vc-primary);
-  display: inline-flex; align-items: center; width: max-content;
+  display: inline-flex; align-items: center; gap: 4px; width: max-content;
   padding: 5px 9px; border-radius: var(--vc-radius-sm);
   color: var(--sport-color);
   background: color-mix(in srgb, var(--sport-color) 12%, transparent);
   font-size: 11px; font-weight: 700; text-transform: capitalize;
 }
+.sport-tag .sport-glyph { font-size: 13px; }
 .sport-tag--basketball { --sport-color: var(--vc-sport-basketball); }
 .sport-tag--badminton { --sport-color: var(--vc-sport-badminton); }
 .sport-tag--pickleball { --sport-color: var(--vc-sport-pickleball); }
@@ -2888,6 +2927,13 @@ h1 em, h2 em { color: var(--em-color, var(--vc-primary)); }
   box-shadow: 0 3px 8px color-mix(in srgb, var(--pill-color, var(--vc-primary)) 30%, transparent);
 }
 .filter-pill:disabled { opacity: .5; cursor: not-allowed; }
+/* Sport filter pills carry their sport's colour even when unselected, so the
+   row reads like the mobile app's sport chips rather than neutral chrome. */
+.filter-pill--sport:not(.is-active) {
+  color: var(--pill-color); border-color: color-mix(in srgb, var(--pill-color) 28%, transparent);
+  background: color-mix(in srgb, var(--pill-color) 8%, var(--vc-surface));
+}
+.filter-pill--sport .sport-glyph { font-size: 15px; }
 .empty-state {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 48px 24px; text-align: center;

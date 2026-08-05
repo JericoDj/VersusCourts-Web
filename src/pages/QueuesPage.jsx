@@ -5,7 +5,9 @@ import { QueueCard } from '../components/Cards'
 import ComingSoonDialog from '../components/ComingSoonDialog'
 import { usePlayer } from '../context/PlayerContext'
 import { useQueues } from '../context/QueueContext'
-import { activity, sports } from '../data/mockData'
+import { SportGlyph } from '../components/SportIcon'
+import { activity } from '../data/mockData'
+import { sportLabel } from '../data/sports'
 
 /// Mirrors the Flutter play hub (play_hub_screen.dart:67-104) — same option order,
 /// copy and gradients. Reserve/Training are gated off in Flutter too, so they open
@@ -27,7 +29,6 @@ export default function QueuesPage() {
   // Web mock data has no `isOngoing` / `courtName`; a joined + featured queue is the
   // closest stand-in, and `venue` stands in for the court name.
   const activeQueue = queues.find((queue) => joinedQueues.includes(queue.id) && queue.featured)
-  const activeSport = sports.find((sport) => sport.id === activeQueue?.sport)
   const bookingCount = activity.length
 
   const handleOption = (option) => {
@@ -41,11 +42,11 @@ export default function QueuesPage() {
         <div className="play-hub">
           {activeQueue && (
             <button type="button" className="play-live" onClick={() => setView('browse')}>
-              <span className="play-live__emoji" aria-hidden="true">{activeSport?.icon ?? '✦'}</span>
+              <span className="play-live__emoji">{activeQueue.sport ? <SportGlyph sport={activeQueue.sport} size={22} /> : '✦'}</span>
               <span className="play-live__body">
                 <span className="play-live__eyebrow"><i aria-hidden="true" /> LIVE</span>
                 <strong>{activeQueue.title}</strong>
-                <small>{activeSport?.label ?? 'Open play'} · {activeQueue.venue}</small>
+                <small>{activeQueue.sport ? sportLabel(activeQueue.sport) : 'Open play'} · {activeQueue.venue}</small>
               </span>
               <ArrowRight size={18} className="play-live__arrow" />
             </button>

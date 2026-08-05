@@ -1,22 +1,48 @@
-import { ArrowRight } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { ClubCard, EventCard, QueueCard, VenueCard } from '../components/Cards'
 import DiscoveryMap from '../components/DiscoveryMap'
+import SectionFeed from '../components/SectionFeed'
+import { SportSelector } from '../components/SportIcon'
 import { usePlayer } from '../context/PlayerContext'
 import { useQueues } from '../context/QueueContext'
-import { sports } from '../data/mockData'
 
 export default function HomePage() {
-  const { sport, setSport, filteredVenues, events, clubs } = usePlayer()
-  const { queues } = useQueues()
+  const { sport, setSport, filteredVenues, events, clubs, isLoading, hasLoadedOnce } = usePlayer()
+  const { queues, isLoading: queuesLoading } = useQueues()
+  const sportQueues = sport === 'all' ? queues : queues.filter((queue) => queue.sport === sport)
+  /// Only the very first load shows skeletons; later refreshes keep the
+  /// current feed on screen rather than flashing it away.
+  const loading = isLoading && !hasLoadedOnce
   return (
     <>
       <DiscoveryMap />
-      <section className="dashboard-section sport-section"><div className="section-title"><div><h2>What are you playing?</h2><p>Filter everything near you by sport</p></div></div><div className="sport-selector">{sports.map((item) => <button key={item.id} className={sport === item.id ? 'is-active' : ''} onClick={() => setSport(item.id)}><span>{item.icon}</span>{item.label}</button>)}</div></section>
-      <section className="dashboard-section"><div className="section-title"><div><h2>Nearby Courts</h2></div><Link to="/app/discover">See all <ArrowRight size={16} /></Link></div><div className="cards-grid cards-grid--venues">{filteredVenues.slice(0, 3).map((venue) => <VenueCard key={venue.id} venue={venue} />)}</div></section>
-      <section className="dashboard-section"><div className="section-title"><div><h2>Queue / Open Play</h2></div><Link to="/app/queues">See all <ArrowRight size={16} /></Link></div><div className="cards-grid cards-grid--queues">{queues.slice(0, 3).map((queue) => <QueueCard queue={queue} key={queue.id} />)}</div></section>
-      <section className="dashboard-section"><div className="section-title"><div><h2>Popular Clubs Near You</h2></div><Link to="/app/clubs">See all <ArrowRight size={16} /></Link></div><div className="cards-grid cards-grid--clubs">{clubs.map((club) => <ClubCard club={club} key={club.id} />)}</div></section>
-      <section className="dashboard-section"><div className="section-title"><div><h2>Upcoming Events</h2></div><Link to="/app/events">See all <ArrowRight size={16} /></Link></div><div className="cards-grid cards-grid--events">{events.map((event) => <EventCard event={event} key={event.id} />)}</div></section>
+      <section className="dashboard-section sport-section">
+        <div className="section-title"><div><h2>What are you playing?</h2><p>Filter everything near you by sport</p></div></div>
+        <SportSelector value={sport} onChange={setSport} />
+      </section>
+      <SectionFeed
+        title="Nearby Courts" to="/app/discover" variant="venues"
+        loading={loading} items={filteredVenues.slice(0, 3)}
+        empty="No courts near you yet. Try widening your search radius."
+        render={(venue) => <VenueCard key={venue.id} venue={venue} />}
+      />
+      <SectionFeed
+        title="Queue / Open Play" to="/app/queues" variant="queues"
+        loading={queuesLoading} items={sportQueues.slice(0, 3)}
+        empty="No open games right now. Check back soon."
+        render={(queue) => <QueueCard queue={queue} key={queue.id} />}
+      />
+      <SectionFeed
+        title="Popular Clubs Near You" to="/app/clubs" variant="clubs"
+        loading={loading} items={clubs.slice(0, 3)}
+        empty="No clubs in your area yet."
+        render={(club) => <ClubCard club={club} key={club.id} />}
+      />
+      <SectionFeed
+        title="Upcoming Events" to="/app/events" variant="events"
+        loading={loading} items={events.slice(0, 3)}
+        empty="No upcoming events scheduled."
+        render={(event) => <EventCard event={event} key={event.id} />}
+      />
     </>
   )
 }

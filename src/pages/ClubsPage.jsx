@@ -1,20 +1,12 @@
 import { useMemo, useState } from 'react'
 import { ChevronRight, Lock, MapPin, Plus, QrCode, Search, Star, Users } from 'lucide-react'
 import { SportPill } from '../components/Cards'
-import { sports as SPORTS } from '../data/mockData'
+import { SportGlyph } from '../components/SportIcon'
+import { SPORTS } from '../data/sports'
 import { usePlayer } from '../context/PlayerContext'
 
-// Fields the Flutter Clubs screen shows that src/data/mockData.js does not
-// carry yet. Kept local so this workstream owns no shared data file; drop this
-// map the moment mockData grows the fields.
-const CLUB_EXTRAS = {
-  c1: { sports: ['basketball', 'pickleball'], distanceKm: 2.4, isPrivate: false, joined: true, code: 'MB1240' },
-  c2: { sports: ['badminton', 'pickleball', 'tennis'], distanceKm: 4.1, isPrivate: false, joined: false, code: 'SS0860' },
-  c3: { sports: ['padel', 'tennis'], distanceKm: 8.6, isPrivate: true, joined: false, code: 'PP0410' },
-}
-
 const DISTANCE_OPTIONS = [3, 5, 10, 25]
-const SPORT_CHIPS = SPORTS.filter((s) => s.id !== 'all')
+const SPORT_CHIPS = SPORTS
 
 function ClubLogo({ club, size = 'lg' }) {
   const style = { '--sport-color': `var(--vc-sport-${club.sport}, var(--vc-primary))` }
@@ -41,7 +33,7 @@ function SportTags({ sports = [], max = 2, priority }) {
 }
 
 export default function ClubsPage() {
-  const { clubs, setNotice } = usePlayer()
+  const { allClubs: clubs, setNotice } = usePlayer()
   const [query, setQuery] = useState('')
   const [sportFilter, setSportFilter] = useState('all')
   const [maxKm, setMaxKm] = useState(null)
@@ -49,10 +41,9 @@ export default function ClubsPage() {
   const [code, setCode] = useState('')
   const [joinedIds, setJoinedIds] = useState([])
 
-  const allClubs = useMemo(
-    () => clubs.map((c) => ({ ...c, sports: [c.sport], ...(CLUB_EXTRAS[c.id] ?? {}) })),
-    [clubs],
-  )
+  /// Clubs already arrive fully shaped from the backend (sports, distanceKm,
+  /// visibility, invite code) — see controllers/discoveryController.js.
+  const allClubs = clubs
 
   const { myClubs, discoverClubs } = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -189,7 +180,7 @@ export default function ClubsPage() {
             className={`clubs-chip clubs-chip--${sport.id} ${sportFilter === sport.id ? 'is-active' : ''}`}
             onClick={() => setSportFilter(sportFilter === sport.id ? 'all' : sport.id)}
           >
-            <i aria-hidden="true">{sport.icon}</i> {sport.label}
+            <SportGlyph sport={sport.id} size={16} /> {sport.label}
           </button>
         ))}
       </div>

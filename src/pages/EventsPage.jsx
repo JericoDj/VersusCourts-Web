@@ -15,12 +15,29 @@ const EVENTS_HIGHLIGHTS = [
 ]
 
 function EventsListView() {
-  const { events } = usePlayer()
+  const { events, isLoading } = usePlayer()
+  /// The banner headlines whichever event is next — there is no "featured"
+  /// flag on the backend, and the list is already ordered by date.
+  const [featured] = events
   return (
     <>
       <div className="event-toolbar"><button className="is-active">Upcoming</button><button>Live now</button><button>Completed</button><div><Search size={17} /><input placeholder="Search events" /></div></div>
-      <div className="event-feature" style={{ backgroundImage: `linear-gradient(90deg, rgba(5,12,23,.95), rgba(5,12,23,.3)), url(${events[0].image})` }}><div><span>FEATURED · JULY 24</span><h2>Summer Slam<br />3v3</h2><p>32 teams. One trophy. Metro Manila’s most electric community tournament.</p><button className="button button--primary">View tournament →</button></div></div>
-      <div className="dashboard-section"><div className="section-title"><h2>All upcoming events</h2><span>{events.length} events</span></div><div className="cards-grid cards-grid--events">{events.map((event) => <EventCard event={event} key={event.id} />)}</div></div>
+      {featured && (
+        <div className="event-feature" style={{ backgroundImage: `linear-gradient(90deg, rgba(5,12,23,.95), rgba(5,12,23,.3))${featured.image ? `, url(${featured.image})` : ''}` }}>
+          <div>
+            <span>FEATURED · {featured.date}</span>
+            <h2>{featured.title}</h2>
+            <p>{featured.description || `${featured.capacity} slots. One trophy. ${featured.venue}.`}</p>
+            <button className="button button--primary">View tournament →</button>
+          </div>
+        </div>
+      )}
+      <div className="dashboard-section">
+        <div className="section-title"><h2>All upcoming events</h2><span>{events.length} events</span></div>
+        {isLoading ? <div className="cards-grid cards-grid--events">{Array.from({ length: 3 }, (_, i) => <div className="card-skeleton" key={i} />)}</div>
+          : events.length ? <div className="cards-grid cards-grid--events">{events.map((event) => <EventCard event={event} key={event.id} />)}</div>
+          : <p className="section-empty">No upcoming events scheduled.</p>}
+      </div>
     </>
   )
 }

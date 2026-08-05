@@ -12,7 +12,7 @@ export default function PublicFooter() {
       <div className="footer-sport-rail" aria-hidden="true"><i /><i /><i /><i /><i /></div>
       <div className="container footer-grid">
         <div className="footer-brand">
-          <Brand light />
+          <Brand light playerLogo />
           <p>Every court. Every player. One community built to keep Metro Manila moving.</p>
           <div className="footer-community">
             <span className="footer-community__avatars"><i>MS</i><i>RL</i><i>AK</i></span>

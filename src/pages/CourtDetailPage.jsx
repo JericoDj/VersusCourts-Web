@@ -9,10 +9,22 @@ const times = ['6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM']
 export default function CourtDetailPage() {
   const { courtId } = useParams()
   const navigate = useNavigate()
-  const { venues, favorites, toggleFavorite, setNotice } = usePlayer()
-  const venue = venues.find((item) => item.id === courtId) || venues[0]
+  const { venues, favorites, toggleFavorite, setNotice, isLoading } = usePlayer()
+  const venue = venues.find((item) => item.id === courtId)
   const [selectedTime, setSelectedTime] = useState('7:00 PM')
   const [booked, setBooked] = useState(false)
+
+  /// Deep links land here before the discovery feed has loaded, and a stale
+  /// link can point at a court that no longer exists — neither may crash.
+  if (!venue) {
+    return (
+      <>
+        <button className="back-link" onClick={() => navigate(-1)}><ArrowLeft size={17} /> Back to courts</button>
+        <p className="section-empty">{isLoading ? 'Loading court…' : 'That court is no longer listed.'}</p>
+      </>
+    )
+  }
+
   const saved = favorites.includes(venue.id)
   const book = () => { setBooked(true); setNotice(`Booking confirmed at ${venue.name} for ${selectedTime}`) }
 
