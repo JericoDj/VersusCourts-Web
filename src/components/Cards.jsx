@@ -15,20 +15,33 @@ export function SportPill({ sport, icon = true }) {
   )
 }
 
-export function VenueCard({ venue, compact = false }) {
+export function VenueCard({ venue, compact = false, onSelect }) {
   const { favorites, toggleFavorite } = usePlayer()
   const saved = favorites.includes(venue.id)
   return (
     <article className={`venue-card ${compact ? 'venue-card--compact' : ''}`}>
       <div className="venue-card__image" style={{ backgroundImage: `url(${venue.image})` }}>
         <span className="status-badge status-badge--white" style={{ '--badge-color': venue.open ? 'var(--vc-success)' : 'var(--vc-text-secondary)' }}>{venue.open ? 'OPEN NOW' : 'CLOSED'}</span>
-        <button className={`save-button ${saved ? 'is-saved' : ''}`} onClick={() => toggleFavorite(venue.id)} aria-label="Save court"><Heart size={18} fill={saved ? 'currentColor' : 'none'} /></button>
+        <button className={`save-button ${saved ? 'is-saved' : ''}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(venue.id) }} aria-label="Save court"><Heart size={18} fill={saved ? 'currentColor' : 'none'} /></button>
       </div>
       <div className="venue-card__body">
         <div><h3>{venue.name}</h3><span className="rating"><Star size={14} fill="currentColor" /> {venue.rating} <small>({venue.reviews})</small></span></div>
         <ul className="meta-dots"><li><MapPin size={14} /> {venue.area}</li><li>{venue.distance}</li><li>from ₱{venue.price}/hr</li></ul>
         <div className="card-pills">{venue.sports.map((sport) => <SportPill sport={sport} key={sport} />)}</div>
-        <div className="venue-card__footer"><span>From <b>₱{venue.price}</b> / hour</span><Link to={`/app/courts/${venue.id}`}>View court <span>↗</span></Link></div>
+        <div className="venue-card__footer">
+          <span>From <b>₱{venue.price}</b> / hour</span>
+          {onSelect ? (
+            <button
+              type="button"
+              style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+              onClick={() => onSelect(venue)}
+            >
+              Book court <span>↗</span>
+            </button>
+          ) : (
+            <Link to={`/app/courts/${venue.id}`}>View court <span>↗</span></Link>
+          )}
+        </div>
       </div>
     </article>
   )
