@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import logoTextDark from '../assets/logos/Logo_Text_No_Background (4).png'
+import logoTextDark from '../assets/logos/Logo_Text_No_Background (3).png'
 import logoTextLight from '../assets/logos/White Outline Text.png'
 import circularLogo from '../assets/logos/versus_courts_circular.png'
 

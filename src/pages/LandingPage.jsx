@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import PublicFooter from '../components/PublicFooter'
 import PublicHeader from '../components/PublicHeader'
+import StoreBadges from '../components/StoreBadges'
 
 const heroMessages = [
   { text: 'Join Queue / Open Play', body: 'Find upcoming games near you, match your level, and claim your spot.', color: 'var(--vc-accent)' },
@@ -107,6 +108,10 @@ export default function LandingPage() {
               <Link to="/queues" className="button button--primary hero-find-game">Find a game <ArrowRight size={18} /></Link>
               <Link to="/how-it-works" className="play-link"><span><Play fill="currentColor" size={15} /></span> See how it works</Link>
             </div>
+            <div className="hero-store-badges">
+              <span className="hero-store-badges__label">Download the Versus Courts mobile app</span>
+              <StoreBadges align="left" compact />
+            </div>
             <div className="hero-trust-row">
               <span className="info-pill"><Star size={14} fill="currentColor" /> 4.8 player rating</span>
               <span className="info-pill"><ShieldCheck size={14} /> 120+ verified courts</span>
@@ -137,7 +142,18 @@ export default function LandingPage() {
       </section>
 
       <section className="trust-strip"><div className="container"><div><ShieldCheck /><span><b>Verified venues</b><small>Quality courts, trusted operators</small></span></div><div><Sparkles /><span><b>One connected platform</b><small>Booking, play, events, and clubs</small></span></div><div><UsersRound /><span><b>Built for every player</b><small>From first-timers to competitors</small></span></div></div></section>
-      <section className="final-cta"><div className="container"><span className="eyebrow eyebrow--accent">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span><h2>READY TO<br /><em>STEP ON COURT?</em></h2><Link to="/queues" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link></div></section>
+      <section className="final-cta">
+        <div className="container">
+          <span className="eyebrow eyebrow--accent">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span>
+          <h2>READY TO<br /><em>STEP ON COURT?</em></h2>
+          <div className="final-cta__actions">
+            <Link to="/queues" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link>
+          </div>
+          <div className="final-cta__stores">
+            <StoreBadges align="center" />
+          </div>
+        </div>
+      </section>
       <PublicFooter />
     </div>
   )

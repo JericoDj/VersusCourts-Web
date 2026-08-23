@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Brand from './Brand'
 import ComingSoonDialog from './ComingSoonDialog'
+import StoreBadges from './StoreBadges'
 
 export default function PublicFooter() {
   const [comingSoon, setComingSoon] = useState('')
@@ -43,6 +44,10 @@ export default function PublicFooter() {
             <small>LAUNCH THE<br /><b>WEB PLAYER</b></small>
             <ArrowRight size={18} />
           </Link>
+          <div className="footer-store-badges">
+            <span className="footer-store-badges__label">DOWNLOAD THE APP</span>
+            <StoreBadges align="left" compact />
+          </div>
         </div>
       </div>
       <div className="container footer-bottom">

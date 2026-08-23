@@ -14,6 +14,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PublicFooter from '../components/PublicFooter'
 import PublicHeader from '../components/PublicHeader'
+import StoreBadges from '../components/StoreBadges'
 
 const playerSteps = [
   ['Create your player profile', 'Pick your sports and skill level so every recommendation starts with you.', 'profile'],
@@ -90,7 +91,24 @@ export default function HowItWorksPage() {
 
       <section className="how-faq"><div className="container"><div className="section-heading"><span className="eyebrow">PLAYER FAQ</span><h2>GOOD TO KNOW<br />BEFORE <em>GAME TIME.</em></h2></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}</div></div></section>
 
-      <section className="final-cta"><div className="container"><span className="eyebrow eyebrow--accent">{owner ? 'YOUR VENUE CAN DO MORE' : 'YOUR NEXT GAME IS CLOSER THAN YOU THINK'}</span><h2>{owner ? <>READY TO RUN<br /><em>SMARTER?</em></> : <>READY TO<br /><em>STEP ON COURT?</em></>}</h2>{owner ? <a href="mailto:hello@versuscourts.com" className="button button--primary button--large">Contact our team <ArrowRight size={18} /></a> : <Link to="/queues" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link>}</div></section>
+      <section className="final-cta">
+        <div className="container">
+          <span className="eyebrow eyebrow--accent">{owner ? 'YOUR VENUE CAN DO MORE' : 'YOUR NEXT GAME IS CLOSER THAN YOU THINK'}</span>
+          <h2>{owner ? <>READY TO RUN<br /><em>SMARTER?</em></> : <>READY TO<br /><em>STEP ON COURT?</em></>}</h2>
+          {owner ? (
+            <a href="mailto:hello@versuscourts.com" className="button button--primary button--large">Contact our team <ArrowRight size={18} /></a>
+          ) : (
+            <>
+              <div className="final-cta__actions">
+                <Link to="/queues" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link>
+              </div>
+              <div className="final-cta__stores">
+                <StoreBadges align="center" />
+              </div>
+            </>
+          )}
+        </div>
+      </section>
       <PublicFooter />
     </div>
   )

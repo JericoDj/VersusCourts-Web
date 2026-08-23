@@ -218,18 +218,36 @@ img { max-width: 100%; }
 .brand__name { font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
 .brand__name b { color: var(--vc-primary); }
 .brand__text-logo {
-  height: 23px;
+  height: 20px;
   width: auto;
-  max-width: 300px;
+  max-width: 280px;
   object-fit: contain;
   display: block;
 }
 .header-main .brand--player-logo {
-  gap: 6px;
+  gap: 8px;
+}
+.header-main .brand--player-logo .brand__mark--player-logo {
+  width: 52px;
+  height: 52px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  flex: none;
+}
+.header-main .brand--player-logo .brand__mark--player-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .header-main .brand--player-logo .brand__text-logo {
-  height: 25px;
-  max-width: 320px;
+  height: 20px;
+  max-width: 260px;
 }
 .brand--player-logo-stacked .brand__text-logo {
   height: 14.5px;
@@ -2207,6 +2225,87 @@ img { max-width: 100%; }
 .footer-bottom > span:last-child { display: flex; gap: 9px; }
 .footer-bottom i { font-style: normal; opacity: .45; }
 
+/* Store Badges */
+.store-badges {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.store-badges--center {
+  justify-content: center;
+}
+.store-badges--left {
+  justify-content: flex-start;
+}
+.store-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  text-decoration: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease, opacity 0.2s ease;
+  line-height: 0;
+  user-select: none;
+}
+.store-badge-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+.store-badge-btn:active {
+  transform: translateY(0);
+}
+.store-badge-btn--soon {
+  cursor: default;
+}
+.store-badge-btn--soon:hover {
+  transform: none;
+  filter: none;
+}
+.store-badge-img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+.store-badges--compact .store-badge-img {
+  height: 34px;
+}
+.hero-store-badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 24px;
+}
+.hero-store-badges__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--vc-text-secondary);
+  text-align: left;
+}
+.footer-store-badges {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.footer-store-badges__label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(255, 255, 255, 0.7);
+}
+.final-cta__stores {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+}
+
 .contact-dialog { width: min(640px, 100%); max-height: calc(100dvh - 48px); overflow: auto; }
 .contact-dialog > .eyebrow { color: var(--vc-text-secondary); }
 .contact-dialog h2 { margin: 8px 42px 5px 0; font-size: 25px; letter-spacing: -.035em; }
@@ -2682,6 +2781,8 @@ img { max-width: 100%; }
   .hero-grid { display: block; }
   .hero-copy { padding: 44px 0 4px; text-align: center; }
   .hero-kicker, .hero-actions, .hero-trust-row { justify-content: center; }
+  .hero-store-badges { margin-inline: auto; align-items: center; }
+  .hero-store-badges .store-badges { justify-content: center; }
   .hero-message-slot { margin-inline: auto; }
   .hero-stage { margin: 16px 0 52px; }
   .sports-ticker { gap: 18px; font-size: 12px; overflow: hidden; }
