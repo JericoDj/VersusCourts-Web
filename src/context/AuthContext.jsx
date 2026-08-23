@@ -125,30 +125,34 @@ export function AuthProvider({ children }) {
         .finally(() => setIsLoading(false))
     }
 
-    const unsubscribeFb = firebaseAuth.onAuthStateChanged(async (fbUser) => {
-      const currentToken = getToken()
-      if (fbUser && !currentToken) {
-        try {
-          const idToken = await fbUser.getIdToken()
-          const session = await request('/auth/firebase', {
-            method: 'POST',
-            body: JSON.stringify({ idToken, role: 'PLAYER' }),
-          })
-          if (fbUser.displayName || fbUser.photoURL) {
-            session.user = {
-              ...session.user,
-              name: session.user?.name || fbUser.displayName,
-              photoURL: fbUser.photoURL || session.user?.photoURL,
+    let unsubscribeFb = () => {}
+    const initTimer = setTimeout(() => {
+      unsubscribeFb = firebaseAuth.onAuthStateChanged(async (fbUser) => {
+        const currentToken = getToken()
+        if (fbUser && !currentToken) {
+          try {
+            const idToken = await fbUser.getIdToken()
+            const session = await request('/auth/firebase', {
+              method: 'POST',
+              body: JSON.stringify({ idToken, role: 'PLAYER' }),
+            })
+            if (fbUser.displayName || fbUser.photoURL) {
+              session.user = {
+                ...session.user,
+                name: session.user?.name || fbUser.displayName,
+                photoURL: fbUser.photoURL || session.user?.photoURL,
+              }
             }
+            startSession(session)
+          } catch (err) {
+            console.warn('Firebase auto-login error:', err)
           }
-          startSession(session)
-        } catch (err) {
-          console.warn('Firebase auto-login error:', err)
         }
-      }
-    })
+      })
+    }, 1200)
 
     return () => {
+      clearTimeout(initTimer)
       unsubscribeFb()
     }
   }, [clearSession, startSession])

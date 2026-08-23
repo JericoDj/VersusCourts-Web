@@ -19,6 +19,8 @@ export default function Brand({ light = false, compact = false, playerLogo = fal
             className={`brand__text-logo ${light ? 'brand__text-logo--light' : ''}`}
             width={light ? '180' : '150'}
             height="20"
+            fetchpriority={light ? 'low' : 'high'}
+            decoding="async"
           />
         ) : (
           <span className="brand__name">VERSUS <b>COURTS</b></span>
