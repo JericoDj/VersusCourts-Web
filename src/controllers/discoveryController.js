@@ -184,31 +184,50 @@ export function normalizeEvent(event) {
   }
 }
 
-/// `/courts/nearby` — radiusKm 100 is the provider's "unlimited" sentinel and
-/// widens to 5000, exactly as `_fetchCourts` does.
+/// `/courts/nearby` — safe radiusKm with graceful fallback on backend 500s.
 export async function fetchCourts({ lat, lng, radiusKm = 100, signal } = {}) {
-  const courts = await apiList('/courts/nearby', {
-    query: { lat, lng, radiusKm: radiusKm >= 100 ? 5000 : radiusKm },
-    signal,
-  })
-  return courts.map(normalizeCourt)
+  try {
+    const courts = await apiList('/courts/nearby', {
+      query: { lat, lng, radiusKm: radiusKm >= 100 ? 100 : radiusKm },
+      signal,
+    })
+    return courts.map(normalizeCourt)
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error
+    return []
+  }
 }
 
 /// `/clubs` with lat/lng so the backend can return a real per-club distanceKm.
 export async function fetchClubs({ lat, lng, signal } = {}) {
-  const clubs = await apiList('/clubs', { query: { lat, lng }, signal })
-  return clubs.map(normalizeClub)
+  try {
+    const clubs = await apiList('/clubs', { query: { lat, lng }, signal })
+    return clubs.map(normalizeClub)
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error
+    return []
+  }
 }
 
 /// `/clubs/mine` — needs a token; callers skip it when signed out.
 export async function fetchMyClubs({ lat, lng, signal } = {}) {
-  const clubs = await apiList('/clubs/mine', { query: { lat, lng }, signal })
-  return clubs.map(normalizeClub)
+  try {
+    const clubs = await apiList('/clubs/mine', { query: { lat, lng }, signal })
+    return clubs.map(normalizeClub)
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error
+    return []
+  }
 }
 
 export async function fetchEvents({ signal } = {}) {
-  const events = await apiList('/events', { signal })
-  return events.map(normalizeEvent)
+  try {
+    const events = await apiList('/events', { signal })
+    return events.map(normalizeEvent)
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error
+    return []
+  }
 }
 
 /// Favorited court ids, for the heart toggle. Signed-out callers skip this.
