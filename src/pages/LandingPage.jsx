@@ -103,7 +103,11 @@ export default function LandingPage() {
           <div className="hero-grid container">
             <div className="hero-copy" style={{ '--hero-accent': item.color }}>
               <span className="hero-kicker"><i /> PLAY • COMPETE • CONNECT <i /></span>
-              <h1 className="hero-type-heading" aria-label={item.text}><span aria-hidden="true">{text}</span><i className="hero-type-heading__caret" aria-hidden="true" /></h1>
+              <h1 className="hero-type-heading" aria-label="Book Courts, Join Queues &amp; Open Play">
+                <span className="sr-only">Book Courts, Join Queues &amp; Open Play — </span>
+                <span aria-hidden="true">{text}</span>
+                <i className="hero-type-heading__caret" aria-hidden="true" />
+              </h1>
               <div className="hero-message-slot" aria-live="polite"><p key={index} className={`hero-message ${bodyVisible ? 'is-visible' : ''}`}>{item.body}</p></div>
               <div className="hero-actions">
                 <Link to="/queues" className="button button--primary hero-find-game">Find a game <ArrowRight size={18} /></Link>
@@ -126,18 +130,18 @@ export default function LandingPage() {
 
         <section className="landing-section intro-section" id="community">
           <div className="container">
-            <div className="section-heading split-heading"><div><span className="eyebrow">EVERYTHING IN ONE PLACE</span><h2>MORE THAN A BOOKING APP.<br /><em>IT’S YOUR SPORTS WORLD.</em></h2></div><p>Versus Courts brings every part of your game together—from finding a venue to finding your next teammate.</p></div>
+            <div className="section-heading split-heading"><div><span className="eyebrow">EVERYTHING IN ONE PLACE</span><h2>MORE THAN A BOOKING APP. <br /><em>IT’S YOUR SPORTS WORLD.</em></h2></div><p>Versus Courts brings every part of your game together—from finding a venue to finding your next teammate.</p></div>
             <div className="feature-grid">
-              <article className="feature-card feature-card--large"><span className="icon-chip icon-chip--lg"><MapPin /></span><span className="number">01</span><h3>DISCOVER THE<br />RIGHT COURT</h3><p>Explore verified venues near you, compare rates, amenities, and live availability.</p><Link to="/venues">Explore venues <ArrowRight size={17} /></Link><div className="mini-map"><i className="map-pin map-pin--1">●</i><i className="map-pin map-pin--2">●</i><i className="map-pin map-pin--3">●</i><span>12 courts nearby</span></div></article>
-              <article className="feature-card feature-card--orange"><span className="icon-chip icon-chip--lg"><Zap /></span><span className="number">02</span><h3>JOIN OPEN<br />GAMES</h3><p>No team? No problem. Find queues that match your sport and skill level.</p><Link to="/queues">Find open play <ArrowRight size={17} /></Link><div className="game-chip"><span>FRI 7:30</span><b>Friday Night Runs</b><small>8 of 10 players</small><i><span /></i></div></article>
-              <article className="feature-card feature-card--green"><span className="icon-chip icon-chip--lg"><UsersRound /></span><span className="number">03</span><h3>BUILD YOUR<br />COMMUNITY</h3><p>Join clubs, enter tournaments, follow live scores, and grow your player profile.</p><Link to="/clubs">Meet the community <ArrowRight size={17} /></Link><div className="community-orbit"><span>MS</span><i>RL</i><i>AK</i><i>JM</i></div></article>
+              <article className="feature-card feature-card--large"><span className="icon-chip icon-chip--lg"><MapPin /></span><span className="number">01</span><h3>DISCOVER THE <br />RIGHT COURT</h3><p>Explore verified venues near you, compare rates, amenities, and live availability.</p><Link to="/venues">Explore venues <ArrowRight size={17} /></Link><div className="mini-map"><i className="map-pin map-pin--1">●</i><i className="map-pin map-pin--2">●</i><i className="map-pin map-pin--3">●</i><span>12 courts nearby</span></div></article>
+              <article className="feature-card feature-card--orange"><span className="icon-chip icon-chip--lg"><Zap /></span><span className="number">02</span><h3>JOIN OPEN <br />GAMES</h3><p>No team? No problem. Find queues that match your sport and skill level.</p><Link to="/queues">Find open play <ArrowRight size={17} /></Link><div className="game-chip"><span>FRI 7:30</span><b>Friday Night Runs</b><small>8 of 10 players</small><i><span /></i></div></article>
+              <article className="feature-card feature-card--green"><span className="icon-chip icon-chip--lg"><UsersRound /></span><span className="number">03</span><h3>BUILD YOUR <br />COMMUNITY</h3><p>Join clubs, enter tournaments, follow live scores, and grow your player profile.</p><Link to="/clubs">Meet the community <ArrowRight size={17} /></Link><div className="community-orbit"><span>MS</span><i>RL</i><i>AK</i><i>JM</i></div></article>
             </div>
           </div>
         </section>
 
         <section className="how-section" id="how-it-works">
           <div className="container how-grid">
-            <div><span className="eyebrow eyebrow--accent">HOW IT WORKS</span><h2>FROM SEARCH<br />TO <em>GAME ON.</em></h2><p>Three simple moves. One great game.</p><Link to="/how-it-works" className="button button--primary">See every step <ArrowRight size={17} /></Link></div>
+            <div><span className="eyebrow eyebrow--accent">HOW IT WORKS</span><h2>FROM SEARCH <br />TO <em>GAME ON.</em></h2><p>Three simple moves. One great game.</p><Link to="/how-it-works" className="button button--primary">See every step <ArrowRight size={17} /></Link></div>
             <div className="steps-list">{steps.map((step) => <article key={step.n}><span>{step.n}</span><div><h3>{step.title}</h3><p>{step.text}</p></div><ChevronRight /></article>)}</div>
           </div>
         </section>
@@ -146,7 +150,7 @@ export default function LandingPage() {
         <section className="final-cta">
           <div className="container">
             <span className="eyebrow eyebrow--accent">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span>
-            <h2>READY TO<br /><em>STEP ON COURT?</em></h2>
+            <h2>READY TO <br /><em>STEP ON COURT?</em></h2>
             <div className="final-cta__actions">
               <Link to="/queues" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link>
             </div>
