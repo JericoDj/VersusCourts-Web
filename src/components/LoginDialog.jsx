@@ -2,7 +2,8 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Eye, LockKeyhole, Mail, X } from '
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import Brand from './Brand'
+import circularLogo from '../assets/logos/versus_courts_circular.png'
+import authTextLogo from '../assets/logos/Logo_Text_No_Background.png'
 
 /// Sign-in / sign-up as a modal instead of a standalone route, so visitors
 /// never lose the page they were browsing to authenticate.
@@ -84,7 +85,7 @@ export default function LoginDialog({ open, onClose }) {
   }
 
   return (
-    <div className="dialog-overlay" onClick={onClose} role="presentation">
+    <div className="dialog-overlay dialog-overlay--auth" onClick={onClose} role="presentation">
       <div
         className="dialog auth-dialog"
         role="dialog"
@@ -93,7 +94,14 @@ export default function LoginDialog({ open, onClose }) {
         onClick={(event) => event.stopPropagation()}
       >
         <button className="dialog__close" onClick={onClose} aria-label="Close"><X size={18} /></button>
-        <div className="auth-dialog__brand"><Brand compact playerLogo /></div>
+        <div className="auth-dialog__brand">
+          <div className="auth-dialog__brand-lockup">
+            <div className="auth-dialog__circle">
+              <img src={circularLogo} alt="Versus Courts" />
+            </div>
+            <img src={authTextLogo} alt="Versus Courts" className="auth-dialog__text-logo" />
+          </div>
+        </div>
         {flow === 'auth' ? <>
           <h2>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h2>
           <p>{mode === 'login' ? 'Sign in to discover courts, join queues and book games.' : 'Join the community and find your next game.'}</p>
@@ -109,6 +117,29 @@ export default function LoginDialog({ open, onClose }) {
             {error && <p className="auth-error" role="alert">{error}</p>}
             <button className="button button--primary button--full" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'} {!isSubmitting && <ArrowRight size={17} />}</button>
           </form>
+          {mode === 'signup' ? (
+            <p className="auth-toggle-prompt">
+              Already have an account?{' '}
+              <button
+                type="button"
+                className="text-button text-button--link"
+                onClick={() => { setMode('login'); setError('') }}
+              >
+                Log in
+              </button>
+            </p>
+          ) : (
+            <p className="auth-toggle-prompt">
+              Don&apos;t have an account?{' '}
+              <button
+                type="button"
+                className="text-button text-button--link"
+                onClick={() => { setMode('signup'); setError('') }}
+              >
+                Sign up
+              </button>
+            </p>
+          )}
           <div className="auth-divider"><span>or</span></div>
           <div className="social-buttons"><button type="button" onClick={continueWithGoogle} disabled={isSubmitting}><img src="/google-g.svg" alt="" /> Continue with Google</button></div>
           <small>By continuing you agree to our Terms &amp; Privacy Policy.</small>

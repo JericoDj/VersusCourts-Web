@@ -2639,13 +2639,37 @@ img { max-width: 100%; }
   animation: dialogIn 180ms ease-out;
 }
 .auth-dialog { text-align: center; }
-.auth-dialog__brand { display: flex; justify-content: center; margin-bottom: 16px; }
-.auth-dialog__brand .brand__mark {
-  width: 58px; height: 58px; border-radius: var(--vc-radius-lg);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--vc-primary) 24%, transparent);
+.auth-dialog__brand { display: flex; justify-content: center; margin-bottom: 18px; }
+.auth-dialog__brand-lockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
-.auth-dialog__brand .brand__mark span { font-size: 25px; }
-.auth-dialog__brand .brand__mark--player-logo, .auth-dialog__brand .brand__mark--player-logo img { width: 64px; height: 64px; }
+.auth-dialog__circle {
+  width: 78px;
+  height: 78px;
+  background: #ffffff;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.09);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.05);
+  display: grid;
+  place-items: center;
+  padding: 6px;
+}
+.auth-dialog__circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.auth-dialog__text-logo {
+  height: 58px;
+  width: auto;
+  max-width: 250px;
+  object-fit: contain;
+  display: block;
+}
 .dialog__close {
   position: absolute; top: 14px; right: 14px;
   width: 34px; height: 34px; border-radius: 50%;
@@ -2660,6 +2684,7 @@ img { max-width: 100%; }
 .auth-dialog form { text-align: left; }
 .auth-error { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--vc-radius-sm); color: var(--vc-danger); background: color-mix(in srgb, var(--vc-danger) 8%, var(--vc-surface)); font-size: 12px; line-height: 1.4; }
 .auth-dialog .button:disabled { cursor: wait; opacity: .72; }
+.auth-dialog form > .button--primary { margin-top: 18px; }
 .auth-dialog form > label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; font-weight: 700; margin: 14px 0; }
 .auth-dialog input {
   border: 1px solid transparent; background: var(--vc-surface-alt);
@@ -2667,7 +2692,17 @@ img { max-width: 100%; }
 }
 .auth-dialog input:focus { border-color: var(--vc-primary); background: var(--vc-surface); }
 .auth-dialog .form-row input { width: auto; }
-.text-button { padding: 0; border: 0; color: var(--vc-primary); background: transparent; font: inherit; font-weight: 600; }
+.text-button { padding: 0; border: 0; color: var(--vc-primary); background: transparent; font: inherit; font-weight: 600; cursor: pointer; }
+.auth-dialog > p.auth-toggle-prompt,
+.auth-toggle-prompt {
+  margin: 22px auto 0 !important;
+  color: var(--vc-text-secondary);
+  font-size: 13.5px;
+  text-align: center;
+  display: block;
+}
+.auth-toggle-prompt .text-button { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.auth-toggle-prompt .text-button:hover { color: var(--vc-accent, #ff6b00); }
 .auth-back { display: inline-flex; align-items: center; gap: 7px; margin: 22px auto 0; padding: 0; border: 0; color: var(--vc-primary); background: transparent; font: inherit; font-size: 13px; font-weight: 700; }
 .auth-reset-success { display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 16px; border-radius: 50%; color: var(--vc-brand-green); background: color-mix(in srgb, var(--vc-brand-green) 12%, var(--vc-surface)); }
 .auth-dialog .auth-switch { margin: 22px 0 18px; }
@@ -2701,9 +2736,34 @@ img { max-width: 100%; }
 }
 
 @media (max-width: 850px) {
-  .dialog-overlay:not(.club-detail-overlay):not(.queue-detail-overlay) { place-items: end center; padding: 0; }
-  .dialog:not(.club-detail-dialog):not(.queue-detail-dialog) { width: 100%; border-radius: var(--vc-radius-lg) var(--vc-radius-lg) 0 0; padding: var(--vc-space-xl); }
+  .dialog-overlay:not(.club-detail-overlay):not(.queue-detail-overlay):not(.dialog-overlay--auth) {
+    place-items: end center;
+    padding: 0;
+  }
+  .dialog:not(.club-detail-dialog):not(.queue-detail-dialog):not(.auth-dialog) {
+    width: 100%;
+    border-radius: var(--vc-radius-lg) var(--vc-radius-lg) 0 0;
+    padding: var(--vc-space-xl);
+  }
+  .dialog-overlay--auth {
+    place-items: center;
+    padding: 16px;
+  }
+  .auth-dialog {
+    width: min(440px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+    border-radius: var(--vc-radius-lg);
+    padding: 24px 20px;
+    margin: auto;
+    animation: authDialogModalIn 200ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
   @keyframes dialogIn { from { transform: translateY(100%); } to { transform: none; } }
+}
+
+@keyframes authDialogModalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: none; }
 }
 
 @keyframes clubDetailDialogIn {
@@ -4020,4 +4080,110 @@ h1 em, h2 em { color: var(--em-color, var(--vc-primary)); }
   .legal-safety-card > span,
   .legal-contact > span { width: 40px; height: 40px; }
   .legal-contact { padding: 20px; grid-template-columns: 40px 1fr; gap: 12px; }
+}
+
+/* Splash Screen (Light Mode - Matching Mobile) */
+.app-splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  overflow: hidden;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s ease;
+  user-select: none;
+}
+
+.app-splash-screen--fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-splash-screen__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+}
+
+.app-splash-screen__circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  background: #ffffff;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 16px 38px rgba(37, 99, 235, 0.22), 0 4px 14px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  animation: splashPulseCircle 1.8s ease-in-out infinite alternate;
+  margin-bottom: 24px;
+}
+
+.app-splash-screen__icon {
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
+  display: block;
+}
+
+.app-splash-screen__text {
+  height: 72px;
+  width: auto;
+  max-width: min(88vw, 310px);
+  object-fit: contain;
+  margin-bottom: 18px;
+  animation: splashFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.app-splash-screen__tagline {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  background: linear-gradient(
+    90deg,
+    #64748b 0%,
+    #2563eb 50%,
+    #64748b 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: splashShimmer 2s linear infinite, splashFadeUp 0.8s ease forwards;
+}
+
+@keyframes splashPulseCircle {
+  0% {
+    transform: scale(0.97);
+    box-shadow: 0 14px 28px rgba(37, 99, 235, 0.15), 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  100% {
+    transform: scale(1.03);
+    box-shadow: 0 20px 48px rgba(37, 99, 235, 0.28), 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+}
+
+@keyframes splashFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }

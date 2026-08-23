@@ -101,7 +101,7 @@ export default function LandingPage() {
       <section className="hero-section">
         <div className="hero-grid container">
           <div className="hero-copy" style={{ '--hero-accent': item.color }}>
-            <span className="hero-kicker"><i /> DISCOVER • PLAY • CONNECT <i /></span>
+            <span className="hero-kicker"><i /> PLAY • COMPETE • CONNECT <i /></span>
             <h1 className="hero-type-heading" aria-label={item.text}><span aria-hidden="true">{text}</span><i className="hero-type-heading__caret" aria-hidden="true" /></h1>
             <div className="hero-message-slot" aria-live="polite"><p key={index} className={`hero-message ${bodyVisible ? 'is-visible' : ''}`}>{item.body}</p></div>
             <div className="hero-actions">
