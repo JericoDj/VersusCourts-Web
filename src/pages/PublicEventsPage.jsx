@@ -4,6 +4,7 @@ import { EventCard } from '../components/Cards'
 import DirectoryLayout from '../components/DirectoryLayout'
 import { usePlayer } from '../context/PlayerContext'
 import { SportFilterPills } from '../components/SportIcon'
+import '../styles/events.css'
 
 export default function PublicEventsPage() {
   const { allEvents: events } = usePlayer()

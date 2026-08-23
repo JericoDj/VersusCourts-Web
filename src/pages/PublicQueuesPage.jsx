@@ -5,6 +5,7 @@ import DirectoryLayout from '../components/DirectoryLayout'
 import QueueDetailDialog from '../components/QueueDetailDialog'
 import { useQueues } from '../context/QueueContext'
 import { SportFilterPills } from '../components/SportIcon'
+import '../styles/play.css'
 
 export default function PublicQueuesPage() {
   const { queues, isLoading, error, refreshQueues } = useQueues()

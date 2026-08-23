@@ -19,6 +19,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import ComingSoonDialog from '../components/ComingSoonDialog'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
+import '../styles/profile.css'
 
 /// PLACEHOLDER stats. Copied verbatim from the Flutter app's
 /// `MockData.currentUser.stats` (mock_data.dart:330) because the web API has no

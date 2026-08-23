@@ -8,6 +8,7 @@ import { useQueues } from '../context/QueueContext'
 import { SportGlyph } from '../components/SportIcon'
 import { activity } from '../data/mockData'
 import { sportLabel } from '../data/sports'
+import '../styles/play.css'
 
 /// Mirrors the Flutter play hub (play_hub_screen.dart:67-104) — same option order,
 /// copy and gradients. Reserve/Training are gated off in Flutter too, so they open

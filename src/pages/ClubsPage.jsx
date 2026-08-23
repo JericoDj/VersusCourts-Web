@@ -4,6 +4,7 @@ import { SportPill } from '../components/Cards'
 import { SportGlyph } from '../components/SportIcon'
 import { SPORTS } from '../data/sports'
 import { usePlayer } from '../context/PlayerContext'
+import '../styles/clubs.css'
 
 const DISTANCE_OPTIONS = [3, 5, 10, 25]
 const SPORT_CHIPS = SPORTS

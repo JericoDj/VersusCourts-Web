@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import AppActionPill from './AppActionPill'
 import AppBarTitle, { normalizePath, resolveAppBar } from './AppBarTitle'
 import NewsTicker from './NewsTicker'
+import '../styles/shell.css'
 
 /// The floating bottom bar is the only navigation at every breakpoint — five
 /// primary destinations, matching the Flutter HomeShell (home_shell.dart:229).

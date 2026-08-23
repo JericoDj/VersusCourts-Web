@@ -2,6 +2,7 @@ import { BellRing, CheckCircle2, Search, Sparkles, Trophy, Users } from 'lucide-
 import { Link } from 'react-router-dom'
 import { EventCard } from '../components/Cards'
 import { usePlayer } from '../context/PlayerContext'
+import '../styles/events.css'
 
 /// Mirrors Flutter's `AppConfig.enableEvents` (defaults to false), which makes
 /// /events render ComingSoonScreen instead of the events list. Flip to true

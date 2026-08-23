@@ -2,6 +2,7 @@ import { SlidersHorizontal } from 'lucide-react'
 import { VenueCard } from '../components/Cards'
 import { SportFilterPills } from '../components/SportIcon'
 import { usePlayer } from '../context/PlayerContext'
+import '../styles/play.css'
 
 export default function DiscoverPage() {
   const { sport, setSport, filteredVenues } = usePlayer()

@@ -5,6 +5,7 @@ import ClubDetailDialog from '../components/ClubDetailDialog'
 import DirectoryLayout from '../components/DirectoryLayout'
 import { usePlayer } from '../context/PlayerContext'
 import { SportFilterPills } from '../components/SportIcon'
+import '../styles/clubs.css'
 
 export default function PublicClubsPage() {
   // Clubs come from DiscoveryContext, which already fetches and normalizes

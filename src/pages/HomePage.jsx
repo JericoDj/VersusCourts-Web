@@ -4,6 +4,7 @@ import SectionFeed from '../components/SectionFeed'
 import { SportSelector } from '../components/SportIcon'
 import { usePlayer } from '../context/PlayerContext'
 import { useQueues } from '../context/QueueContext'
+import '../styles/play.css'
 
 export default function HomePage() {
   const { sport, setSport, filteredVenues, events, clubs, isLoading, hasLoadedOnce } = usePlayer()
