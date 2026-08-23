@@ -184,8 +184,14 @@ export function normalizeEvent(event) {
   }
 }
 
-/// `/courts/nearby` — safe radiusKm with graceful fallback on backend 500s.
+/// `/courts/nearby` — Backend endpoint is currently in development.
+/// Kept gated so 500 errors are not logged to the browser console.
+const ENABLE_COURTS_API = false
+
 export async function fetchCourts({ lat, lng, radiusKm = 100, signal } = {}) {
+  if (!ENABLE_COURTS_API) {
+    return []
+  }
   try {
     const courts = await apiList('/courts/nearby', {
       query: { lat, lng, radiusKm: radiusKm >= 100 ? 100 : radiusKm },

@@ -214,7 +214,7 @@ export async function fetchDiscoveryPlaces({
   const encodedLat = encodeURIComponent(lat)
   const encodedLng = encodeURIComponent(lng)
   const requests = await Promise.allSettled([
-    getJson(`/courts/nearby?lat=${encodedLat}&lng=${encodedLng}&radiusKm=100`, signal),
+    Promise.resolve([]),
     getJson(`/clubs?lat=${encodedLat}&lng=${encodedLng}`, signal),
     getJson('/queues', signal),
   ])
