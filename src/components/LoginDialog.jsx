@@ -97,9 +97,9 @@ export default function LoginDialog({ open, onClose }) {
         <div className="auth-dialog__brand">
           <div className="auth-dialog__brand-lockup">
             <div className="auth-dialog__circle">
-              <img src={circularLogo} alt="Versus Courts" width="78" height="78" />
+              <img src={circularLogo} alt="Versus Courts Logo" title="Versus Courts Logo" width="78" height="78" />
             </div>
-            <img src={authTextLogo} alt="Versus Courts" className="auth-dialog__text-logo" width="200" height="48" />
+            <img src={authTextLogo} alt="Versus Courts" title="Versus Courts" className="auth-dialog__text-logo" width="200" height="48" />
           </div>
         </div>
         {flow === 'auth' ? <>

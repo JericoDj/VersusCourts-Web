@@ -11,11 +11,13 @@ export default function StoreBadges({ className = '', align = 'left', compact = 
         target="_blank"
         rel="noopener noreferrer"
         className="store-badge-btn"
+        title="Download on the App Store"
         aria-label="Download Versus Courts on the App Store"
       >
         <img
           src={appStoreBadge}
           alt="Download on the App Store"
+          title="Download on the App Store"
           className="store-badge-img"
           loading="lazy"
           width="140"
@@ -24,12 +26,13 @@ export default function StoreBadges({ className = '', align = 'left', compact = 
       </a>
       <div
         className="store-badge-btn store-badge-btn--soon"
-        title="Coming soon to Google Play"
+        title="Coming Soon to Google Play"
         aria-label="Coming soon to Google Play"
       >
         <img
           src={googlePlayBadge}
           alt="Coming Soon to Google Play"
+          title="Coming Soon to Google Play"
           className="store-badge-img"
           loading="lazy"
           width="140"

@@ -9,13 +9,14 @@ export default function Brand({ light = false, compact = false, playerLogo = fal
   return (
     <Link to="/" className={`brand ${light ? 'brand--light' : ''} ${playerLogo ? 'brand--player-logo' : ''} ${stacked ? 'brand--player-logo-stacked' : ''}`} aria-label="Versus Courts home">
       <span className={`brand__mark ${playerLogo ? 'brand__mark--player-logo' : ''}`}>
-        {playerLogo ? <img src={circularLogo} alt="Versus Courts Logo" width="52" height="52" /> : <span>V</span>}
+        {playerLogo ? <img src={circularLogo} alt="Versus Courts Logo" title="Versus Courts Logo" width="52" height="52" /> : <span>V</span>}
       </span>
       {!compact && (
         textLogo ? (
           <img
             src={currentLogoText}
             alt="Versus Courts"
+            title="Versus Courts"
             className={`brand__text-logo ${light ? 'brand__text-logo--light' : ''}`}
             width={light ? '180' : '150'}
             height="20"
