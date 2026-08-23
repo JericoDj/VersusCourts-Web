@@ -1728,7 +1728,7 @@ img { max-width: 100%; }
 }
 .hero-message.is-visible { opacity: 1; transform: none; }
 .hero-copy h1 em, .business-hero h1 em, .how-section h2 em,
-.final-cta h2 em, .business-bottom-cta h2 em { color: var(--vc-primary); }
+.business-bottom-cta h2 em { color: var(--vc-primary); }
 .hero-copy p { font-size: 17px; line-height: 1.65; color: var(--vc-text-secondary); max-width: 540px; }
 .hero-actions { display: flex; align-items: center; gap: 26px; margin-top: 8px; }
 .hero-find-game { min-height: 48px; padding-inline: 24px; }
@@ -2141,10 +2141,16 @@ img { max-width: 100%; }
 .trust-strip small { color: #334155; font-size: 12px; font-weight: 500; }
 
 .final-cta {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.07), rgba(34, 197, 94, 0.07));
-  padding: 88px 0; text-align: center; color: var(--vc-text-primary);
-  border-top: 1px solid var(--vc-border);
+  background: linear-gradient(150deg, #0b172a 0%, #0f274a 55%, #052e16 100%);
+  padding: 96px 0; text-align: center; color: #ffffff;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  position: relative; overflow: hidden;
 }
+.final-cta .eyebrow--cta { color: #60a5fa; font-weight: 700; letter-spacing: 0.14em; font-size: 12px; }
+.final-cta h2 { color: #ffffff; font-size: clamp(36px, 4.5vw, 56px); line-height: 1.04; margin: 18px 0; letter-spacing: -0.045em; }
+.final-cta h2 em { color: #4ade80; font-style: normal; }
+.final-cta p { color: #e2e8f0; font-size: 16px; max-width: 520px; margin: 0 auto 36px; line-height: 1.6; }
+.final-cta__actions { display: flex; justify-content: center; gap: 16px; margin-bottom: 28px; }
 
 .public-footer {
   position: relative; background: #253554; color: rgba(255, 255, 255, 0.76);
@@ -3621,7 +3627,6 @@ h1 em, h2 em { color: var(--em-color, var(--vc-primary)); }
 .how-crosslinks p { margin: 0; color: var(--vc-text-secondary); font-size: 12px; line-height: 1.45; }
 .how-faq { --em-color: var(--vc-accent); }
 .how-page .final-cta { --em-color: var(--vc-accent); }
-.final-cta { background: var(--vc-surface); }
 
 @media (max-width: 850px) {
   .directory-hero__grid { grid-template-columns: 1fr; gap: 32px; }

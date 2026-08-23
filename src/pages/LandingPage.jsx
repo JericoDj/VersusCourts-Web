@@ -7,6 +7,7 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  Trophy,
   UsersRound,
   Zap,
 } from 'lucide-react'
@@ -134,7 +135,7 @@ export default function LandingPage() {
             <div className="feature-grid">
               <article className="feature-card feature-card--large"><span className="icon-chip icon-chip--lg"><MapPin /></span><span className="number">01</span><h3>DISCOVER THE <br />RIGHT COURT</h3><p>Explore verified venues near you, compare rates, amenities, and live availability.</p><Link to="/venues">Explore venues <ArrowRight size={17} /></Link><div className="mini-map"><i className="map-pin map-pin--1">●</i><i className="map-pin map-pin--2">●</i><i className="map-pin map-pin--3">●</i><span>12 courts nearby</span></div></article>
               <article className="feature-card feature-card--orange"><span className="icon-chip icon-chip--lg"><Zap /></span><span className="number">02</span><h3>JOIN OPEN <br />GAMES</h3><p>No team? No problem. Find queues that match your sport and skill level.</p><Link to="/queues">Find open play <ArrowRight size={17} /></Link><div className="game-chip"><span>FRI 7:30</span><b>Friday Night Runs</b><small>8 of 10 players</small><i><span /></i></div></article>
-              <article className="feature-card feature-card--green"><span className="icon-chip icon-chip--lg"><UsersRound /></span><span className="number">03</span><h3>BUILD YOUR <br />COMMUNITY</h3><p>Join clubs, enter tournaments, follow live scores, and grow your player profile.</p><Link to="/clubs">Meet the community <ArrowRight size={17} /></Link><div className="community-orbit"><span>MS</span><i>RL</i><i>AK</i><i>JM</i></div></article>
+              <article className="feature-card feature-card--green"><span className="icon-chip icon-chip--lg"><UsersRound /></span><span className="number">03</span><h3>BUILD YOUR <br />COMMUNITY</h3><p>Join clubs, enter tournaments, follow live scores, and grow your player profile.</p><Link to="/clubs">Meet the community <ArrowRight size={17} /></Link><div className="community-orbit"><span title="Community Hub"><UsersRound size={22} /></span><i title="Tournaments"><Trophy size={18} /></i><i title="Active Ratings"><Star size={18} /></i><i title="Matchmaking"><Zap size={18} /></i></div></article>
             </div>
           </div>
         </section>
@@ -149,8 +150,9 @@ export default function LandingPage() {
         <section className="trust-strip"><div className="container"><div><ShieldCheck /><span><b>Verified venues</b><small>Quality courts, trusted operators</small></span></div><div><Sparkles /><span><b>One connected platform</b><small>Booking, play, events, and clubs</small></span></div><div><UsersRound /><span><b>Built for every player</b><small>From first-timers to competitors</small></span></div></div></section>
         <section className="final-cta">
           <div className="container">
-            <span className="eyebrow eyebrow--accent">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span>
+            <span className="eyebrow eyebrow--cta">YOUR NEXT GAME IS CLOSER THAN YOU THINK</span>
             <h2>READY TO <br /><em>STEP ON COURT?</em></h2>
+            <p>Join thousands of players across Metro Manila discovering verified venues and open games every day.</p>
             <div className="final-cta__actions">
               <Link to="/queues" className="button button--primary button--large">Find your game <ArrowRight size={18} /></Link>
             </div>

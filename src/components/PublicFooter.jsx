@@ -1,4 +1,4 @@
-import { ArrowRight, Gamepad2, UsersRound } from 'lucide-react'
+import { Gamepad2, Star, Trophy, UsersRound } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Brand from './Brand'
@@ -16,7 +16,7 @@ export default function PublicFooter() {
           <Brand light playerLogo />
           <p>Every court. Every player. One community built to keep Metro Manila moving.</p>
           <div className="footer-community">
-            <span className="footer-community__avatars"><i>MS</i><i>RL</i><i>AK</i></span>
+            <span className="footer-community__avatars"><i><UsersRound size={13} /></i><i><Trophy size={13} /></i><i><Star size={13} /></i></span>
             <span><b>2,000+ players</b><small>already finding their game</small></span>
           </div>
         </div>
@@ -39,11 +39,6 @@ export default function PublicFooter() {
           <span className="footer-player__icon"><Gamepad2 size={20} /></span>
           <b>GET IN THE GAME</b>
           <p>Courts, queues, clubs and events—ready when you are.</p>
-          <Link className="footer-app-link" to="/app">
-            <span><UsersRound size={18} /></span>
-            <small>LAUNCH THE<br /><b>WEB PLAYER</b></small>
-            <ArrowRight size={18} />
-          </Link>
           <div className="footer-store-badges">
             <span className="footer-store-badges__label">DOWNLOAD THE APP</span>
             <StoreBadges align="left" compact />
