@@ -2,8 +2,8 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Eye, LockKeyhole, Mail, X } from '
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import circularLogo from '../assets/logos/versus_courts_circular.png'
-import authTextLogo from '../assets/logos/Logo_Text_No_Background.png'
+import circularLogo from '../assets/logos/versus_courts_circular.webp'
+import authTextLogo from '../assets/logos/Logo_Text_No_Background.webp'
 
 /// Sign-in / sign-up as a modal instead of a standalone route, so visitors
 /// never lose the page they were browsing to authenticate.
@@ -97,9 +97,9 @@ export default function LoginDialog({ open, onClose }) {
         <div className="auth-dialog__brand">
           <div className="auth-dialog__brand-lockup">
             <div className="auth-dialog__circle">
-              <img src={circularLogo} alt="Versus Courts" />
+              <img src={circularLogo} alt="Versus Courts" width="78" height="78" />
             </div>
-            <img src={authTextLogo} alt="Versus Courts" className="auth-dialog__text-logo" />
+            <img src={authTextLogo} alt="Versus Courts" className="auth-dialog__text-logo" width="200" height="48" />
           </div>
         </div>
         {flow === 'auth' ? <>

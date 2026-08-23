@@ -98,8 +98,13 @@ export function DiscoveryProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    const timer = window.setTimeout(requestLocation, 0)
-    return () => window.clearTimeout(timer)
+    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'granted') {
+          requestLocation()
+        }
+      }).catch(() => {})
+    }
   }, [requestLocation])
 
   const favoriteCourtIds = useMemo(

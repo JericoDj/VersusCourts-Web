@@ -1,5 +1,5 @@
-import appStoreBadge from '../assets/logos/Appstore_link.png'
-import googlePlayBadge from '../assets/logos/Soon_in_GooglePlay.png'
+import appStoreBadge from '../assets/logos/Appstore_link.webp'
+import googlePlayBadge from '../assets/logos/Soon_in_GooglePlay.webp'
 
 export const APP_STORE_URL = 'https://apps.apple.com/ph/app/versus-courts/id6782629486'
 
@@ -18,6 +18,8 @@ export default function StoreBadges({ className = '', align = 'left', compact = 
           alt="Download on the App Store"
           className="store-badge-img"
           loading="lazy"
+          width="140"
+          height="42"
         />
       </a>
       <div
@@ -30,6 +32,8 @@ export default function StoreBadges({ className = '', align = 'left', compact = 
           alt="Coming Soon to Google Play"
           className="store-badge-img"
           loading="lazy"
+          width="140"
+          height="42"
         />
       </div>
     </div>

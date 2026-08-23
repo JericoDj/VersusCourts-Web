@@ -68,7 +68,7 @@ export default function AppShell() {
               <>
                 <span className="mobile-nav-icon">
                   {featured
-                    ? <img src="/logo-clean.png" alt="" className="mobile-play-logo" />
+                    ? <img src="/logo-clean.webp" alt="" className="mobile-play-logo" width="24" height="24" />
                     : <Icon size={isActive ? 26 : 24} />}
                 </span>
                 <span className="app-bottom-nav__label">{label}</span>
