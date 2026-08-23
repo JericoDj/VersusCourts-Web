@@ -1,0 +1,23 @@
+# Versus Courts
+
+> Versus Courts is a sports court discovery, open play queue matchmaking, and venue booking platform in the Philippines for basketball, badminton, pickleball, tennis, and padel.
+
+## Core Pages
+
+- [Versus Courts Home](https://versuscourts.com/): Discover verified sports venues, find open play queues, tournaments, and sports communities.
+- [Venues & Court Discovery](https://versuscourts.com/venues): Search verified sports venues by sport, location, amenities, price, and live availability.
+- [Open Play Queues](https://versuscourts.com/queues): Browse upcoming open-play game queues and join matches matching your skill level.
+- [Sports Events & Tournaments](https://versuscourts.com/events): Community tournaments, leagues, live match scoring, brackets, and standings.
+- [Clubs & Communities](https://versuscourts.com/clubs): Meet local sports clubs, teams, and active player groups.
+- [How It Works](https://versuscourts.com/how-it-works): Player guide to finding courts, joining queues, and playing together.
+
+## Mobile Application
+
+- [iOS App on Apple App Store](https://apps.apple.com/ph/app/versus-courts/id6782629486): Download the official Versus Courts app for iOS.
+
+## Legal & Support
+
+- [Privacy Policy](https://versuscourts.com/privacy): Details on data protection, account privacy, and security practices.
+- [Terms of Service](https://versuscourts.com/terms): User agreement and platform rules for players and venue operators.
+- [Security](https://versuscourts.com/security): Security standards, authentication, and encryption protocols.
+- [Support](https://versuscourts.com/support): Help center and venue partner support.
