@@ -25,6 +25,9 @@ const QueuesPage = lazy(() => import('../pages/QueuesPage'))
 const BookingPage = lazy(() => import('../pages/BookingPage'))
 const EventsPage = lazy(() => import('../pages/EventsPage'))
 const ProfilePage = lazy(() => import('../pages/ProfilePage'))
+const MessagesPage = lazy(() => import('../pages/MessagesPage'))
+const NotificationsPage = lazy(() => import('../pages/NotificationsPage'))
+const ScoreboardPage = lazy(() => import('../pages/ScoreboardPage'))
 
 /// Gate for everything under /app. While a stored token is still being
 /// validated `isLoading` is true — render nothing rather than redirect, or a
@@ -55,11 +58,18 @@ export default function AppRoutes() {
           <Route index element={<HomePage />} />
           <Route path="discover" element={<DiscoverPage />} />
           <Route path="clubs" element={<ClubsPage />} />
+          <Route path="clubs/:clubId" element={<ClubsPage />} />
           <Route path="courts/:courtId" element={<CourtDetailPage />} />
           <Route path="queues" element={<QueuesPage />} />
+          <Route path="queues/:queueId" element={<QueuesPage />} />
           <Route path="bookings" element={<BookingPage />} />
+          <Route path="bookings/:bookingId" element={<BookingPage />} />
           <Route path="events" element={<EventsPage />} />
+          <Route path="messages" element={<MessagesPage />} />
+          <Route path="messages/:threadId" element={<MessagesPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="scoreboard" element={<ScoreboardPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -71,6 +71,9 @@ export function AuthProvider({ children }) {
   const clearSession = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
+    try {
+      localStorage.removeItem('vc_user_location')
+    } catch {}
     setUser(null)
   }, [])
 

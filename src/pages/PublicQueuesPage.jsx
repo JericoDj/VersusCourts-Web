@@ -14,11 +14,21 @@ export default function PublicQueuesPage() {
   const [window, setWindow] = useState('all')
   const [spotsOnly, setSpotsOnly] = useState(false)
   const [selectedQueue, setSelectedQueue] = useState(null)
-  const results = useMemo(() => queues.filter((queue) =>
-    (sport === 'all' || queue.sport === sport)
-    && (!spotsOnly || queue.players < queue.max)
-    && (window !== 'today' || !queue.time.toLowerCase().includes('sat'))
-    && `${queue.title} ${queue.venue} ${queue.level}`.toLowerCase().includes(query.toLowerCase())), [query, queues, spotsOnly, sport, window])
+  const publicActiveQueues = useMemo(
+    () => queues.filter((q) => !q.isTimePassed && !q.isFinished && !q.isPrivate),
+    [queues]
+  )
+  const results = useMemo(
+    () =>
+      publicActiveQueues.filter(
+        (queue) =>
+          (sport === 'all' || queue.sport === sport) &&
+          (!spotsOnly || queue.players < queue.max) &&
+          (window !== 'today' || !queue.time.toLowerCase().includes('sat')) &&
+          `${queue.title} ${queue.venue} ${queue.level}`.toLowerCase().includes(query.toLowerCase())
+      ),
+    [publicActiveQueues, query, spotsOnly, sport, window]
+  )
   const clear = () => { setQuery(''); setSport('all'); setWindow('all'); setSpotsOnly(false) }
   const accent = 'var(--vc-accent)'
   return (
@@ -28,8 +38,8 @@ export default function PublicQueuesPage() {
       title={<>THERE&apos;S ALWAYS<br />A <em>GAME ON.</em></>}
       lede="Join a public game, bring your energy, and meet your next teammates."
       stats={[
-        { value: queues.length, label: 'open games', icon: Zap, color: 'var(--vc-accent)' },
-        { value: queues.reduce((sum, queue) => sum + Math.max(0, queue.max - queue.players), 0), label: 'spots available', icon: UsersRound, color: 'var(--vc-brand-green)' },
+        { value: publicActiveQueues.length, label: 'open games', icon: Zap, color: 'var(--vc-accent)' },
+        { value: publicActiveQueues.reduce((sum, queue) => sum + Math.max(0, queue.max - queue.players), 0), label: 'spots available', icon: UsersRound, color: 'var(--vc-brand-green)' },
         { value: 'Tonight', label: 'next games', icon: Clock3, color: 'var(--vc-warning)' },
       ]}
       search={query}

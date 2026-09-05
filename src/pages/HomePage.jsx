@@ -1,4 +1,5 @@
-import { ClubCard, EventCard, QueueCard, VenueCard } from '../components/Cards'
+import { useNavigate } from 'react-router-dom'
+import { ClubCard, QueueCard } from '../components/Cards'
 import DiscoveryMap from '../components/DiscoveryMap'
 import SectionFeed from '../components/SectionFeed'
 import { SportSelector } from '../components/SportIcon'
@@ -7,7 +8,8 @@ import { useQueues } from '../context/QueueContext'
 import '../styles/play.css'
 
 export default function HomePage() {
-  const { sport, setSport, filteredVenues, events, clubs, isLoading, hasLoadedOnce } = usePlayer()
+  const navigate = useNavigate()
+  const { sport, setSport, clubs, isLoading, hasLoadedOnce } = usePlayer()
   const { queues, isLoading: queuesLoading } = useQueues()
   const sportQueues = sport === 'all' ? queues : queues.filter((queue) => queue.sport === sport)
   /// Only the very first load shows skeletons; later refreshes keep the
@@ -21,12 +23,6 @@ export default function HomePage() {
         <SportSelector value={sport} onChange={setSport} />
       </section>
       <SectionFeed
-        title="Nearby Courts" to="/app/discover" variant="venues"
-        loading={loading} items={filteredVenues.slice(0, 3)}
-        empty="No courts near you yet. Try widening your search radius."
-        render={(venue) => <VenueCard key={venue.id} venue={venue} />}
-      />
-      <SectionFeed
         title="Queue / Open Play" to="/app/queues" variant="queues"
         loading={queuesLoading} items={sportQueues.slice(0, 3)}
         empty="No open games right now. Check back soon."
@@ -36,13 +32,13 @@ export default function HomePage() {
         title="Popular Clubs Near You" to="/app/clubs" variant="clubs"
         loading={loading} items={clubs.slice(0, 3)}
         empty="No clubs in your area yet."
-        render={(club) => <ClubCard club={club} key={club.id} />}
-      />
-      <SectionFeed
-        title="Upcoming Events" to="/app/events" variant="events"
-        loading={loading} items={events.slice(0, 3)}
-        empty="No upcoming events scheduled."
-        render={(event) => <EventCard event={event} key={event.id} />}
+        render={(club) => (
+          <ClubCard
+            club={club}
+            key={club.id}
+            onOpen={() => navigate(`/app/clubs/${club.id}`)}
+          />
+        )}
       />
     </>
   )

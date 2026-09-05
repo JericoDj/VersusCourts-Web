@@ -1,13 +1,16 @@
-import { ArrowLeft, CalendarDays, ChevronDown, ChevronUp, Gamepad2, HelpCircle, LayoutDashboard, LogOut, MapPin, Search, TrendingUp, User, UsersRound, X, Zap } from 'lucide-react'
+import { ArrowLeft, CalendarDays, ChevronDown, ChevronRight, ChevronUp, Gamepad2, HelpCircle, LayoutDashboard, LogOut, MapPin, Search, TrendingUp, User, UsersRound, X, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import Brand from './Brand'
 import ComingSoonDialog from './ComingSoonDialog'
 import LoginDialog from './LoginDialog'
 import NewsTicker from './NewsTicker'
+import { SportPill } from './Cards'
+import UserProfileDialog from './UserProfileDialog'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import { useQueues } from '../context/QueueContext'
+import { searchPlayers } from '../data/userService'
 
 /// Primary destinations, surfaced directly in the bar rather than hidden
 /// behind a menu.
@@ -21,46 +24,156 @@ const highlights = [
 const searchTerms = ['courts', 'clubs', 'queues', 'open play']
 const trendingSearches = ['Elite Sports Center', 'Summer Slam 3v3', 'Metro Ballers', 'Smash Arena Badminton', 'Open Badminton Cup']
 const searchCategories = [
-  { id: 'all', label: 'All' }, { id: 'court', label: 'Courts' }, { id: 'club', label: 'Clubs' },
-  { id: 'player', label: 'Players' }, { id: 'event', label: 'Events' },
+  { id: 'all', label: 'All' },
+  { id: 'court', label: 'Courts' },
+  { id: 'club', label: 'Clubs' },
+  { id: 'queue', label: 'Queues' },
+  { id: 'player', label: 'Players' },
+  { id: 'event', label: 'Events' },
 ]
 
-function SearchResultList({ mobile = false, groups, hasResults, query, category, onSelect }) {
+function SearchResultItem({ result, onSelect }) {
+  const [imgFailed, setImgFailed] = useState(false)
+  const hasValidImg = Boolean(result.image && !imgFailed)
+  const ResultIcon =
+    result.kind === 'court'
+      ? MapPin
+      : result.kind === 'club'
+        ? UsersRound
+        : result.kind === 'player'
+          ? User
+          : result.kind === 'event'
+            ? CalendarDays
+            : Gamepad2
+
+  const formattedDate = useMemo(() => {
+    if (result.kind !== 'event' || !result.date) return null
+    try {
+      const d = new Date(result.date)
+      if (!isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }
+    } catch {}
+    return String(result.date)
+  }, [result.kind, result.date])
+
+  const handleClick = (e) => {
+    if (result.kind === 'player') {
+      e.preventDefault()
+    }
+    onSelect?.(result)
+  }
+
+  return (
+    <Link to={result.to} className="header-search__result-row" onClick={handleClick}>
+      <div className={`header-search__result-thumb header-search__result-thumb--${result.kind}`}>
+        {hasValidImg ? (
+          <img
+            src={result.image}
+            alt=""
+            onError={() => setImgFailed(true)}
+            className="header-search__result-img"
+          />
+        ) : result.kind === 'event' && formattedDate ? (
+          <div className="header-search__date-chip">
+            <span className="header-search__date-month">{formattedDate.split(' ')[0]}</span>
+            <span className="header-search__date-day">{formattedDate.split(' ')[1] || ''}</span>
+          </div>
+        ) : (
+          <div className="header-search__fallback-icon">
+            <ResultIcon size={18} />
+          </div>
+        )}
+      </div>
+
+      <div className="header-search__result-info">
+        <div className="header-search__result-title-row">
+          <span className="header-search__result-title">{result.label}</span>
+        </div>
+        <div className="header-search__result-subtitle">
+          {result.kind === 'club' && result.members > 0 && (
+            <span className="header-search__sub-stat">
+              <UsersRound size={11} /> {result.members} {result.members === 1 ? 'member' : 'members'} ·
+            </span>
+          )}
+          {result.meta && <span>{result.meta}</span>}
+        </div>
+      </div>
+
+      <div className="header-search__result-aside">
+        {result.distance && (
+          <span className="header-search__dist-badge">
+            <MapPin size={11} /> {result.distance}
+          </span>
+        )}
+        {result.kind === 'event' && (
+          <span className="header-search__event-chip">
+            {formattedDate || 'Upcoming'}
+          </span>
+        )}
+        {result.level && <span className="header-search__level-badge">{result.level}</span>}
+        {result.sport && <SportPill sport={result.sport} />}
+        <ChevronRight size={15} className="header-search__chevron" />
+      </div>
+    </Link>
+  )
+}
+
+function SearchResultList({ groups, hasResults, query, category, onSelect }) {
   if (!hasResults) {
     const categoryLabel = searchCategories.find((item) => item.id === category)?.label.toLowerCase()
-    return <p className="header-search__empty">No {category === 'all' ? 'matches' : `${categoryLabel} matches`} for “{query}”</p>
+    return (
+      <div className="header-search__empty">
+        <Search size={28} className="header-search__empty-icon" />
+        <p className="header-search__empty-title">
+          No {category === 'all' ? 'results' : `${categoryLabel} matches`} for “{query}”
+        </p>
+        <p className="header-search__empty-sub">
+          Try searching for a court name, sports club, area, or sport (e.g. Badminton, Quezon City).
+        </p>
+      </div>
+    )
   }
-  return groups.map((group) => (
-    <section className="search-result-group" key={group.id}>
-      <div className="search-result-group__heading"><b>{group.label}</b><span>{group.results.length}</span></div>
-      {group.results.map((result) => {
-        const ResultIcon = result.kind === 'court' ? MapPin : result.kind === 'club' || result.kind === 'player' ? UsersRound : result.kind === 'event' ? CalendarDays : Gamepad2
-        const dateParts = result.date?.split(' ') ?? []
-        if (result.kind === 'event') {
-          return (
-            <Link key={result.id} to={result.to} className="header-search__event-card" onClick={onSelect}>
-              <div className="header-search__event-banner"><img src={result.image} alt="" /><span>Upcoming</span></div>
-              <div className="header-search__event-body"><b className="header-search__event-title">{result.label}</b><p className="header-search__event-meta">{result.meta}</p></div>
-              {dateParts.length >= 2 && <div className="header-search__event-date"><span className="month">{dateParts[0]}</span><span className="day">{dateParts[1]}</span></div>}
-            </Link>
-          )
-        }
+
+  return (
+    <div className="header-search__groups-list">
+      {groups.map((group) => {
+        const GroupIcon =
+          group.id === 'court'
+            ? MapPin
+            : group.id === 'club'
+              ? UsersRound
+              : group.id === 'queue'
+                ? Gamepad2
+                : group.id === 'player'
+                  ? User
+                  : CalendarDays
         return (
-          <Link key={result.id} to={result.to} className={`header-search__result-item ${mobile ? 'is-mobile' : ''}`} onClick={onSelect}>
-            <div className="header-search__result-icon">{result.image ? <img src={result.image} alt="" /> : <ResultIcon size={16} />}</div>
-            <div className="header-search__result-details"><b className="header-search__result-title">{result.label}</b><p className="header-search__result-meta">{result.meta}</p></div>
-            {result.distance && <span className="header-search__result-badge">{result.distance}</span>}
-          </Link>
+          <section className="search-result-group" key={group.id}>
+            <div className="search-result-group__heading">
+              <div className="search-result-group__heading-left">
+                <GroupIcon size={13} />
+                <span>{group.label}</span>
+              </div>
+              <span className="search-result-group__count">{group.results.length}</span>
+            </div>
+            <div className="search-result-group__items">
+              {group.results.map((result) => (
+                <SearchResultItem key={result.id} result={result} onSelect={onSelect} />
+              ))}
+            </div>
+          </section>
         )
       })}
-    </section>
-  ))
+    </div>
+  )
 }
 
 export default function PublicHeader() {
-  const { venues, clubs, events, players } = usePlayer()
+  const { venues, clubs, events, allClubs, allEvents } = usePlayer()
   const { queues } = useQueues()
   const { user, signOut } = useAuth()
+  const [playerResults, setPlayerResults] = useState([])
   const [loginOpen, setLoginOpen] = useState(false)
   const [comingSoonLabel, setComingSoonLabel] = useState(null)
   const [accountOpen, setAccountOpen] = useState(false)
@@ -68,6 +181,7 @@ export default function PublicHeader() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchFocused, setSearchFocused] = useState(false)
   const [searchCategory, setSearchCategory] = useState('all')
+  const [viewingPlayer, setViewingPlayer] = useState(null)
   const [searchTermIndex, setSearchTermIndex] = useState(0)
   const [typedLength, setTypedLength] = useState(0)
   const [deletingSearchTerm, setDeletingSearchTerm] = useState(false)
@@ -75,6 +189,24 @@ export default function PublicHeader() {
   const searchInputRef = useRef(null)
   const mobileSearchInputRef = useRef(null)
   const accountRef = useRef(null)
+  const searchWrapRef = useRef(null)
+
+  const handleSelectSearchResult = (result) => {
+    if (result?.kind === 'player') {
+      setViewingPlayer(
+        result.playerData || {
+          id: result.rawId,
+          name: result.label,
+          username: result.meta?.replace(/^@/, ''),
+          avatarUrl: result.image,
+        }
+      )
+      setSearchFocused(false)
+      return
+    }
+    setSearchQuery('')
+    setSearchFocused(false)
+  }
 
   const avatarUrl = user?.photoURL || user?.avatarUrl
   const userPhoto = avatarUrl && failedAvatarUrl !== avatarUrl ? avatarUrl : null
@@ -89,6 +221,16 @@ export default function PublicHeader() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [accountOpen])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(event.target)) {
+        setSearchFocused(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const openSearch = () => {
     setSearchFocused(true)
@@ -140,28 +282,116 @@ export default function PublicHeader() {
     return () => window.clearTimeout(timer)
   }, [deletingSearchTerm, searchFocused, searchTermIndex, typedLength])
 
+  useEffect(() => {
+    const term = searchQuery.trim()
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      if (!term) {
+        setPlayerResults([])
+        return
+      }
+      searchPlayers(term, { signal: controller.signal }).then((res) => {
+        setPlayerResults(res || [])
+      })
+    }, 200)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [searchQuery])
+
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
     if (!query) return []
-    const includesQuery = (value) => value.toLowerCase().includes(query)
+    const tokens = query.split(/\s+/).filter(Boolean)
+    const matchesTokens = (text) => {
+      const lower = String(text || '').toLowerCase()
+      return tokens.every((token) => lower.includes(token))
+    }
+
+    const clubSource = allClubs?.length ? allClubs : clubs
+    const eventSource = allEvents?.length ? allEvents : events
+
     return [
       ...venues
-        .filter((venue) => includesQuery(`${venue.name} ${venue.area} ${venue.sports.join(' ')}`))
-        .map((venue) => ({ id: `court-${venue.id}`, kind: 'court', label: venue.name, meta: venue.area, distance: venue.distance, sports: venue.sports, image: venue.image, to: `/app/courts/${venue.id}` })),
-      ...clubs
-        .filter((club) => includesQuery(`${club.name} ${club.area} ${club.sport}`))
-        .map((club) => ({ id: `club-${club.id}`, kind: 'club', label: club.name, meta: club.area, members: club.members, sports: [club.sport], image: club.image, to: '/clubs' })),
+        .filter((venue) =>
+          matchesTokens(`${venue.name} ${venue.area} ${(venue.sports || []).join(' ')}`)
+        )
+        .map((venue) => ({
+          id: `court-${venue.id}`,
+          rawId: venue.id,
+          kind: 'court',
+          label: venue.name,
+          meta: venue.area,
+          distance: venue.distance || (venue.distanceKm ? `${Number(venue.distanceKm).toFixed(1)} km` : null),
+          sports: venue.sports,
+          sport: venue.sports?.[0] || 'badminton',
+          image: venue.image || venue.logoUrl,
+          to: `/app/courts/${venue.id}`,
+        })),
+      ...clubSource
+        .filter((club) =>
+          matchesTokens(
+            `${club.name} ${club.area} ${(club.sports || []).join(' ')} ${club.sport || ''}`
+          )
+        )
+        .map((club) => ({
+          id: `club-${club.id}`,
+          rawId: club.id,
+          kind: 'club',
+          label: club.name,
+          meta: club.area,
+          members:
+            club.membersCount ??
+            (Array.isArray(club.members) ? club.members.length : club.members ?? 0),
+          sports: club.sports || [club.sport],
+          sport: club.sports?.[0] || club.sport || 'badminton',
+          image: club.logoUrl || club.image || club.coverUrl,
+          to: `/clubs/${club.id}`,
+        })),
       ...queues
-        .filter((queue) => includesQuery(`${queue.title} ${queue.venue} ${queue.sport} ${queue.level}`))
-        .map((queue) => ({ id: `queue-${queue.id}`, kind: 'queue', label: queue.title, meta: queue.venue, sports: [queue.sport], to: '/queues' })),
-      ...players
-        .filter((player) => includesQuery(`${player.name} ${player.username} ${player.area}`))
-        .map((player) => ({ id: `player-${player.id}`, kind: 'player', label: player.name, meta: `@${player.username}`, sports: [`Lv ${player.level}`], image: player.image, to: '/app/profile' })),
-      ...events
-        .filter((event) => includesQuery(`${event.title} ${event.organizer} ${event.venue} ${event.sport}`))
-        .map((event) => ({ id: `event-${event.id}`, kind: 'event', label: event.title, meta: event.venue, date: event.date, sports: [event.sport], image: event.image, to: '/events' })),
+        .filter((queue) =>
+          matchesTokens(`${queue.title} ${queue.venue} ${queue.sport} ${queue.level}`)
+        )
+        .map((queue) => ({
+          id: `queue-${queue.id}`,
+          rawId: queue.id,
+          kind: 'queue',
+          label: queue.title,
+          meta: [queue.venue, queue.level].filter(Boolean).join(' · '),
+          sports: [queue.sport],
+          sport: queue.sport || 'badminton',
+          to: '/queues',
+        })),
+      ...playerResults.map((player) => ({
+        id: `player-${player.id}`,
+        rawId: player.id,
+        kind: 'player',
+        label: player.name,
+        meta: player.username ? `@${player.username}` : player.area,
+        level: player.level ? `Lv ${player.level}` : null,
+        sports: player.level ? [`Lv ${player.level}`] : [],
+        image: player.avatarUrl || player.photoURL || player.image,
+        to: '/app/profile',
+      })),
+      ...eventSource
+        .filter((event) =>
+          matchesTokens(`${event.title} ${event.organizer} ${event.venue} ${event.sport}`)
+        )
+        .map((event) => ({
+          id: `event-${event.id}`,
+          rawId: event.id,
+          kind: 'event',
+          label: event.title,
+          meta: [event.venue, event.organizer].filter(Boolean).join(' · '),
+          date: event.date || event.startsAt,
+          sports: [event.sport],
+          sport: event.sport || 'badminton',
+          image: event.coverUrl || event.bannerUrl || event.image,
+          to: '/events',
+        })),
     ]
-  }, [clubs, events, players, queues, searchQuery, venues])
+  }, [allClubs, allEvents, clubs, events, playerResults, queues, searchQuery, venues])
 
   const visibleSearchResults = useMemo(
     () => (searchCategory === 'all' ? searchResults : searchResults.filter((result) => result.kind === searchCategory)).slice(0, 20),
@@ -198,18 +428,18 @@ export default function PublicHeader() {
             <Brand playerLogo />
 
             <div className="header-actions">
-              <div className="header-search-wrap">
+              <div className="header-search-wrap" ref={searchWrapRef}>
                 <div className={`header-search is-open ${searchFocused ? 'is-active' : ''}`} role="search">
                   <input
                     ref={searchInputRef}
                     value={searchQuery}
                     onFocus={() => setSearchFocused(true)}
-                    onBlur={() => {
-                      if (!window.matchMedia('(max-width: 850px)').matches) setSearchFocused(false)
-                    }}
                     onChange={(event) => { setSearchQuery(event.target.value); setSearchCategory('all') }}
                     onKeyDown={(event) => {
-                      if (event.key === 'Escape') event.currentTarget.blur()
+                      if (event.key === 'Escape') {
+                        setSearchFocused(false)
+                        event.currentTarget.blur()
+                      }
                     }}
                     placeholder=""
                     aria-label="Search courts, clubs, queues, or open play"
@@ -219,7 +449,6 @@ export default function PublicHeader() {
                     type="button"
                     className="header-search__clear"
                     aria-label="Clear search"
-                    onMouseDown={(event) => event.preventDefault()}
                     onClick={() => setSearchQuery('')}
                   ><X size={15} /></button>}
                   <button
@@ -231,15 +460,44 @@ export default function PublicHeader() {
                     <Search size={18} />
                   </button>
                 </div>
-                {searchQuery.trim() && (
-                  <div className="header-search__results" role="listbox" aria-label="Matching courts">
-                    <div className="header-search__filters">{searchCategories.map((category) => <button type="button" key={category.id} className={searchCategory === category.id ? 'is-selected' : ''} onClick={() => setSearchCategory(category.id)}>{category.label}</button>)}</div>
-                    <div className={`search-result-groups ${searchResultGroups.length === 1 ? 'is-single' : ''}`}>
-                      {visibleSearchResults.length ? <>
-                        <div className="search-result-column"><SearchResultList groups={searchResultGroups.filter((_, index) => index % 2 === 0)} hasResults query={searchQuery} category={searchCategory} onSelect={() => setSearchQuery('')} /></div>
-                        <div className="search-result-column"><SearchResultList groups={searchResultGroups.filter((_, index) => index % 2 === 1)} hasResults query={searchQuery} category={searchCategory} onSelect={() => setSearchQuery('')} /></div>
-                      </> : <SearchResultList groups={[]} hasResults={false} query={searchQuery} category={searchCategory} onSelect={() => setSearchQuery('')} />}
+                {searchFocused && searchQuery.trim() && (
+                  <div className="header-search__results" role="listbox" aria-label="Search results">
+                    <div className="header-search__filters">
+                      {searchCategories.map((category) => {
+                        const count =
+                          category.id === 'all'
+                            ? searchResults.length
+                            : searchResults.filter((r) => r.kind === category.id).length
+                        return (
+                          <button
+                            type="button"
+                            key={category.id}
+                            className={searchCategory === category.id ? 'is-selected' : ''}
+                            onClick={() => setSearchCategory(category.id)}
+                          >
+                            <span>{category.label}</span>
+                            {count > 0 && <span className="header-search__filter-count">{count}</span>}
+                          </button>
+                        )
+                      })}
                     </div>
+                    <div className="search-result-content">
+                      <SearchResultList
+                        groups={searchResultGroups}
+                        hasResults={visibleSearchResults.length > 0}
+                        query={searchQuery}
+                        category={searchCategory}
+                        onSelect={handleSelectSearchResult}
+                      />
+                    </div>
+                    {visibleSearchResults.length > 0 && (
+                      <div className="header-search__footer">
+                        <span>
+                          {visibleSearchResults.length} {visibleSearchResults.length === 1 ? 'match' : 'matches'} found
+                        </span>
+                        <span className="header-search__footer-hint">Press Esc to close</span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -339,30 +597,58 @@ export default function PublicHeader() {
               </div>
             </div>
             {searchQuery.trim() ? (
-              <div className="mobile-search-results" role="listbox" aria-label="Matching courts">
-                <div className="header-search__filters">{searchCategories.map((category) => <button type="button" key={category.id} className={searchCategory === category.id ? 'is-selected' : ''} onClick={() => setSearchCategory(category.id)}>{category.label}</button>)}</div>
-                <div className="search-result-groups"><SearchResultList mobile groups={searchResultGroups} hasResults={visibleSearchResults.length > 0} query={searchQuery} category={searchCategory} onSelect={closeSearch} /></div>
-              </div>
-            ) : <>
-              <div className="mobile-search-panel__section">
-                <h2>Trending Searches</h2>
-                <div className="mobile-search-panel__trends">
-                  {trendingSearches.map((term) => (
-                    <button type="button" key={term} onClick={() => setSearchQuery(term)}>
-                      <TrendingUp size={16} /><span>{term}</span><i>↗</i>
-                    </button>
-                  ))}
+              <div className="mobile-search-results" role="listbox" aria-label="Search results">
+                <div className="header-search__filters">
+                  {searchCategories.map((category) => {
+                    const count =
+                      category.id === 'all'
+                        ? searchResults.length
+                        : searchResults.filter((r) => r.kind === category.id).length
+                    return (
+                      <button
+                        type="button"
+                        key={category.id}
+                        className={searchCategory === category.id ? 'is-selected' : ''}
+                        onClick={() => setSearchCategory(category.id)}
+                      >
+                        <span>{category.label}</span>
+                        {count > 0 && <span className="header-search__filter-count">{count}</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="search-result-content">
+                  <SearchResultList
+                    groups={searchResultGroups}
+                    hasResults={visibleSearchResults.length > 0}
+                    query={searchQuery}
+                    category={searchCategory}
+                    onSelect={handleSelectSearchResult}
+                  />
                 </div>
               </div>
-              <div className="mobile-search-panel__section">
-                <h2>Browse</h2>
-                <div className="mobile-search-panel__browse">
-                  <Link to="/venues" className="is-courts"><MapPin size={24} /><span>Courts</span></Link>
-                  <Link to="/clubs" className="is-clubs"><UsersRound size={24} /><span>Clubs</span></Link>
-                  <Link to="/queues" className="is-players"><UsersRound size={24} /><span>Players</span></Link>
+            ) : (
+              <>
+                <div className="mobile-search-panel__section">
+                  <h2>Trending Searches</h2>
+                  <div className="mobile-search-panel__trends">
+                    {trendingSearches.map((term) => (
+                      <button type="button" key={term} onClick={() => setSearchQuery(term)}>
+                        <TrendingUp size={16} /><span>{term}</span><i>↗</i>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </>}
+                <div className="mobile-search-panel__section">
+                  <h2>Browse</h2>
+                  <div className="mobile-search-panel__browse">
+                    <Link to="/venues" className="is-courts"><MapPin size={24} /><span>Courts</span></Link>
+                    <Link to="/clubs" className="is-clubs"><UsersRound size={24} /><span>Clubs</span></Link>
+                    <Link to="/queues" className="is-players"><UsersRound size={24} /><span>Players</span></Link>
+                  </div>
+                </div>
+              </>
+            )}
           </section>
         )}
 
@@ -393,6 +679,11 @@ export default function PublicHeader() {
       </header>
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
       <ComingSoonDialog open={!!comingSoonLabel} label={comingSoonLabel} onClose={() => setComingSoonLabel(null)} />
+      <UserProfileDialog
+        user={viewingPlayer}
+        open={Boolean(viewingPlayer)}
+        onClose={() => setViewingPlayer(null)}
+      />
     </>
   )
 }

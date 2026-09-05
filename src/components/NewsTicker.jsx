@@ -1,16 +1,48 @@
 import { MapPin, ShieldCheck, Sparkles, Ticket, UsersRound } from 'lucide-react'
+import { useMemo } from 'react'
+import { usePlayer } from '../context/PlayerContext'
+import { useQueue } from '../context/QueueContext'
 
-const items = [
-  { icon: MapPin, text: '24 courts open near Quezon City', color: 'var(--vc-primary)' },
-  { icon: UsersRound, text: '11 open games looking for players tonight', color: 'var(--vc-brand-green)' },
-  { icon: Ticket, text: 'Free to join — no booking fees, ever', color: 'var(--vc-accent)' },
-  { icon: ShieldCheck, text: 'Trusted by 2,000+ players across Metro Manila', color: 'var(--vc-sport-pickleball)' },
-  { icon: Sparkles, text: 'New: padel courts now live in BGC', color: 'var(--vc-sport-padel)' },
-]
-
-/// Scrolling announcement bar tucked under the floating app bar. The item
-/// list is rendered twice so the -50% translation loops seamlessly.
+/// Scrolling announcement bar tucked under the floating app bar.
+/// Powered by live counts of courts, queues, and clubs.
 export default function NewsTicker() {
+  const { venues = [], clubs = [] } = usePlayer() || {}
+  const { queues = [] } = useQueue() || {}
+
+  const items = useMemo(() => {
+    const venueCount = venues.length
+    const queueCount = queues.length
+    const clubCount = clubs.length
+
+    return [
+      {
+        icon: MapPin,
+        text: venueCount > 0 ? `${venueCount} sports venues & courts active` : 'Verified sports venues & courts',
+        color: 'var(--vc-primary)',
+      },
+      {
+        icon: UsersRound,
+        text: queueCount > 0 ? `${queueCount} open games & queues looking for players` : 'Open games & queue play across Metro Manila',
+        color: 'var(--vc-brand-green)',
+      },
+      {
+        icon: Ticket,
+        text: 'Free to join — no player membership fees, ever',
+        color: 'var(--vc-accent)',
+      },
+      {
+        icon: ShieldCheck,
+        text: clubCount > 0 ? `${clubCount} verified sports clubs & communities` : 'Verified sports clubs & communities',
+        color: 'var(--vc-sport-pickleball)',
+      },
+      {
+        icon: Sparkles,
+        text: 'Badminton, Pickleball, Basketball, Padel, Volleyball & more',
+        color: 'var(--vc-sport-padel)',
+      },
+    ]
+  }, [venues.length, queues.length, clubs.length])
+
   return (
     <div className="news-ticker">
       <div className="news-ticker__viewport">

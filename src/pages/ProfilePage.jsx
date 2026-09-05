@@ -21,11 +21,7 @@ import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import '../styles/profile.css'
 
-/// PLACEHOLDER stats. Copied verbatim from the Flutter app's
-/// `MockData.currentUser.stats` (mock_data.dart:330) because the web API has no
-/// player-stats endpoint yet. Swap this for the real source when one exists —
-/// everything below (XP, level, achievements) is DERIVED from it, never hardcoded.
-const PROFILE_STATS = { gamesPlayed: 86, wins: 54, losses: 32, hoursPlayed: 172 }
+const DEFAULT_STATS = { gamesPlayed: 0, wins: 0, losses: 0, hoursPlayed: 0 }
 
 const winRateOf = (stats) => (stats.gamesPlayed === 0 ? 0 : (stats.wins / stats.gamesPlayed) * 100)
 
@@ -63,7 +59,7 @@ const MENU_ITEMS = [
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth()
-  const { clubs, setNotice } = usePlayer()
+  const { myClubs = [], setNotice } = usePlayer()
   const navigate = useNavigate()
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [comingSoon, setComingSoon] = useState('')
@@ -81,7 +77,7 @@ export default function ProfilePage() {
     }
   }
 
-  const stats = PROFILE_STATS
+  const stats = user?.stats || DEFAULT_STATS
   const winRate = winRateOf(stats)
   const unlocked = unlockedFor(stats)
   const xp = unlocked.reduce((sum, a) => sum + a.xpReward, 0)
@@ -92,7 +88,6 @@ export default function ProfilePage() {
   const roles = user?.roles?.length ? user.roles : ['PLAYER']
   const bio = user?.bio?.trim()
   const area = (user?.location || '').split(',')[0]
-  const myClubs = clubs.slice(0, 2)
 
   const shareStats = async () => {
     const text = `${user?.name || 'I'} — ${stats.gamesPlayed} games, ${stats.wins} wins, ${winRate.toFixed(0)}% win rate on Versus Courts.`

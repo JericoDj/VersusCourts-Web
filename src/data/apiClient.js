@@ -23,12 +23,17 @@ export async function apiRequest(path, { query, auth = true, signal, ...options 
   const token = auth ? authToken() : null
   let response
   try {
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
+    const isObject = options.body && typeof options.body === 'object' && !isFormData
+    const body = isObject ? JSON.stringify(options.body) : options.body
+
     response = await fetch(`${API_BASE}${path}${buildQuery(query)}`, {
       ...options,
+      body,
       signal,
       headers: {
         Accept: 'application/json',
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(isFormData ? {} : options.body ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },

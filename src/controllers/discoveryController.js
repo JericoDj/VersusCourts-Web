@@ -7,7 +7,7 @@ import { apiList, apiRequest } from '../data/apiClient'
 import { sportFromApi } from '../data/sports'
 
 /// Same default the Flutter provider starts from (Quezon City).
-export const DEFAULT_LOCATION = { lat: 14.676, lng: 121.0437, label: 'Quezon City, Philippines' }
+export const DEFAULT_LOCATION = { lat: 14.676, lng: 121.0437, label: 'Quezon City, Metro Manila' }
 
 /// Flutter's radius chips. 100 means "no limit" there too, which is why the
 /// request widens to 5000km rather than sending 100.
@@ -138,7 +138,7 @@ export function normalizeClub(club) {
     latitude: num(club.lat) ?? num(club.latitude),
     longitude: num(club.lng) ?? num(club.longitude),
     image: club.bannerUrl || club.logoUrl || '',
-    logoUrl: club.logoUrl || '',
+    logoUrl: club.logoUrl || club.logo || club.avatarUrl || '',
     initials: initialsOf(club.name),
     about: club.about || '',
     visibility: String(club.visibility || 'PUBLIC').toUpperCase(),
@@ -275,24 +275,29 @@ export function toMapPlaces({ businesses = [], clubs = [], queues = [] } = {}) {
     to: `/app/courts/${business.id}`,
   }))
 
-  const clubPlaces = clubs.filter(hasCoordinates).map((club) => ({
-    id: club.id,
-    kind: 'club',
-    label: club.name,
-    logoUrl: club.logoUrl,
-    coverUrl: club.image,
-    lat: club.latitude,
-    lng: club.longitude,
-    sports: club.sports.map((sport) => titleCase(sport)),
-    members: club.members,
-    rating: club.rating,
-    area: club.area,
-    isPrivate: club.private,
-    meta: `${club.members.toLocaleString()} member${club.members === 1 ? '' : 's'}${
-      club.sports[0] ? ` · ${titleCase(club.sports[0])}` : ''
-    }`,
-    to: `/clubs?club=${club.id}`,
-  }))
+  const clubPlaces = clubs.filter(hasCoordinates).map((club) => {
+    const rawSport = club.sport || (club.sports?.[0] ? String(club.sports[0]).toLowerCase() : 'basketball')
+    return {
+      id: club.id,
+      kind: 'club',
+      label: club.name,
+      logoUrl: club.logoUrl || club.logo || club.avatarUrl || '',
+      coverUrl: club.image,
+      lat: club.latitude,
+      lng: club.longitude,
+      sport: rawSport,
+      sports: club.sports.map((sport) => titleCase(sport)),
+      rawSports: club.sports,
+      members: club.members,
+      rating: club.rating,
+      area: club.area,
+      isPrivate: club.private,
+      meta: `${club.members.toLocaleString()} member${club.members === 1 ? '' : 's'}${
+        club.sports[0] ? ` · ${titleCase(club.sports[0])}` : ''
+      }`,
+      to: `/clubs?club=${club.id}`,
+    }
+  })
 
   /// Only queues that are still joinable and still in the future earn a pin.
   const now = Date.now()
@@ -302,6 +307,7 @@ export function toMapPlaces({ businesses = [], clubs = [], queues = [] } = {}) {
     const lng = num(branch.lng)
     const startsAt = new Date(queue.startTime).getTime()
     if (!Number.isFinite(startsAt) || startsAt <= now) return []
+    if (queue.isTimePassed || queue.isHiddenFromPublic || queue.isPrivate) return []
     if (!['OPEN', 'FULL'].includes(queue.status)) return []
     if (lat === null || lng === null || lat === 0 || lng === 0) return []
     const spotsLeft = Math.max(0, (queue.max || 0) - (queue.players || 0))
@@ -311,6 +317,7 @@ export function toMapPlaces({ businesses = [], clubs = [], queues = [] } = {}) {
       label: queue.title,
       lat,
       lng,
+      sport: queue.sport ? String(queue.sport).toLowerCase() : '',
       sports: [titleCase(queue.sport)],
       venue: queue.venue,
       startTime: queue.startTime,

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { players } from '../data/mockData'
 import { useDiscovery } from './DiscoveryContext'
+
+const players = []
 
 /// Player-facing view state — the selected sport, search text, saved courts
 /// and transient notices. The underlying courts/clubs/events come from

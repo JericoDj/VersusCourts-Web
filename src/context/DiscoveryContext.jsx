@@ -10,6 +10,7 @@ import {
   setCourtFavorite,
 } from '../controllers/discoveryController'
 import { authToken } from '../data/apiClient'
+import { reverseGeocodeLatLng } from '../data/googleMapsLoader'
 import { useAuth } from './AuthContext'
 
 /// Holds the live discovery feed — courts, clubs and events straight from the
@@ -20,9 +21,20 @@ const DiscoveryContext = createContext(null)
 
 const EMPTY = { courts: [], clubs: [], myClubs: [], events: [], favoriteCourts: [] }
 
+function readStoredLocation() {
+  try {
+    const raw = localStorage.getItem('vc_user_location')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed?.lat && parsed?.lng) return parsed
+    }
+  } catch {}
+  return null
+}
+
 export function DiscoveryProvider({ children }) {
   const { user } = useAuth()
-  const [location, setLocation] = useState(DEFAULT_LOCATION)
+  const [location, setLocationState] = useState(() => readStoredLocation() || DEFAULT_LOCATION)
   const [radiusKm, setRadiusKmState] = useState(100)
   const [data, setData] = useState(EMPTY)
   const [isLoading, setIsLoading] = useState(true)
@@ -34,6 +46,34 @@ export function DiscoveryProvider({ children }) {
   /// Widest radius actually fetched. Narrowing filters the cache client-side
   /// instead of refetching, matching the Flutter provider's `_loadedRadiusKm`.
   const loadedRadiusKm = useRef(100)
+
+  const setLocation = useCallback((next) => {
+    setLocationState((prev) => {
+      const resolved = typeof next === 'function' ? next(prev) : next
+      try {
+        if (resolved?.lat && resolved?.lng) {
+          localStorage.setItem('vc_user_location', JSON.stringify(resolved))
+        }
+      } catch {}
+      return resolved
+    })
+  }, [])
+
+  const clearStoredLocation = useCallback(() => {
+    try {
+      localStorage.removeItem('vc_user_location')
+    } catch {}
+    setLocationState(DEFAULT_LOCATION)
+  }, [])
+
+  // Clear stored location when user logs out
+  const prevUserRef = useRef(user)
+  useEffect(() => {
+    if (prevUserRef.current && !user) {
+      clearStoredLocation()
+    }
+    prevUserRef.current = user
+  }, [clearStoredLocation, user])
 
   const refresh = useCallback(async ({ signal, radius } = {}) => {
     const requested = radius ?? loadedRadiusKm.current
@@ -79,29 +119,112 @@ export function DiscoveryProvider({ children }) {
     if (next > loadedRadiusKm.current) refresh({ radius: next })
   }, [refresh])
 
-  const requestLocation = useCallback(() => {
-    if (!navigator.geolocation) {
+  const [permissionModalOpen, setPermissionModalOpen] = useState(false)
+  const [permissionModalError, setPermissionModalError] = useState('permission_denied')
+  const requestingTimeoutRef = useRef(null)
+
+  const requestLocation = useCallback((opts = {}) => {
+    const { silent = false } = opts
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
       setLocationStatus('unsupported')
+      if (!silent) {
+        setPermissionModalError('unsupported')
+        setPermissionModalOpen(true)
+      }
       return
     }
+
+    if (requestingTimeoutRef.current) {
+      clearTimeout(requestingTimeoutRef.current)
+    }
+
     setLocationStatus('requesting')
+
+    // Safety watchdog: ensure locationStatus never gets stuck on 'requesting'
+    requestingTimeoutRef.current = setTimeout(() => {
+      setLocationStatus((current) => (current === 'requesting' ? 'unavailable' : current))
+    }, 9000)
+
+    const handleSuccess = async ({ coords }) => {
+      if (requestingTimeoutRef.current) {
+        clearTimeout(requestingTimeoutRef.current)
+        requestingTimeoutRef.current = null
+      }
+      setLocationStatus('granted')
+      setPermissionModalOpen(false)
+
+      let label = 'Current Location'
+      try {
+        const resolved = await reverseGeocodeLatLng(coords.latitude, coords.longitude)
+        if (resolved?.area) {
+          label = resolved.area
+        } else if (resolved?.formattedAddress) {
+          label = resolved.formattedAddress.split(',')[0]
+        }
+      } catch (err) {
+        console.warn('Reverse geocode failed:', err)
+      }
+
+      setLocation({ lat: coords.latitude, lng: coords.longitude, label })
+    }
+
+    const handleError = (err) => {
+      if (requestingTimeoutRef.current) {
+        clearTimeout(requestingTimeoutRef.current)
+        requestingTimeoutRef.current = null
+      }
+      console.warn('Geolocation error:', err)
+      const isDenied = err?.code === 1 // PERMISSION_DENIED
+      setLocationStatus(isDenied ? 'denied' : 'unavailable')
+
+      if (!silent) {
+        setPermissionModalError(isDenied ? 'permission_denied' : 'unavailable')
+        setPermissionModalOpen(true)
+      }
+    }
+
+    // Call geolocation.
+    // On Mac / desktop PCs without GPS, enableHighAccuracy: false avoids GPS timeout.
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        setLocationStatus('granted')
-        setLocation({ lat: coords.latitude, lng: coords.longitude, label: 'Your location' })
+      handleSuccess,
+      (firstError) => {
+        if (firstError?.code === 1) {
+          // If explicitly denied, do not retry — show permission prompt modal
+          handleError(firstError)
+          return
+        }
+        // If timed out or unavailable, retry with low accuracy (Wi-Fi/IP location)
+        navigator.geolocation.getCurrentPosition(
+          handleSuccess,
+          handleError,
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+        )
       },
-      (positionError) => {
-        setLocationStatus(positionError.code === positionError.PERMISSION_DENIED ? 'denied' : 'unavailable')
-      },
-      { enableHighAccuracy: false, maximumAge: 300000, timeout: 10000 },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
     )
-  }, [])
+  }, [setLocation])
 
   useEffect(() => {
-    if (typeof navigator !== 'undefined' && navigator.permissions?.query) {
+    // Only check if no location in local storage
+    const stored = readStoredLocation()
+    if (stored) return
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return
+
+    // If browser permissions API is supported, check if permission is already granted
+    if (navigator.permissions?.query) {
       navigator.permissions.query({ name: 'geolocation' }).then((result) => {
         if (result.state === 'granted') {
-          requestLocation()
+          requestLocation({ silent: true })
+        } else if (result.state === 'denied') {
+          setLocationStatus('denied')
+        }
+        result.onchange = () => {
+          if (result.state === 'granted') {
+            requestLocation({ silent: true })
+          } else if (result.state === 'denied') {
+            setLocationStatus('denied')
+          }
         }
       }).catch(() => {})
     }
@@ -164,8 +287,12 @@ export function DiscoveryProvider({ children }) {
     toggleFavoriteCourt,
     location,
     setLocation,
+    clearStoredLocation,
     locationStatus,
     requestLocation,
+    permissionModalOpen,
+    permissionModalError,
+    setPermissionModalOpen,
     radiusKm,
     setRadiusKm,
     isLoading,
@@ -173,8 +300,8 @@ export function DiscoveryProvider({ children }) {
     error,
     refresh,
   }), [
-    businesses, courtsInRadius, data, error, favoriteCourtIds, hasLoadedOnce, isLoading,
-    location, locationStatus, radiusKm, refresh, requestLocation, setRadiusKm, toggleFavoriteCourt,
+    businesses, clearStoredLocation, courtsInRadius, data, error, favoriteCourtIds, hasLoadedOnce, isLoading,
+    location, locationStatus, permissionModalError, permissionModalOpen, radiusKm, refresh, requestLocation, setLocation, setRadiusKm, toggleFavoriteCourt,
   ])
 
   return <DiscoveryContext.Provider value={value}>{children}</DiscoveryContext.Provider>

@@ -111,15 +111,18 @@ function normalizeClubs(clubs) {
     if (!hasCoordinates(lat, lng)) return []
     const members = Number(club._count?.members ?? club.members ?? 0)
     const sports = (club.sports || []).map(titleCase)
+    const sport = club.sport ? String(club.sport).toLowerCase() : (club.sports?.[0] ? String(club.sports[0]).toLowerCase() : 'badminton')
     return [{
       id: club.id,
       kind: 'club',
       label: club.name || 'Sports club',
-      logoUrl: club.logoUrl || '',
+      logoUrl: club.logoUrl || club.logo || club.avatarUrl || '',
       coverUrl: club.bannerUrl || '',
       lat,
       lng,
       sports,
+      sport,
+      rawSports: club.sports || [],
       members,
       rating: asNumber(club.rating) ?? 0,
       area: club.area || '',

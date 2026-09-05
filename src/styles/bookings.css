@@ -1,0 +1,435 @@
+/* bookings.css — My Bookings styling matching VersusCourts-Player MyBookingsScreen */
+
+.bookings-page {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.bookings-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.bookings-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-pill);
+  background: var(--vc-surface);
+  color: var(--vc-text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.bookings-back-button:hover {
+  color: var(--vc-text-primary);
+  border-color: var(--vc-text-tertiary);
+}
+
+.bookings-back-button:focus-visible {
+  outline: 3px solid var(--vc-primary);
+  outline-offset: 3px;
+}
+
+.bookings-refresh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-pill);
+  background: var(--vc-surface);
+  color: var(--vc-text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.bookings-refresh-button:hover {
+  color: var(--vc-primary);
+  border-color: var(--vc-primary);
+}
+
+.bookings-refresh-button.is-spinning svg {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Tabs row matching Flutter TabBar */
+.bookings-tabs-container {
+  border-bottom: 1px solid var(--vc-border);
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bookings-tabs {
+  display: flex;
+  gap: 4px;
+  min-width: max-content;
+}
+
+.bookings-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--vc-text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+.bookings-tab:hover {
+  color: var(--vc-text-primary);
+}
+
+.bookings-tab.is-active {
+  color: var(--vc-primary);
+  border-bottom-color: var(--vc-primary);
+  font-weight: 700;
+}
+
+.bookings-tab-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--vc-danger, #ef4444);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Content list */
+.bookings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding-bottom: 40px;
+}
+
+/* Section */
+.bookings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bookings-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bookings-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--vc-text-primary);
+  margin: 0;
+}
+
+.bookings-section-title svg {
+  color: var(--vc-primary);
+  flex-shrink: 0;
+}
+
+.bookings-toggle-all {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  color: var(--vc-primary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: var(--vc-radius-sm, 6px);
+  transition: background-color 0.15s ease;
+}
+
+.bookings-toggle-all:hover {
+  background: rgba(37, 99, 235, 0.08);
+}
+
+/* Empty note */
+.bookings-empty-note {
+  width: 100%;
+  padding: 18px 14px;
+  background: var(--vc-surface-alt, #f8fafc);
+  border-radius: var(--vc-radius-md, 12px);
+  text-align: center;
+  color: var(--vc-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* Card list */
+.bookings-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Common Card style (port of AppCard) */
+.booking-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-lg, 16px);
+  background: var(--vc-surface, #fff);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.booking-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--vc-shadow-card-hover, 0 8px 24px rgba(15, 23, 42, 0.08));
+  border-color: var(--vc-text-tertiary);
+}
+
+.booking-card:focus-visible {
+  outline: 3px solid var(--vc-primary);
+  outline-offset: 2px;
+}
+
+/* Sport Icon box */
+.booking-card__sport-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--vc-radius-md, 12px);
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* Body column */
+.booking-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.booking-card__title {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--vc-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.booking-card__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: var(--vc-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.booking-card__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--vc-text-secondary);
+  margin-top: 1px;
+}
+
+.booking-card__row svg {
+  flex-shrink: 0;
+  color: var(--vc-text-secondary);
+}
+
+.booking-card__row--time {
+  font-weight: 600;
+  color: var(--vc-text-primary);
+}
+
+/* Badges column on reservation card */
+.booking-card__badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: none;
+}
+
+/* Status badge (port of StatusBadge) */
+.booking-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: var(--vc-radius-pill, 9999px);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.booking-status-badge__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.booking-status-badge--upcoming {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--vc-primary, #2563eb);
+}
+.booking-status-badge--upcoming .booking-status-badge__dot {
+  background: var(--vc-primary, #2563eb);
+}
+
+.booking-status-badge--completed {
+  background: rgba(22, 163, 74, 0.12);
+  color: var(--vc-success, #16a34a);
+}
+.booking-status-badge--completed .booking-status-badge__dot {
+  background: var(--vc-success, #16a34a);
+}
+
+.booking-status-badge--cancelled {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--vc-danger, #ef4444);
+}
+.booking-status-badge--cancelled .booking-status-badge__dot {
+  background: var(--vc-danger, #ef4444);
+}
+
+.booking-status-badge--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+.booking-status-badge--warning .booking-status-badge__dot {
+  background: #d97706;
+}
+
+/* Queue Card End section (Tag + chevron) */
+.booking-card__queue-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* SportTag port */
+.booking-skill-tag {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: var(--vc-radius-sm, 6px);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.booking-chevron {
+  color: var(--vc-text-tertiary);
+}
+
+/* Loading skeletons */
+.bookings-skeleton-card {
+  height: 80px;
+  border-radius: var(--vc-radius-lg, 16px);
+  background: linear-gradient(90deg, var(--vc-surface-alt, #f1f5f9) 25%, #e2e8f0 50%, var(--vc-surface-alt, #f1f5f9) 75%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Error state */
+.bookings-error-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 20px;
+  background: var(--vc-surface);
+  border: 1px solid var(--vc-border);
+  border-radius: var(--vc-radius-lg, 16px);
+  text-align: center;
+}
+
+.bookings-error-box p {
+  margin: 0;
+  color: var(--vc-danger, #ef4444);
+  font-size: 14px;
+}
+
+.bookings-error-box button {
+  padding: 8px 16px;
+  background: var(--vc-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--vc-radius-pill);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (max-width: 580px) {
+  .booking-card {
+    padding: 12px;
+    gap: 10px;
+  }
+  
+  .booking-card__sport-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .booking-card__title {
+    font-size: 13.5px;
+  }
+  
+  .booking-status-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+}

@@ -11,7 +11,11 @@ const ROUTES = {
   '/app': { mode: 'title', variant: 'home', title: (user) => `Hi, ${user?.firstName || 'Player'} 👋`, subtitle: 'Ready to play today?' },
   '/app/clubs': { mode: 'title', title: () => 'Clubs', subtitle: 'Find your community' },
   '/app/queues': { mode: 'title', title: () => 'Play', subtitle: 'Book, play, & train' },
+  '/app/bookings': { mode: 'title', title: () => 'My Bookings', subtitle: 'View your reservations and history' },
   '/app/events': { mode: 'title', title: () => 'Events', subtitle: 'Compete & win' },
+  '/app/messages': { mode: 'title', title: () => 'Messages', subtitle: 'Connect with players & squads' },
+  '/app/notifications': { mode: 'title', title: () => 'Notifications', subtitle: 'Updates & invitations' },
+  '/app/scoreboard': { mode: 'title', title: () => 'Scoreboard', subtitle: 'Live score keeper' },
   '/app/profile': { mode: 'none' },
 }
 

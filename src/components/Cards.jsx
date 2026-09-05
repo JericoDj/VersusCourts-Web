@@ -1,4 +1,5 @@
-import { Clock3, Heart, Lock, MapPin, Star, Users } from 'lucide-react'
+import { useState } from 'react'
+import { Calendar, Clock, Heart, Lock, MapPin, Star, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { usePlayer } from '../context/PlayerContext'
 import { SportGlyph } from './SportIcon'
@@ -47,32 +48,151 @@ export function VenueCard({ venue, compact = false, onSelect }) {
   )
 }
 
-export function QueueCard({ queue, onOpen }) {
-  const fill = queue.max > 0 ? Math.round((queue.players / queue.max) * 100) : 0
+export function QueueCard({
+  queue,
+  onOpen,
+  onClick,
+  joined = false,
+  requested = false,
+  onJoin,
+}) {
+  const handleAction = onOpen || onClick
+
+  const sport = String(queue.sport || 'basketball').toLowerCase()
+
+  // Sport themes matching Flutter AppColors
+  const sportTheme = {
+    badminton: { bg: '#22c55e', gradient: 'linear-gradient(135deg, #16a34a, #22c55e)', label: 'Badminton' },
+    pickleball: { bg: '#0ea5e9', gradient: 'linear-gradient(135deg, #0284c7, #0ea5e9)', label: 'Pickleball' },
+    tennis: { bg: '#eab308', gradient: 'linear-gradient(135deg, #ca8a04, #eab308)', label: 'Tennis' },
+    padel: { bg: '#8b5cf6', gradient: 'linear-gradient(135deg, #7c3aed, #8b5cf6)', label: 'Padel' },
+    basketball: { bg: '#f97316', gradient: 'linear-gradient(135deg, #ea580c, #f97316)', label: 'Basketball' },
+    volleyball: { bg: '#ec4899', gradient: 'linear-gradient(135deg, #db2777, #ec4899)', label: 'Volleyball' },
+  }[sport] || { bg: '#1B3BFF', gradient: 'linear-gradient(135deg, #1B3BFF, #3b82f6)', label: sport.charAt(0).toUpperCase() + sport.slice(1) }
+
+  // Date and time range formatting
+  const startDate = queue.startTime ? new Date(queue.startTime) : null
+  const formattedDate = startDate && !Number.isNaN(startDate.getTime())
+    ? new Intl.DateTimeFormat('en-PH', { weekday: 'short', month: 'short', day: 'numeric' }).format(startDate)
+    : (queue.time?.split(',')?.slice(0, 2)?.join(',') || 'Date TBA')
+
+  let formattedTimeRange = queue.formattedTimeRange
+  if (!formattedTimeRange) {
+    const startTimeStr = startDate && !Number.isNaN(startDate.getTime())
+      ? new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(startDate)
+      : ''
+    const effectiveEnd = queue.effectiveEndTime ? new Date(queue.effectiveEndTime) : null
+    const endTimeStr = effectiveEnd && !Number.isNaN(effectiveEnd.getTime())
+      ? new Intl.DateTimeFormat('en-PH', { hour: 'numeric', minute: '2-digit' }).format(effectiveEnd)
+      : ''
+    formattedTimeRange = startTimeStr && endTimeStr ? `${startTimeStr} – ${endTimeStr}` : (queue.time || 'Time TBA')
+  }
+
+  // Location / venue label
+  const venueLabel = queue.venueLabel || (queue.area && queue.venue && !queue.venue.toLowerCase().includes(queue.area.toLowerCase())
+    ? `${queue.venue} · ${queue.area}`
+    : queue.venue || 'Venue to be announced')
+
+  // Skill level label
+  const rawSkills = queue.skillsLabel || queue.level || 'All Levels'
+  const skillsLabel = rawSkills.includes(',') ? 'All Levels' : rawSkills
+
+  // Joined / button state
+  const isJoined = joined || queue.isJoined || queue.status === 'JOINED'
+  const isFull = (queue.players || 0) >= (queue.max || 1)
+  const isOngoing = queue.isOngoing || queue.status === 'STARTED'
+
+  const buttonText = isJoined
+    ? 'View'
+    : requested
+    ? 'Requested'
+    : isOngoing
+    ? 'Request'
+    : isFull
+    ? 'Full'
+    : 'Join'
+
+  const handleButtonClick = (e) => {
+    e.stopPropagation()
+    if (isJoined) {
+      if (handleAction) handleAction(queue)
+    } else if (onJoin) {
+      onJoin(queue)
+    } else if (handleAction) {
+      handleAction(queue)
+    }
+  }
+
   return (
     <article
-      className={`queue-card stripe-card ${onOpen ? 'queue-card--interactive' : ''}`}
-      style={{ '--stripe-color': 'var(--vc-accent)' }}
-      onClick={onOpen}
-      onKeyDown={(event) => {
-        if (onOpen && (event.key === 'Enter' || event.key === ' ')) {
-          event.preventDefault()
-          onOpen()
+      className="public-queue-card"
+      onClick={() => handleAction && handleAction(queue)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          if (handleAction) handleAction(queue)
         }
       }}
-      role={onOpen ? 'button' : undefined}
-      tabIndex={onOpen ? 0 : undefined}
     >
-      <SportGlyph sport={queue.sport} size={24} className={`queue-card__mobile-icon queue-card__mobile-icon--${queue.sport}`} />
-      <div className="queue-card__top">
-        <SportPill sport={queue.sport} />
-        {queue.featured && <span className="featured-badge">FEATURED</span>}
+      {/* Top row: Sport Icon + Title & Sport + Skill Pill */}
+      <div className="public-queue-card__header">
+        <div
+          className="public-queue-card__sport-icon"
+          style={{ background: sportTheme.gradient }}
+        >
+          <SportGlyph sport={sport} size={20} color="#ffffff" />
+        </div>
+
+        <div className="public-queue-card__title-box">
+          <h4 className="public-queue-card__title">{queue.title}</h4>
+          <span className="public-queue-card__sport-name">{sportTheme.label}</span>
+        </div>
+
+        <div className="public-queue-card__skill-pill">
+          {skillsLabel}
+        </div>
       </div>
-      <h3>{queue.title}</h3>
-      <p><MapPin size={15} /> {queue.venue}</p>
-      <div className="queue-meta"><span className="info-pill"><Clock3 size={15} /> {queue.time}</span><span className="info-pill queue-meta__level"><Users size={15} /> {queue.level}</span><span className="info-pill queue-meta__players"><Users size={15} /> {queue.players}/{queue.max}</span></div>
-      <div className="queue-fill"><div><span>Players</span><b className="queue-spots">{queue.players}/{queue.max}</b></div><div className="progress"><i style={{ width: `${fill}%` }} /></div></div>
-      <div className="queue-card__footer"><span><small>ENTRY</small><b>{queue.fee ? `₱${queue.fee}` : 'FREE'}</b></span><span className="button button--dark"><span className="queue-card__view-long">View game</span><span className="queue-card__view-short">View</span></span></div>
+
+      {/* Location row */}
+      <div className="public-queue-card__location">
+        <MapPin size={13} className="public-queue-card__pin-icon" />
+        <span>{venueLabel}</span>
+      </div>
+
+      <div className="public-queue-card__divider" />
+
+      {/* Bottom row: Timing / Fee / Players + Action Button */}
+      <div className="public-queue-card__footer">
+        <div className="public-queue-card__meta">
+          <div className="public-queue-card__schedule-row">
+            <Calendar size={12} className="public-queue-card__meta-icon" />
+            <strong className="public-queue-card__date-text">{formattedDate}</strong>
+            <Clock size={12} className="public-queue-card__clock-icon" />
+            <span className="public-queue-card__time-text">{formattedTimeRange}</span>
+          </div>
+
+          <div className="public-queue-card__stats-row">
+            <span className={`public-queue-card__fee ${queue.fee > 0 ? 'is-paid' : 'is-free'}`}>
+              {queue.fee > 0 ? `₱${queue.fee}` : 'Free'}
+            </span>
+            <span className="public-queue-card__players">
+              <Users size={12} />
+              <span>{queue.players}/{queue.max}</span>
+            </span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className={`public-queue-card__btn ${isJoined ? 'public-queue-card__btn--view' : isFull ? 'public-queue-card__btn--full' : 'public-queue-card__btn--join'}`}
+          onClick={handleButtonClick}
+          disabled={!isJoined && isFull}
+        >
+          {buttonText}
+        </button>
+      </div>
     </article>
   )
 }
@@ -99,16 +219,43 @@ export function ClubCard({ club, onOpen }) {
   const clubSports = club.sports?.length ? club.sports : [club.sport].filter(Boolean)
   const hasCoordinates = Number.isFinite(club.latitude) && Number.isFinite(club.longitude)
   const distance = userLocation && hasCoordinates ? distanceFrom(userLocation, club) : null
+  const [logoFailed, setLogoFailed] = useState(false)
+  const logo = !logoFailed ? (club.logoUrl || club.logo || club.avatarUrl) : null
+  const coverUrl = club.bannerUrl || club.coverUrl || club.image
+
   return (
     <article className={`club-card stripe-card ${onOpen ? 'club-card--interactive' : ''}`} style={{ '--stripe-color': 'var(--vc-brand-green)' }} onClick={onOpen} onKeyDown={(event) => { if (onOpen && (event.key === 'Enter' || event.key === ' ')) onOpen() }} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}>
-      <div className="club-card__cover" style={{ backgroundImage: `linear-gradient(180deg, transparent, rgba(15,23,42,.72)), url(${club.image})` }}>
-        <span className="club-card__logo">{club.initials}</span>
+      <div
+        className="club-card__cover"
+        style={{
+          backgroundImage: coverUrl
+            ? `linear-gradient(180deg, transparent, rgba(15,23,42,.72)), url(${coverUrl})`
+            : 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
+        }}
+      >
+        <span
+          className={`club-card__logo ${logo ? 'club-card__logo--has-img' : 'club-card__logo--fallback'}`}
+          style={{ '--sport-color': `var(--vc-sport-${club.sport}, var(--vc-primary))` }}
+        >
+          {logo ? (
+            <img
+              src={logo}
+              alt={club.name}
+              className="club-card__logo-img"
+              onError={() => setLogoFailed(true)}
+            />
+          ) : (
+            <span className="club-card__logo-fallback">
+              <SportGlyph sport={club.sport} size={26} />
+            </span>
+          )}
+        </span>
       </div>
       <div className="club-card__body">
         <div><h3>{club.name} {club.private && <Lock size={14} aria-label="Private club" />}</h3></div>
         <div className="club-card__meta">
           <span><Users size={15} /> {club.members.toLocaleString()} members</span>
-          {club.rating > 0 && <span className="club-card__rating"><Star size={15} fill="currentColor" /> {club.rating.toFixed(1)}</span>}
+          {club.rating > 0 && <span className="club-card__rating"><Star size={15} fill="#eab308" color="#eab308" /> {club.rating.toFixed(1)}</span>}
           {distance ? <span><MapPin size={15} /> {distance}</span> : hasCoordinates ? (
             <button type="button" className="club-card__distance-button" onClick={(event) => { event.stopPropagation(); requestLocation() }} disabled={locationStatus === 'requesting'}>
               <MapPin size={15} /> {locationStatus === 'requesting' ? 'Finding location…' : 'See distance'}

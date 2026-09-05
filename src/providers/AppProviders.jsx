@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { AuthProvider } from '../context/AuthContext'
+import { ChatProvider } from '../context/ChatContext'
 import { DiscoveryProvider } from '../context/DiscoveryContext'
+import { NotificationProvider } from '../context/NotificationContext'
 import { PlayerProvider } from '../context/PlayerContext'
 import { QueueProvider } from '../context/QueueContext'
 import ScrollToTop from '../components/ScrollToTop'
@@ -14,16 +16,20 @@ export function AppProviders({ children }) {
 
   return (
     <AuthProvider>
-      <DiscoveryProvider>
-        <QueueProvider>
-          <PlayerProvider>
-            {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-            <ScrollToTop />
-            {children}
-            <GlobalSnackbar />
-          </PlayerProvider>
-        </QueueProvider>
-      </DiscoveryProvider>
+      <NotificationProvider>
+        <DiscoveryProvider>
+          <QueueProvider>
+            <PlayerProvider>
+              <ChatProvider>
+                {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+                <ScrollToTop />
+                {children}
+                <GlobalSnackbar />
+              </ChatProvider>
+            </PlayerProvider>
+          </QueueProvider>
+        </DiscoveryProvider>
+      </NotificationProvider>
     </AuthProvider>
   )
 }
