@@ -18,6 +18,7 @@ import {
   Share2,
   Shield,
   ShieldOff,
+  Smartphone,
   Star,
   Trophy,
   UserMinus,
@@ -30,6 +31,8 @@ import { sportFromApi } from '../data/sports'
 import LoginDialog from './LoginDialog'
 import UserProfileDialog from './UserProfileDialog'
 import ClubShareModal from './ClubShareModal'
+import MobileAppBanner from './MobileAppBanner'
+import { openInApp, detectDevice } from '../utils/appLauncher'
 import { SportPill } from './Cards'
 import '../styles/modals.css'
 import '../styles/club-loading.css'
@@ -179,6 +182,10 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
   // Join Club handler
   const handleJoin = async () => {
     if (!user) {
+      if (detectDevice().isMobile) {
+        openInApp({ type: 'club', id: clubId })
+        return
+      }
       setLoginOpen(true)
       return
     }
@@ -432,6 +439,9 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
             </div>
           </div>
 
+          {/* Mobile App Smart Banner */}
+          <MobileAppBanner type="club" id={clubId} subtitle="Open this club in the Versus Courts app" />
+
           {/* Action Row */}
           <div className="club-modal-action-row">
             <div className="club-modal-stats-strip">
@@ -468,6 +478,16 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
 
                   <button
                     type="button"
+                    className="scoreboard-icon-btn scoreboard-icon-btn--open-app"
+                    onClick={() => openInApp({ type: 'club', id: clubId })}
+                    title="Open in Versus Courts App"
+                  >
+                    <Smartphone size={15} />
+                    <span>Open in App</span>
+                  </button>
+
+                  <button
+                    type="button"
                     className="scoreboard-icon-btn"
                     onClick={() => setShareModalOpen(true)}
                     title="Share Club"
@@ -489,7 +509,17 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                   )}
                 </>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="scoreboard-icon-btn scoreboard-icon-btn--open-app"
+                    onClick={() => openInApp({ type: 'club', id: clubId })}
+                    title="Open in Versus Courts App"
+                  >
+                    <Smartphone size={15} />
+                    <span>Open in App</span>
+                  </button>
+
                   <button
                     type="button"
                     className="scoreboard-icon-btn"

@@ -3483,8 +3483,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--vc-primary-light, #eff6ff);
-  color: var(--vc-primary, #2563eb);
+  background: var(--vc-primary, #2563eb);
+  color: #ffffff;
   padding: 4px 10px;
   border-radius: 9999px;
   font-size: 11px;
@@ -3492,6 +3492,10 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 8px;
+}
+
+.club-share-header__badge svg {
+  color: #ffffff;
 }
 
 .club-share-header__title {
@@ -3611,12 +3615,13 @@
 }
 
 .club-share-btn--primary {
-  background: #0f172a;
+  background: var(--vc-primary, #2563eb);
   color: #ffffff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
 }
 
 .club-share-btn--primary:hover {
-  background: #1e293b;
+  background: var(--vc-primary-dark, #1d4ed8);
 }
 
 .club-share-code-card {
@@ -3991,3 +3996,114 @@
 .club-bridge-badges {
   margin: 0 auto;
 }
+
+/* Mobile App Banner inside Web Dialogs */
+.mobile-app-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 14px;
+  margin: 12px 16px 0 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2);
+  gap: 10px;
+  z-index: 10;
+  position: relative;
+}
+
+.mobile-app-banner__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mobile-app-banner__logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.mobile-app-banner__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mobile-app-banner__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.mobile-app-banner__sub {
+  font-size: 11px;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.mobile-app-banner__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.mobile-app-banner__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--vc-primary, #2563eb);
+  color: #ffffff;
+  border: none;
+  padding: 7px 13px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-app-banner__btn:hover {
+  background: var(--vc-primary-dark, #1d4ed8);
+}
+
+.mobile-app-banner__dismiss {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+
+.mobile-app-banner__dismiss:hover {
+  color: #ffffff;
+}
+
+.scoreboard-icon-btn--open-app {
+  background: #eff6ff !important;
+  color: var(--vc-primary, #2563eb) !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+.scoreboard-icon-btn--open-app:hover {
+  background: #dbeafe !important;
+  border-color: #93c5fd !important;
+}
+

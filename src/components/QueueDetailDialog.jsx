@@ -10,6 +10,7 @@ import {
   Plus,
   Settings,
   Share2,
+  Smartphone,
   Star,
   Trophy,
   BarChart3,
@@ -29,6 +30,8 @@ import QueueLeaderboardModal from './QueueLeaderboardModal'
 import QueueAnalyticsModal from './QueueAnalyticsModal'
 import QueuePlayerListModal from './QueuePlayerListModal'
 import QueueShareModal from './QueueShareModal'
+import MobileAppBanner from './MobileAppBanner'
+import { openInApp, detectDevice } from '../utils/appLauncher'
 import { queueFormatLabel } from '../data/queueFormat'
 import { QueueChat, QueueMatches } from './QueueActivity'
 import { sportColor, sportGradient, sportLabel } from '../data/sports'
@@ -207,6 +210,10 @@ export default function QueueDetailDialog({ queue, onClose }) {
 
   const joinQueue = async () => {
     if (!user) {
+      if (detectDevice().isMobile) {
+        openInApp({ type: 'queue', id: queue.id })
+        return
+      }
       setLoginOpen(true)
       return
     }
@@ -276,6 +283,15 @@ export default function QueueDetailDialog({ queue, onClose }) {
             </div>
             <div className="queue-detail-top-actions">
               <button
+                className="queue-detail-icon-btn scoreboard-icon-btn--open-app"
+                type="button"
+                aria-label="Open in Versus Courts App"
+                title="Open in Versus Courts App"
+                onClick={() => openInApp({ type: 'queue', id: queue.id })}
+              >
+                <Smartphone size={18} />
+              </button>
+              <button
                 className="queue-detail-icon-btn"
                 type="button"
                 aria-label="Invite players"
@@ -318,6 +334,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
           </header>
 
           <div className="queue-detail-scroll-body">
+            <MobileAppBanner type="queue" id={queue.id} subtitle="Open this game in the Versus Courts app" />
             {actionMessage && <p role="status">{actionMessage}</p>}
 
             {headerAction ? (
@@ -630,26 +647,40 @@ export default function QueueDetailDialog({ queue, onClose }) {
                   Game time has passed
                 </button>
               ) : (
-                <button
-                  type="button"
-                  className="queue-detail-action-btn queue-detail-action-btn--primary"
-                  onClick={alreadyJoined ? openChat : joinQueue}
-                  disabled={joinState === 'joining'}
-                >
-                  {alreadyJoined ? (
-                    <>
-                      <MessageSquare size={18} />
-                      Chat Queue Group
-                    </>
-                  ) : joinState === 'joining' ? (
-                    'Joining…'
-                  ) : (
-                    <>
-                      <Users size={18} />
-                      Join Queue
-                    </>
-                  )}
-                </button>
+                <div style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="queue-detail-action-btn scoreboard-icon-btn--open-app"
+                    style={{ width: 'auto', padding: '11px 16px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap' }}
+                    onClick={() => openInApp({ type: 'queue', id: queue.id })}
+                    title="Open in Versus Courts App"
+                  >
+                    <Smartphone size={16} />
+                    <span>Open in App</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="queue-detail-action-btn queue-detail-action-btn--primary"
+                    style={{ flex: 1 }}
+                    onClick={alreadyJoined ? openChat : joinQueue}
+                    disabled={joinState === 'joining'}
+                  >
+                    {alreadyJoined ? (
+                      <>
+                        <MessageSquare size={18} />
+                        Chat Queue Group
+                      </>
+                    ) : joinState === 'joining' ? (
+                      'Joining…'
+                    ) : (
+                      <>
+                        <Users size={18} />
+                        Join Queue
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </footer>
           )}
