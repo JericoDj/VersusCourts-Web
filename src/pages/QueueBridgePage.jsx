@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, useTransition } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
   CalendarDays,
   Check,
   ChevronRight,
-  Clock,
   Copy,
   ExternalLink,
   MapPin,
-  Share2,
   Smartphone,
   Trophy,
   Users,
@@ -67,6 +65,8 @@ const getFormattedTimeRange = (startTime, endTime) => {
 
 export default function QueueBridgePage() {
   const { queueId } = useParams()
+  const [searchParams] = useSearchParams()
+  const recapQuery = searchParams.get('openAnalytics') === '1' ? '?openAnalytics=1' : ''
   const navigate = useNavigate()
   const { user } = useAuth()
   const [, startTransition] = useTransition()
@@ -110,7 +110,7 @@ export default function QueueBridgePage() {
   }, [queueId])
 
   // Custom scheme deep link
-  const appSchemeUrl = `versuscourts://queue/${encodeURIComponent(queueId)}`
+  const appSchemeUrl = `versuscourts://queue/${encodeURIComponent(queueId)}${recapQuery}`
   const storeUrl = device.isIOS ? APP_STORE_URL : PLAY_STORE_URL
 
   // Automatic deep-link attempt on mobile devices
@@ -132,10 +132,10 @@ export default function QueueBridgePage() {
     if (!loading && queue && !device.isMobile) {
       startTransition(() => {
         const dest = user ? `/app/queues/${encodeURIComponent(queue.id)}` : `/queues/${encodeURIComponent(queue.id)}`
-        navigate(dest, { replace: true })
+        navigate(dest + recapQuery, { replace: true })
       })
     }
-  }, [loading, queue, device.isMobile, navigate, user])
+  }, [loading, queue, device.isMobile, navigate, user, recapQuery])
 
   const handleLaunchApp = () => {
     window.location.href = appSchemeUrl
@@ -149,7 +149,7 @@ export default function QueueBridgePage() {
     sessionStorage.setItem('vc_prefer_web_player', '1')
     startTransition(() => {
       const dest = user ? `/app/queues/${encodeURIComponent(queue.id)}` : `/queues/${encodeURIComponent(queue.id)}`
-      navigate(dest)
+      navigate(dest + recapQuery)
     })
   }
 

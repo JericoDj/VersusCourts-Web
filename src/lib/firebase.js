@@ -5,6 +5,8 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
+  OAuthProvider,
 } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 
@@ -36,6 +38,18 @@ try {
 }
 
 export { db, app }
+
+export async function verifyAccountIdentity({ email, firebaseUid, password, provider }) {
+  if (!auth) throw new Error('Identity verification is unavailable. Please try again later.')
+  const result = provider === 'password'
+    ? await signInWithEmailAndPassword(auth, email, password)
+    : await signInWithPopup(auth, provider === 'apple' ? new OAuthProvider('apple.com') : googleProvider)
+  if ((firebaseUid && result.user.uid !== firebaseUid) || (email && result.user.email?.toLowerCase() !== email.toLowerCase())) {
+    await firebaseSignOut(auth)
+    throw new Error('Sign in with the same account you are deleting.')
+  }
+  return result.user.getIdToken(true)
+}
 
 function messageForErrorCode(code) {
   switch (code) {

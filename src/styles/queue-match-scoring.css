@@ -1,0 +1,69 @@
+.queue-live-scores { display: grid; gap: 12px; }
+.queue-score-prompt-actions { display: flex; gap: 10px; }
+.queue-score-prompt-actions button { flex: 1; }
+.queue-score-prompt-actions button:last-child { background: #06b6d4; color: white; border-color: #06b6d4; }
+.queue-point-warning { color: #eab308; font-size: 12px; font-weight: 700; }
+.queue-point-warning.is-last { color: #ef4444; }
+.queue-scoreboard__side:has(.queue-point-warning) .queue-scoreboard__points { color: #eab308; }
+.queue-scoreboard__side:has(.queue-point-warning.is-last) .queue-scoreboard__points { color: #ef4444; }
+.queue-score-prompt { position: fixed; inset: 0; z-index: 11000; background: #070b1899; display: grid; place-items: center; padding: 24px; }
+.queue-score-prompt > div { display: grid; gap: 12px; background: white; color: #0f172a; padding: 26px; border-radius: 24px; width: min(100%, 400px); max-height: 90dvh; overflow: auto; box-shadow: 0 20px 70px #0005; }
+.queue-score-prompt h2 { font-size: 22px; margin: 0; }
+.queue-score-prompt p { color: #64748b; margin: 0 0 6px; }
+.queue-score-prompt button { background: #edf3ff; color: #1450dc; border: 1px solid #dbe4f0; border-radius: 22px; min-height: 44px; font: inherit; font-weight: 700; cursor: pointer; }
+.queue-score-prompt button:disabled { opacity: .45; cursor: default; }
+.queue-score-confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 12000; }
+.queue-score-confetti i { position: absolute; top: -20px; width: 9px; height: 15px; animation: queue-confetti-fall 2.5s ease-in forwards; }
+@keyframes queue-confetti-fall { to { translate: 40px 105vh; rotate: 600deg; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .queue-score-confetti { display: none; } }
+.queue-venue-results { display: grid; gap: 4px; max-height: 220px; overflow: auto; margin-top: 8px; }
+.queue-venue-results button { display: grid; gap: 3px; text-align: left; border: 0; padding: 10px; border-radius: 8px; background: white; color: #0f172a; cursor: pointer; }
+.queue-venue-results button:hover, .queue-venue-results button:focus-visible { background: #eaf0fc; }
+.queue-venue-results small { color: #64748b; }
+.queue-live-score-error { color: #dc2626; grid-column: 1 / -1; font-size: 13px; }
+.queue-live-scores__caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; font-size: 12px; color: #64748b; }
+.queue-live-scores__caption span { font-size: 11px; }
+.queue-live-score { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px; background: #f1f5f9; border-radius: 18px; }
+.queue-live-score__team { display: grid; gap: 4px; min-width: 0; }
+.queue-live-score__team strong { overflow-wrap: anywhere; }
+.queue-live-score__team small { color: #64748b; font-size: 11px; }
+.queue-live-score__controls { display: flex; align-items: center; gap: 10px; }
+.queue-live-score__controls output { font-size: 32px; font-weight: 800; text-align: center; min-width: 45px; }
+.queue-live-score__controls button { display: grid; place-items: center; width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; border: 1px solid #dbe4f0; background: white; color: #1450dc; cursor: pointer; }
+.queue-live-actions { display: flex; gap: 12px; }
+.queue-live-actions button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border-radius: 24px; border: 1px solid #dbe4f0; background: #f1f5f9; color: #64748b; font: inherit; font-weight: 700; cursor: pointer; }
+.queue-live-actions .queue-live-end { color: #ef4444; background: #fff; border: 1px solid #fecaca; }
+.queue-live-match button.queue-live-open { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; color: white; background: linear-gradient(110deg, #009cce, #087fae); border: 0; font-weight: 700; min-height: 46px; }
+/* Keep controls consistent with the mobile match card. */
+.queue-live-match .queue-live-score__controls button { width: 32px; height: 32px; min-height: 32px; padding: 0; flex: 0 0 32px; color: #64748b; background: white; }
+.queue-live-match .queue-live-score__controls button:last-child { background: #06b6d4; border-color: #06b6d4; color: white; }
+.queue-live-match .queue-live-score__controls output { font-size: 20px; min-width: 36px; }
+.queue-live-match .queue-live-actions { gap: 10px; }
+.queue-live-match .queue-live-actions button { height: 40px; min-height: 40px; font-size: 14px; padding: 8px 12px; }
+.queue-live-match button.queue-live-open { min-height: 44px; height: 44px; font-size: 14px; background: linear-gradient(110deg, #06b6d4, #22d3ee); }
+.queue-live-match button:disabled { opacity: .45; cursor: not-allowed; }
+.queue-scoreboard { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; overflow: auto; background: #111524; color: #f8fafc; padding: max(16px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); font-family: inherit; }
+.queue-scoreboard header { display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 0 auto; flex-shrink: 0; }
+.queue-scoreboard button { font: inherit; cursor: pointer; color: inherit; }
+.queue-scoreboard header button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: transparent; }
+.queue-scoreboard__tools { display: flex; align-items: center; gap: 8px; }
+.queue-scoreboard__sport { display: grid; place-items: center; width: 44px; color: #22c55e; }
+.queue-scoreboard__rule { text-align: center; color: #b4b6bf; font-size: 13px; font-weight: 600; margin: 20px 0 12px; flex-shrink: 0; }
+.queue-scoreboard__info { color: #b4b6bf; background: #1c2234; border-radius: 12px; padding: 12px; font-size: 13px; margin: 0 0 12px; }
+.queue-scoreboard__court { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; flex: 1; min-height: 340px; }
+.queue-scoreboard button.queue-scoreboard__side { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; border: 0; border-radius: 0; background: transparent; padding: 24px 8px; }
+.queue-scoreboard button.queue-scoreboard__side + button { border-left: 1px solid #3c404e; }
+.queue-scoreboard__name { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: clamp(16px, 2.5vw, 28px); font-weight: 700; overflow-wrap: anywhere; color: #22c55e; }
+.queue-scoreboard__name i { width: 14px; height: 14px; border-radius: 50%; background: currentColor; border: 1px solid #ffffff70; flex-shrink: 0; }
+.queue-scoreboard .is-team-b .queue-scoreboard__name { color: #ff7810; }
+.queue-scoreboard__points { color: #fff; font-size: clamp(72px, 24vw, 220px); font-weight: 500; line-height: 1.2; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; }
+.queue-scoreboard__sets { font-size: 36px; font-weight: 700; line-height: 1.4; margin-top: 12px; }
+.queue-scoreboard__label { color: #91949e; font-size: 14px; margin-top: 2px; }
+.queue-scoreboard__hint { color: #767a88; font-size: 11px; margin-top: 16px; }
+.queue-scoreboard footer { padding-top: 16px; flex-shrink: 0; }
+.queue-scoreboard footer button { width: 100%; height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #424654; border-radius: 14px; background: transparent; font-size: 14px; }
+.queue-scoreboard button:disabled { cursor: default; }
+.queue-scoreboard footer button:disabled { opacity: .45; }
+.queue-scoreboard button:focus-visible { outline: 2px solid #22d3ee; outline-offset: -3px; }
+.queue-scoreboard__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-height: 500px) { .queue-scoreboard__court { min-height: 180px; } .queue-scoreboard__points { font-size: 90px; } .queue-scoreboard__sets { font-size: 24px; margin-top: 0; } .queue-scoreboard__rule { margin: 4px 0; } }

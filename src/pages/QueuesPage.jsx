@@ -22,7 +22,8 @@ import QueueDetailDialog from '../components/QueueDetailDialog'
 import SportPickerModal from '../components/SportPickerModal'
 import { SportGlyph } from '../components/SportIcon'
 import { apiRequest } from '../data/apiClient'
-import { isQueueActive, normalizeQueue, useQueues } from '../context/QueueContext'
+import { isQueueActive, isQueueFinished, normalizeQueue, useQueues } from '../context/QueueContext'
+import { useAuth } from '../context/AuthContext'
 import { sportLabel } from '../data/sports'
 import '../styles/play.css'
 
@@ -76,6 +77,7 @@ const BROWSE_TABS = [
 export default function QueuesPage() {
   const { queueId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const { queues: publicQueues, refreshQueues } = useQueues()
 
   const [searchParams, setSearchParams] = useSearchParams()
@@ -154,18 +156,18 @@ export default function QueuesPage() {
     }
   }, [queueId, myQueues, publicQueues])
 
-  // Calculate counters
+  // Calculate counters (matching mobile: !isOngoing && !isFinished for reserved, isOngoing for inProgress)
   const reservedCount = useMemo(() => {
     return myQueues.filter((g) => {
       const status = (g.status || '').toUpperCase()
-      return isQueueActive(g) && status !== 'STARTED'
+      return !isQueueFinished(g) && status !== 'STARTED'
     }).length
   }, [myQueues])
 
   const inProgressCount = useMemo(() => {
     return myQueues.filter((g) => {
       const status = (g.status || '').toUpperCase()
-      return isQueueActive(g) && status === 'STARTED'
+      return !isQueueFinished(g) && status === 'STARTED'
     }).length
   }, [myQueues])
 
@@ -180,7 +182,7 @@ export default function QueuesPage() {
 
   // Active ongoing queue for live banner
   const activeOngoingQueue = useMemo(() => {
-    return myQueues.find((g) => isQueueActive(g) && (g.status || '').toUpperCase() === 'STARTED')
+    return myQueues.find((g) => !isQueueFinished(g) && (g.status || '').toUpperCase() === 'STARTED')
   }, [myQueues])
 
   // Filter queues per browse tab
@@ -188,11 +190,11 @@ export default function QueuesPage() {
     if (browseTab === 'reserved') {
       return myQueues.filter((g) => {
         const s = (g.status || '').toUpperCase()
-        return isQueueActive(g) && s !== 'STARTED'
+        return !isQueueFinished(g) && s !== 'STARTED'
       })
     }
     if (browseTab === 'inProgress') {
-      return myQueues.filter((g) => isQueueActive(g) && (g.status || '').toUpperCase() === 'STARTED')
+      return myQueues.filter((g) => !isQueueFinished(g) && (g.status || '').toUpperCase() === 'STARTED')
     }
     if (browseTab === 'completed') {
       return myQueues.filter((g) => (g.status || '').toUpperCase() === 'COMPLETED')
@@ -222,11 +224,27 @@ export default function QueuesPage() {
     return list
   }, [browseTab, myQueues, publicQueues, searchQuery])
 
+  // Split tabQueues into hosted vs joined for tabs 2-5 (matching Flutter _MyQueuesTab)
+  const { hostedQueues, joinedQueues } = useMemo(() => {
+    if (browseTab === 'available') return { hostedQueues: [], joinedQueues: [] }
+    const hosted = []
+    const joined = []
+    for (const q of tabQueues) {
+      const hostId = q.hostId || q.host?.id || q.createdBy
+      if (user?.id && String(hostId) === String(user.id)) {
+        hosted.push(q)
+      } else {
+        joined.push(q)
+      }
+    }
+    return { hostedQueues: hosted, joinedQueues: joined }
+  }, [browseTab, tabQueues, user])
+
   // My upcoming queues shown on Available tab (matching Flutter: !isOngoing && !isFinished)
   const myUpcomingQueues = useMemo(() => {
     return myQueues.filter((g) => {
       const s = (g.status || '').toUpperCase()
-      return isQueueActive(g) && s !== 'STARTED'
+      return !isQueueFinished(g) && s !== 'STARTED'
     })
   }, [myQueues])
 
@@ -463,48 +481,60 @@ export default function QueuesPage() {
 
           {/* TABS 2-5: RESERVED, IN PROGRESS, COMPLETED, CANCELLED */}
           {browseTab !== 'available' && (
-            <div className="queue-section">
-              {browseTab === 'reserved' && (
-                <h2 className="queue-section-heading">My Queues / Openplays</h2>
-              )}
-              {browseTab === 'inProgress' && (
-                <h2 className="queue-section-heading">In Progress</h2>
-              )}
-              {browseTab === 'completed' && (
-                <h2 className="queue-section-heading">Completed</h2>
-              )}
-              {browseTab === 'cancelled' && (
-                <h2 className="queue-section-heading">Cancelled</h2>
-              )}
-
-              {tabQueues.length === 0 ? (
-                <div className="queue-empty-text">
-                  {browseTab === 'reserved' && (
-                    <p style={{ margin: 0 }}>You haven&apos;t reserved any queues yet.</p>
-                  )}
-                  {browseTab === 'inProgress' && (
-                    <p style={{ margin: 0 }}>No games in progress right now.</p>
-                  )}
-                  {browseTab === 'completed' && (
-                    <p style={{ margin: 0 }}>No completed queues yet.</p>
-                  )}
-                  {browseTab === 'cancelled' && (
-                    <p style={{ margin: 0 }}>No cancelled queues.</p>
-                  )}
+            <>
+              {hostedQueues.length === 0 && joinedQueues.length === 0 ? (
+                <div className="queue-section">
+                  <div className="queue-empty-text">
+                    {browseTab === 'reserved' && (
+                      <p style={{ margin: 0 }}>You haven&apos;t reserved any queues yet.</p>
+                    )}
+                    {browseTab === 'inProgress' && (
+                      <p style={{ margin: 0 }}>No games in progress right now.</p>
+                    )}
+                    {browseTab === 'completed' && (
+                      <p style={{ margin: 0 }}>No completed queues yet.</p>
+                    )}
+                    {browseTab === 'cancelled' && (
+                      <p style={{ margin: 0 }}>No cancelled queues.</p>
+                    )}
+                  </div>
                 </div>
               ) : (
-                <div className="queue-cards-list">
-                  {tabQueues.map((q) => (
-                    <QueueCard
-                      key={q.id}
-                      queue={q}
-                      joined={true}
-                      onClick={() => setActiveDetailQueue(q)}
-                    />
-                  ))}
-                </div>
+                <>
+                  {hostedQueues.length > 0 && (
+                    <div className="queue-section">
+                      <h2 className="queue-section-heading">My Queues / Openplays</h2>
+                      <div className="queue-cards-list">
+                        {hostedQueues.map((q) => (
+                          <QueueCard
+                            key={q.id}
+                            queue={q}
+                            joined={true}
+                            onClick={() => setActiveDetailQueue(q)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {joinedQueues.length > 0 && (
+                    <div className="queue-section">
+                      <h2 className="queue-section-heading">Joined Queue / OpenPlay</h2>
+                      <div className="queue-cards-list">
+                        {joinedQueues.map((q) => (
+                          <QueueCard
+                            key={q.id}
+                            queue={q}
+                            joined={true}
+                            onClick={() => setActiveDetailQueue(q)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-            </div>
+            </>
           )}
         </div>
       )}

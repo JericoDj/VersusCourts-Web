@@ -6,8 +6,14 @@ let googleMapsPromise = null
 /**
  * Lazily loads the Google Maps JavaScript API with Places and Marker libraries.
  */
-export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
-  if (window.google?.maps) return Promise.resolve(window.google.maps)
+export async function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
+  if (window.google?.maps?.places) return window.google.maps
+  if (window.google?.maps?.importLibrary) {
+    try {
+      await window.google.maps.importLibrary('places')
+      if (window.google.maps.places) return window.google.maps
+    } catch {}
+  }
   if (googleMapsPromise) return googleMapsPromise
 
   if (!apiKey) {
@@ -19,8 +25,13 @@ export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
   googleMapsPromise = new Promise((resolve, reject) => {
     const callbackName = '__versusGoogleMapsReady'
     const script = document.createElement('script')
-    window[callbackName] = () => {
+    window[callbackName] = async () => {
       delete window[callbackName]
+      try {
+        if (window.google?.maps?.importLibrary) {
+          await window.google.maps.importLibrary('places')
+        }
+      } catch {}
       resolve(window.google.maps)
     }
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(
@@ -44,6 +55,11 @@ export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
 export async function getPlacePredictions(query, sessionToken) {
   if (!query?.trim()) return []
   const maps = await loadGoogleMaps()
+  if (maps?.importLibrary && !maps?.places?.AutocompleteService) {
+    try {
+      await maps.importLibrary('places')
+    } catch {}
+  }
   if (!maps?.places?.AutocompleteService) return []
 
   const service = new maps.places.AutocompleteService()

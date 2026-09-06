@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import AppActionPill from './AppActionPill'
 import AppBarTitle, { normalizePath, resolveAppBar } from './AppBarTitle'
 import NewsTicker from './NewsTicker'
+import PendingDeletionDialog from './PendingDeletionDialog'
 import '../styles/shell.css'
 
 /// The floating bottom bar is the only navigation at every breakpoint — five
@@ -30,6 +31,7 @@ export default function AppShell() {
 
   return (
     <div className="app-shell">
+      <PendingDeletionDialog />
       <header className="app-header">
         <NewsTicker />
 

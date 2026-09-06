@@ -1,9 +1,17 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { X, Trophy, Timer, Users, Award, Flame, CheckCircle2, Copy } from 'lucide-react'
 import { computeQueueLeaderboard } from '../utils/queueLeaderboard'
 import { sportColor, sportEmoji, sportLabel } from '../data/sports'
 
 export default function QueueAnalyticsModal({ queue, matches = [], onClose }) {
+  const [shareStatus, setShareStatus] = useState('')
+  const recapUrl = `https://versuscourts.com/q/${encodeURIComponent(queue.id)}?openAnalytics=1`
+  const shareRecap = async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: `${queue.title || 'Queue'} Recap`, text: 'View the queue analytics on Versus Courts.', url: recapUrl })
+      else { await navigator.clipboard.writeText(recapUrl); setShareStatus('Recap link copied!') }
+    } catch (error) { if (error.name !== 'AbortError') setShareStatus('Could not share. Copy the link below.') }
+  }
   const sport = String(queue.sport || 'badminton').toLowerCase()
   const leaderboard = useMemo(() => computeQueueLeaderboard(matches, sport), [matches, sport])
   const mvp = leaderboard[0]
@@ -49,6 +57,7 @@ export default function QueueAnalyticsModal({ queue, matches = [], onClose }) {
       '',
       '🏅 Standings:',
       ...leaderboard.map((p, i) => `${i + 1}. ${p.name} - ${p.wins}W/${p.losses}L (${p.points} pts)`),
+      recapUrl,
     ].filter(Boolean)
 
     navigator.clipboard?.writeText(lines.join('\n'))
@@ -201,6 +210,8 @@ export default function QueueAnalyticsModal({ queue, matches = [], onClose }) {
           )}
 
           {/* Share Button */}
+          <button type="button" className="queue-detail-action-btn queue-detail-action-btn--primary" onClick={shareRecap}>Share Analytics Link</button>
+          {shareStatus && <p role="status">{shareStatus} <a href={recapUrl}>Open recap</a></p>}
           <button type="button" className="queue-detail-action-btn queue-detail-action-btn--primary" onClick={copySummary}>
             <Copy size={18} /> Copy Recap Summary
           </button>

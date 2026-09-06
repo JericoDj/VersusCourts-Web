@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { queuePlayerCount } from '../data/queuePlayerCount'
 
 const QueueContext = createContext(null)
 const apiBase = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
@@ -64,10 +65,6 @@ export const isQueueHiddenFromPublic = (queue) => {
 export const normalizeQueue = (queue) => {
   const sport = String(queue.sport || 'BASKETBALL').toLowerCase()
   const skillValues = queue.skills?.length ? queue.skills : [queue.skill].filter(Boolean)
-  const joinedPlayers = queue._count?.participants
-    ?? queue.participants?.filter((participant) => !participant.status || participant.status === 'JOINED').length
-    ?? 0
-  const localPlayers = Array.isArray(queue.localPlayers) ? queue.localPlayers.length : 0
   const hostName = queue.host
     ? queue.host.name || `${queue.host.firstName || ''} ${queue.host.lastName || ''}`.trim()
     : ''
@@ -92,7 +89,7 @@ export const normalizeQueue = (queue) => {
     area: queue.court?.branch?.area || queue.court?.branch?.address || queue.customArea || '',
     sport,
     level: skillValues.length ? skillValues.map(titleCase).join(', ') : 'All levels',
-    players: joinedPlayers + localPlayers,
+    players: queuePlayerCount(queue),
     max: Number(queue.playersNeeded || 1),
     time: formatSchedule(queue.startTime),
     effectiveEndTime,

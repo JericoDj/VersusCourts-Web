@@ -27,6 +27,10 @@ const QueuesPage = lazy(() => import('../pages/QueuesPage'))
 const BookingPage = lazy(() => import('../pages/BookingPage'))
 const EventsPage = lazy(() => import('../pages/EventsPage'))
 const ProfilePage = lazy(() => import('../pages/ProfilePage'))
+const ProfileAccountPage = lazy(() => import('../pages/ProfileAccountPage'))
+const QueueMasterPage = lazy(() => import('../pages/QueueMasterPage'))
+const TransactionsPage = lazy(() => import('../pages/TransactionsPage'))
+const AccountSecurityPage = lazy(() => import('../pages/AccountSecurityPage'))
 const MessagesPage = lazy(() => import('../pages/MessagesPage'))
 const NotificationsPage = lazy(() => import('../pages/NotificationsPage'))
 const ScoreboardPage = lazy(() => import('../pages/ScoreboardPage'))
@@ -89,6 +93,10 @@ export default function AppRoutes() {
           <Route path="messages/:threadId" element={<MessagesPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="profile" element={<ProfilePage />} />
+          <Route path="profile/queue-master" element={<QueueMasterPage />} />
+          <Route path="profile/transactions" element={<TransactionsPage />} />
+          <Route path="profile/security" element={<AccountSecurityPage />} />
+          <Route path="profile/:section" element={<ProfileAccountPage />} />
           <Route path="scoreboard" element={<ScoreboardPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

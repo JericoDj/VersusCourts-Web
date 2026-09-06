@@ -1,6 +1,7 @@
-import LegalDocumentPage from '../components/LegalDocumentPage'
-import { privacyPolicy } from '../data/legalContent'
+import { useNavigate } from 'react-router-dom'
+import PrivacyPolicyDialog from '../components/PrivacyPolicyDialog'
 
 export default function PrivacyPage() {
-  return <LegalDocumentPage document={privacyPolicy} />
+  const navigate = useNavigate()
+  return <PrivacyPolicyDialog isOpen={true} onClose={() => navigate(-1)} />
 }

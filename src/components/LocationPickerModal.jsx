@@ -218,6 +218,7 @@ export default function LocationPickerModal({
   return createPortal(
     <div
       className="sport-picker-backdrop"
+      style={{ zIndex: 1700 }}
       onClick={onClose}
       role="dialog"
       aria-modal="true"

@@ -1,0 +1,19 @@
+<!doctype html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module">
+const user = { id:'profile-fixture', email:'player@example.test', firstName:'Jamie', lastName:'Rivera', username:'jamierivera', roles:['PLAYER'], bio:'Badminton player and weekend host.', area:'Quezon City, Metro Manila', gamesPlayed:25, wins:15, losses:10, hoursPlayed:12 };
+localStorage.setItem('vc-auth-token','profile-preview-only'); localStorage.setItem('vc-auth-user',JSON.stringify(user));
+window.fetch = async (input, options={}) => {
+  const path = new URL(typeof input === 'string' ? input : input.url, location.origin).pathname.replace(/^\/api/, '');
+  let data=[];
+  if (path === '/auth/me' || path === '/users/me') { if(options.method === 'PATCH') Object.assign(user,JSON.parse(options.body)); data=user; }
+  else if (path === '/auth/account/deletion-request') data={request:null};
+  else if (path === '/queue-master-applications/my-application') data=null;
+  else if (path === '/wallet/me') data={queueMasterBalance:1250,currency:'PHP'};
+  else if (path === '/wallet/me/transactions') data=[{id:'fixture-receipt',type:'QUEUE_FEE',amount:100,createdAt:'2026-09-06T12:00:00Z',description:'Badminton open play',refId:'sample-queue'}];
+  else if (path === '/wallet/queue-payments') data={availableCredits:3,maxCredits:3,usedCredits:0,totalOutstanding:0,payments:[]};
+  else if (path === '/queues/mine') data=[{id:'sample-queue',title:'Weekend badminton',sport:'BADMINTON',startTime:'2026-09-06T12:00:00Z',status:'COMPLETED',customCourtName:'Sample Sports Center'}];
+  else if (options.method && options.method !== 'GET') return new Response(JSON.stringify({message:'Mutation blocked in preview'}),{status:403,headers:{'Content-Type':'application/json'}});
+  return new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
+};
+history.replaceState({},'', '/app/profile');
+await import('/src/main.jsx');
+</script></body></html>

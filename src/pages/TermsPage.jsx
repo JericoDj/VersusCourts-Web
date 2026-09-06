@@ -1,6 +1,7 @@
-import LegalDocumentPage from '../components/LegalDocumentPage'
-import { termsOfUse } from '../data/legalContent'
+import { useNavigate } from 'react-router-dom'
+import TermsOfUseDialog from '../components/TermsOfUseDialog'
 
 export default function TermsPage() {
-  return <LegalDocumentPage document={termsOfUse} />
+  const navigate = useNavigate()
+  return <TermsOfUseDialog isOpen={true} onClose={() => navigate(-1)} />
 }

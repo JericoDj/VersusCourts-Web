@@ -14,9 +14,20 @@ import {
   ShieldCheck,
   Trophy,
 } from 'lucide-react'
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import ComingSoonDialog from '../components/ComingSoonDialog'
+import { useState, useEffect } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import ProfileDialog from '../components/ProfileDialog'
+import EditProfileDialog from '../components/EditProfileDialog'
+import ShareStatsDialog from '../components/ShareStatsDialog'
+import { QueueMasterDialog } from './QueueMasterPage'
+import TransactionsDialog from '../components/TransactionsDialog'
+import BookingsDialog from '../components/BookingsDialog'
+import QueueHistoryDialog from '../components/QueueHistoryDialog'
+import PrivacyPolicyDialog from '../components/PrivacyPolicyDialog'
+import TermsOfUseDialog from '../components/TermsOfUseDialog'
+import AccountSecurityDialog from '../components/AccountSecurityDialog'
+import { apiRequest } from '../data/apiClient'
+import { useAccountData, AccountLoading } from './ProfileAccountPage'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import '../styles/profile.css'
@@ -43,27 +54,76 @@ const ACHIEVEMENTS = [
 
 const unlockedFor = (stats) => ACHIEVEMENTS.filter((a) => a.progress(stats) >= a.target)
 
-/// Account rows, in the Flutter order (profile_screen.dart:140-153). `to: null`
-/// means the destination has no web route yet — those open the Coming Soon
-/// dialog rather than dead-ending. The Queue Master label is static: there is no
-/// QueueMasterProvider on web to make it "(Pending)".
+// Account destinations follow the mobile profile menu.
 const MENU_ITEMS = [
-  { icon: ShieldCheck, label: 'Become a Queue Master', to: null },
-  { icon: Receipt, label: 'Transactions', to: null },
-  { icon: Calendar, label: 'My Bookings', to: '/app/bookings' },
-  { icon: History, label: 'Queue History', to: null },
-  { icon: Shield, label: 'Privacy Policy', to: null },
-  { icon: FileText, label: 'Terms of Use', to: null },
-  { icon: Lock, label: 'Security', to: null },
+  { id: 'queue-master', icon: ShieldCheck, label: 'Become a Queue Master' },
+  { id: 'transactions', icon: Receipt, label: 'Transactions' },
+  { id: 'bookings', icon: Calendar, label: 'My Bookings' },
+  { id: 'history', icon: History, label: 'Queue History' },
+  { id: 'privacy', icon: Shield, label: 'Privacy Policy' },
+  { id: 'terms', icon: FileText, label: 'Terms of Use' },
+  { id: 'security', icon: Lock, label: 'Security & Account Deletion' },
 ]
 
+const loadProfile = async () => {
+  const [user, application] = await Promise.all([apiRequest('/users/me'), apiRequest('/queue-master-applications/my-application').catch(() => null)])
+  return { ...user, queueMasterApplication: application }
+}
+
 export default function ProfilePage() {
-  const { user, signOut } = useAuth()
-  const { myClubs = [], setNotice } = usePlayer()
+  const { user: authUser, signOut } = useAuth()
+  const { myClubs = [] } = usePlayer()
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const getInitialDialog = () => {
+    const q = searchParams.get('dialog')
+    if (q) return q
+    if (location.pathname.includes('/profile/queue-master')) return 'queue-master'
+    if (location.pathname.includes('/profile/transactions')) return 'transactions'
+    if (location.pathname.includes('/profile/history')) return 'history'
+    if (location.pathname.includes('/profile/security')) return 'security'
+    if (location.pathname.includes('/bookings')) return 'bookings'
+    if (location.pathname.includes('/privacy')) return 'privacy'
+    if (location.pathname.includes('/terms')) return 'terms'
+    return null
+  }
+
+  const [activeDialog, setActiveDialog] = useState(getInitialDialog)
+
+  useEffect(() => {
+    const dialogFromUrl = getInitialDialog()
+    if (dialogFromUrl) {
+      setActiveDialog(dialogFromUrl)
+    }
+  }, [location.pathname, searchParams])
+
+  const handleCloseDialog = () => {
+    setActiveDialog(null)
+    if (searchParams.has('dialog')) {
+      searchParams.delete('dialog')
+      setSearchParams(searchParams, { replace: true })
+    }
+    if (
+      location.pathname !== '/app/profile' &&
+      (location.pathname.includes('/profile/') ||
+       location.pathname.includes('/bookings') ||
+       location.pathname.includes('/privacy') ||
+       location.pathname.includes('/terms'))
+    ) {
+      navigate('/app/profile', { replace: true })
+    }
+  }
+
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [comingSoon, setComingSoon] = useState('')
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [bioExpanded, setBioExpanded] = useState(false)
+  const profile = useAccountData(loadProfile)
+  const profileReady = !profile.loading && !profile.error && !!profile.data
+  const user = { ...authUser, ...profile.data, name: profile.data ? [profile.data.firstName, profile.data.lastName].filter(Boolean).join(' ') : authUser?.name, handle: profile.data?.username ? `@${profile.data.username}` : authUser?.handle }
+  const [achievement, setAchievement] = useState(null)
 
   /// Land on the public site root — that is versuscourts.com/ in production, and
   /// still works on localhost and staging, which an absolute URL would not.
@@ -77,38 +137,25 @@ export default function ProfilePage() {
     }
   }
 
-  const stats = user?.stats || DEFAULT_STATS
+  const rawStats = profile.data?.stats || profile.data || user?.stats || DEFAULT_STATS
+  const stats = Object.fromEntries(Object.keys(DEFAULT_STATS).map((key) => [key, Number(rawStats[key] || 0)]))
   const winRate = winRateOf(stats)
   const unlocked = unlockedFor(stats)
   const xp = unlocked.reduce((sum, a) => sum + a.xpReward, 0)
   const level = 1 + Math.floor(xp / 500)
   const levelProgress = (xp % 500) / 500
 
-  const avatarUrl = user?.photoURL || user?.avatarUrl
+  const avatarUrl = user?.avatarUrl || user?.photoURL
   const roles = user?.roles?.length ? user.roles : ['PLAYER']
   const bio = user?.bio?.trim()
-  const area = (user?.location || '').split(',')[0]
+  const area = user?.area || user?.location || ''
 
-  const shareStats = async () => {
-    const text = `${user?.name || 'I'} — ${stats.gamesPlayed} games, ${stats.wins} wins, ${winRate.toFixed(0)}% win rate on Versus Courts.`
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'My Versus Courts stats', text })
-        return
-      }
-      await navigator.clipboard.writeText(text)
-      setNotice('Stats copied to your clipboard')
-    } catch {
-      /* the user dismissed the share sheet, or the clipboard is blocked */
-    }
-  }
+  const shareStats = () => setComingSoon('Share Stats')
 
   return (
     <div className="profile-page">
       <header className="pf-header">
-        {/* Cover bleeds back out through .app-content's gutters. Written so a
-            real coverUrl can layer in later as an inline background-image. */}
-        <div className="pf-cover" aria-hidden="true" />
+        <div className="pf-cover" aria-hidden="true" style={user?.coverUrl ? { backgroundImage: `url(${JSON.stringify(user.coverUrl)})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} />
 
         <div className="pf-card">
           <div className="pf-identity">
@@ -137,7 +184,8 @@ export default function ProfilePage() {
               type="button"
               className="pf-icon-button"
               aria-label="Edit profile"
-              onClick={() => setComingSoon('Edit Profile')}
+              disabled={!profileReady}
+              onClick={() => setEditProfileOpen(true)}
             >
               <Edit3 size={20} />
             </button>
@@ -153,12 +201,12 @@ export default function ProfilePage() {
               )}
             </>
           ) : (
-            <button type="button" className="pf-add-bio" onClick={() => setComingSoon('Edit Profile')}>
+            <button type="button" className="pf-add-bio" disabled={!profileReady} onClick={() => setEditProfileOpen(true)}>
               <Plus size={16} /> Add a description
             </button>
           )}
 
-          <div className="pf-level">
+          {profileReady && <div className="pf-level">
             <div className="pf-level__row">
               <span className="pf-level__badge">LVL {level}</span>
               <span className="pf-mini-badges">
@@ -187,27 +235,27 @@ export default function ProfilePage() {
             >
               <span className="pf-level__fill" style={{ width: `${levelProgress * 100}%` }} />
             </div>
-          </div>
+          </div>}
         </div>
       </header>
 
-      <div className="pf-stats">
+      {profile.loading || profile.error ? <AccountLoading state={profile} /> : <div className="pf-stats">
         <div className="pf-stat pf-stat--primary"><b>{stats.gamesPlayed}</b><span>Games</span></div>
         <div className="pf-stat pf-stat--green"><b>{stats.wins}</b><span>Wins</span></div>
         <div className="pf-stat pf-stat--accent"><b>{winRate.toFixed(0)}%</b><span>Win Rate</span></div>
         <div className="pf-stat pf-stat--padel"><b>{stats.hoursPlayed}</b><span>Hours</span></div>
-      </div>
+      </div>}
 
-      <button type="button" className="button button--outline button--full pf-share" onClick={shareStats}>
+      <button type="button" className="button button--outline button--full pf-share" disabled={!profileReady} onClick={shareStats}>
         <Share2 size={18} /> Share My Stats
       </button>
 
       {/* Deliberately quiet: one slim row, no badge carousel. */}
-      <button type="button" className="pf-achievements" onClick={() => setComingSoon('Achievements')}>
+      <button type="button" className="pf-achievements" disabled={!profileReady} onClick={() => setComingSoon('Achievements')}>
         <Trophy size={20} />
         <div>
           <b>Achievements</b>
-          <small>{unlocked.length} of {ACHIEVEMENTS.length} unlocked</small>
+          <small>{profileReady ? `${unlocked.length} of ${ACHIEVEMENTS.length} unlocked` : 'Player progress'}</small>
         </div>
         <ChevronRight size={20} />
       </button>
@@ -215,8 +263,7 @@ export default function ProfilePage() {
       <h2 className="pf-section-title">My Clubs</h2>
       <div className="pf-list">
         {myClubs.map((club) => (
-          // No /app/clubs/:id route exists, so every club row lands on the list.
-          <Link key={club.id} to="/app/clubs" className="pf-club-row">
+          <Link key={club.id} to={`/app/clubs/${club.id}`} className="pf-club-row">
             <img className="pf-club-logo" src={club.image} alt="" />
             <div>
               <b>{club.name}</b>
@@ -229,22 +276,46 @@ export default function ProfilePage() {
 
       <h2 className="pf-section-title">Account</h2>
       <div className="pf-list">
-        {MENU_ITEMS.map(({ icon: Icon, label, to }) => (to
-          ? (
-            <Link key={label} to={to} className="pf-menu-row">
+        {MENU_ITEMS.map(({ id, icon: Icon, label }) => {
+          let customLabel = label
+          let badgeTag = null
+
+          if (id === 'queue-master') {
+            const app = profile.data?.queueMasterApplication
+            const isQM = roles.includes('QUEUE_MASTER') || app?.status === 'APPROVED'
+            const isPending = app?.status === 'PENDING'
+            const isRejected = app?.status === 'REJECTED'
+
+            if (isQM) {
+              customLabel = 'Queue Master'
+              badgeTag = <span className="pf-tag" style={{ background: 'rgba(34, 197, 94, 0.12)', color: 'var(--vc-brand-green, #16a34a)' }}>Active</span>
+            } else if (isPending) {
+              customLabel = 'Queue Master (Pending)'
+              badgeTag = <span className="pf-tag" style={{ background: 'rgba(245, 158, 11, 0.14)', color: '#d97706' }}>Pending</span>
+            } else if (isRejected) {
+              customLabel = 'Become a Queue Master'
+              badgeTag = <span className="pf-tag" style={{ background: 'rgba(239, 68, 68, 0.12)', color: 'var(--vc-danger, #dc2626)' }}>Review</span>
+            } else {
+              customLabel = 'Become a Queue Master'
+            }
+          }
+
+          return (
+            <button
+              key={id}
+              type="button"
+              className="pf-menu-row"
+              onClick={() => setActiveDialog(id)}
+            >
               <span className="pf-menu-icon"><Icon size={20} /></span>
-              <span>{label}</span>
-              <ChevronRight size={20} />
-            </Link>
-          )
-          : (
-            <button key={label} type="button" className="pf-menu-row" onClick={() => setComingSoon(label)}>
-              <span className="pf-menu-icon"><Icon size={20} /></span>
-              <span>{label}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                <span>{customLabel}</span>
+                {badgeTag}
+              </span>
               <ChevronRight size={20} />
             </button>
           )
-        ))}
+        })}
 
         <button type="button" className="pf-menu-row pf-menu-row--logout" onClick={() => setConfirmLogout(true)}>
           <span className="pf-menu-icon"><LogOut size={20} /></span>
@@ -252,7 +323,31 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <ComingSoonDialog open={Boolean(comingSoon)} label={comingSoon} onClose={() => setComingSoon('')} />
+      {editProfileOpen && <EditProfileDialog profileUser={user} onClose={() => { setEditProfileOpen(false); profile.reload() }} />}
+      {comingSoon === 'Share Stats' && <ShareStatsDialog user={{ ...user, level }} stats={stats} onClose={() => setComingSoon('')} />}
+      {comingSoon === 'Achievements' && <ProfileDialog title="Achievements" onClose={() => { setComingSoon(''); setAchievement(null) }}><p>{unlocked.length} of {ACHIEVEMENTS.length} unlocked · {xp} XP · Level {level}</p><div className="pf-achievement-grid">{ACHIEVEMENTS.map((item) => <button key={item.id} className={`pf-achievement-card${item.progress(stats) >= item.target ? ' is-unlocked' : ''}`} onClick={() => setAchievement(item)}><span>{item.emoji}</span><b>{item.title}</b><small>{Math.min(item.target, item.progress(stats))}/{item.target} · +{item.xpReward} XP</small><progress max={item.target} value={Math.min(item.target, item.progress(stats))} /></button>)}</div>{achievement && <article className="pf-account-card"><h3>{achievement.emoji} {achievement.title}</h3><p>{achievement.criteria}</p><p>{achievement.progress(stats) >= achievement.target ? 'Unlocked' : 'Keep playing to unlock'} · {achievement.xpReward} XP</p></article>}</ProfileDialog>}
+
+      {activeDialog === 'queue-master' && (
+        <QueueMasterDialog isOpen onClose={() => { handleCloseDialog(); profile.reload() }} />
+      )}
+      {activeDialog === 'transactions' && (
+        <TransactionsDialog isOpen onClose={handleCloseDialog} />
+      )}
+      {activeDialog === 'bookings' && (
+        <BookingsDialog isOpen onClose={handleCloseDialog} />
+      )}
+      {activeDialog === 'history' && (
+        <QueueHistoryDialog isOpen onClose={handleCloseDialog} />
+      )}
+      {activeDialog === 'privacy' && (
+        <PrivacyPolicyDialog isOpen onClose={handleCloseDialog} />
+      )}
+      {activeDialog === 'terms' && (
+        <TermsOfUseDialog isOpen onClose={handleCloseDialog} />
+      )}
+      {activeDialog === 'security' && (
+        <AccountSecurityDialog isOpen onClose={handleCloseDialog} />
+      )}
 
       {confirmLogout && (
         <div className="dialog-overlay" role="presentation" onClick={() => setConfirmLogout(false)}>

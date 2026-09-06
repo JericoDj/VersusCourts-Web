@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
-import { CalendarDays, BarChart3, Flag, Award } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { CalendarDays, BarChart3, Flag, Award, Send, Eye, ArrowLeft, User } from 'lucide-react'
 import { apiList, apiRequest } from '../data/apiClient'
+import socketService from '../data/socketService'
 import '../styles/queue-activity.css'
 
 const nameOf = (p) => {
@@ -160,24 +161,51 @@ export function QueueChat({ queue, user, onBack }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const messagesEndRef = useRef(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  // Real-time synchronization via Socket.IO
+  useEffect(() => {
+    socketService.connect()
+    socketService.joinQueueRoom(queue.id)
+
+    const handleMessage = (e) => {
+      const msg = e.detail
+      if (msg) {
+        setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]))
+      }
+    }
+
+    socketService.addEventListener('queue:message', handleMessage)
+
+    // Fallback polling
     const controller = new AbortController()
     let timer
     const refresh = async () => {
       try {
         const detail = await apiRequest(`/queues/${queue.id}`, { signal: controller.signal })
-        if (!controller.signal.aborted) setMessages(detail.messages || [])
+        if (!controller.signal.aborted && detail.messages) {
+          setMessages(detail.messages)
+        }
       } catch (e) {
-        if (!controller.signal.aborted) setError(e.message)
+        if (!controller.signal.aborted) console.warn('Chat poll failed:', e.message)
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(refresh, 3000)
+        if (!controller.signal.aborted) timer = setTimeout(refresh, 5000)
       }
     }
     refresh()
+
     return () => {
       controller.abort()
       clearTimeout(timer)
+      socketService.removeEventListener('queue:message', handleMessage)
     }
   }, [queue.id])
 
@@ -204,40 +232,127 @@ export function QueueChat({ queue, user, onBack }) {
 
   const people = [queue.host, ...(queue.participants || []).map((p) => p.user)].filter(Boolean)
 
+  const findPerson = (userId) => {
+    return people.find((p) => (p?.id || p?.userId) === userId)
+  }
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return ''
+    try {
+      return new Date(dateStr).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+    } catch {
+      return ''
+    }
+  }
+
+  // Queue metadata for header matching mobile (media_1788702484717)
+  const title = queue.customCourtName || queue.title || 'Queue Chat'
+  const joinedCount = (queue.participants || []).filter((p) => p.status === 'JOINED').length
+  const capacity = queue.playersNeeded || 10
+  const dateFormatted = queue.startTime
+    ? new Date(queue.startTime).toLocaleDateString([], { month: 'short', day: 'numeric' })
+    : ''
+  const timeFormatted = formatTime(queue.startTime)
+  const subMeta = [
+    `${joinedCount}/${capacity} players`,
+    dateFormatted && timeFormatted ? `${dateFormatted}, ${timeFormatted}` : timeFormatted || dateFormatted,
+    queue.customArea || queue.venue?.area || queue.venue?.name || '',
+  ].filter(Boolean).join(' · ')
+
   return (
     <section className="queue-inline-chat">
-      <button
-        type="button"
-        className="queue-detail-back-btn"
-        style={{ width: 'auto' }}
-        onClick={onBack}
-      >
-        ← Game details
-      </button>
-      <h3>Chat Queue Group</h3>
-      <div className="queue-inline-chat__messages" aria-live="polite">
-        {!messages.length && <p>No messages yet. Start the conversation.</p>}
-        {messages.map((m) => (
-          <article key={m.id} className={m.userId === user?.id ? 'is-own' : ''}>
-            <small>{m.isSystem ? 'Queue update' : nameOf(people.find((p) => p.id === m.userId) || {})}</small>
-            <p>{m.text}</p>
-            <time>
-              {new Date(m.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-            </time>
-          </article>
-        ))}
+      {/* Header matching mobile */}
+      <div className="queue-chat-header">
+        <div className="queue-chat-header__left">
+          <button
+            type="button"
+            className="queue-chat-header__back"
+            onClick={onBack}
+            aria-label="Back to queue details"
+          >
+            <ArrowLeft size={18} />
+          </button>
+          <div className="queue-chat-header__meta">
+            <h3 className="queue-chat-header__title">{title}</h3>
+            {subMeta && <span className="queue-chat-header__sub">{subMeta}</span>}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="queue-chat-view-queue-btn"
+          onClick={onBack}
+        >
+          <Eye size={14} />
+          View Queue
+        </button>
       </div>
-      {error && <p role="alert">{error}</p>}
-      <form onSubmit={send}>
+
+      {/* Message feed */}
+      <div className="queue-inline-chat__messages" aria-live="polite">
+        {!messages.length && (
+          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '36px 12px', fontSize: '13px' }}>
+            No messages yet. Message the squad below!
+          </div>
+        )}
+        {messages.map((m) => {
+          const isOwn = m.userId === user?.id
+          const sender = findPerson(m.userId)
+          const senderName = m.isSystem ? 'Queue Update' : nameOf(sender || {})
+          const isSystem = m.isSystem || m.text === 'Queue created.' || m.text.includes('ongoing')
+
+          if (isSystem) {
+            return (
+              <div key={m.id} className="queue-chat-system-pill">
+                {m.text}
+              </div>
+            )
+          }
+
+          return (
+            <div key={m.id} className={`queue-chat-row ${isOwn ? 'is-own' : 'is-other'}`}>
+              {!isOwn && (
+                <div className="queue-chat-avatar">
+                  {sender?.avatarUrl ? (
+                    <img src={sender.avatarUrl} alt="" />
+                  ) : (
+                    <User size={16} />
+                  )}
+                </div>
+              )}
+              <div className="queue-chat-msg-body">
+                {!isOwn && (
+                  <span className="queue-chat-sender-name">{senderName}</span>
+                )}
+                <div className="queue-chat-bubble">
+                  <p style={{ margin: 0 }}>{m.text}</p>
+                  <time className="queue-chat-time">{formatTime(m.createdAt)}</time>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {error && <p role="alert" style={{ color: '#ef4444', fontSize: '12px', margin: '2px 0' }}>{error}</p>}
+
+      {/* Bottom Capsule Input matching mobile media_1788702484717 */}
+      <form className="queue-chat-input-bar" onSubmit={send}>
         <input
-          aria-label="Message to queue"
-          placeholder="Message the queue…"
+          aria-label="Message to squad"
+          placeholder="Message the squad…"
           value={text}
           onChange={(e) => setText(e.target.value)}
           disabled={sending}
+          className="queue-chat-input"
         />
-        <button type="submit" disabled={sending || !text.trim()}>
-          {sending ? 'Sending…' : 'Send'}
+        <button
+          type="submit"
+          disabled={sending || !text.trim()}
+          className="queue-chat-send-btn"
+          aria-label="Send message"
+        >
+          <Send size={16} />
         </button>
       </form>
     </section>

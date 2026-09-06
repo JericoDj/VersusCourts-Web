@@ -1,30 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { firebaseAuth } from '../lib/firebase'
+import { toPlayerUser } from '../data/playerIdentity'
 
 const AuthContext = createContext(null)
 const TOKEN_KEY = 'vc-auth-token'
 const USER_KEY = 'vc-auth-user'
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
-
-const initials = (firstName = '', lastName = '') => `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || 'VC'
-
-const toPlayerUser = (user, existingUser = null) => {
-  if (!user && !existingUser) return null
-  const merged = { ...existingUser, ...user }
-  const [firstName = 'Player', ...last] = (merged.name || '').trim().split(/\s+/)
-  const emailPrefix = merged.email?.split('@')[0] || 'player'
-  const computedFirstName = merged.firstName || firstName
-  const computedLastName = merged.lastName || last.join(' ')
-  return {
-    ...merged,
-    firstName: computedFirstName,
-    lastName: computedLastName,
-    name: merged.name || `${computedFirstName} ${computedLastName}`.trim(),
-    handle: merged.handle || `@${merged.username || emailPrefix}`,
-    location: merged.location || 'Metro Manila',
-    initials: merged.initials || initials(computedFirstName, computedLastName),
-  }
-}
 
 async function request(path, { token, ...options } = {}) {
   let response
@@ -93,7 +74,7 @@ export function AuthProvider({ children }) {
     const token = getToken()
     if (!token) return null
     try {
-      const remoteUser = await request('/auth/me', { token })
+      const remoteUser = await request('/users/me', { token })
       let playerUser
       setUser((currentUser) => {
         playerUser = toPlayerUser(remoteUser, currentUser)

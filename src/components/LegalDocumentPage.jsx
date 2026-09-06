@@ -7,6 +7,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import PublicFooter from './PublicFooter'
 import PublicHeader from './PublicHeader'
 
@@ -21,6 +22,7 @@ function sectionId(title) {
 }
 
 export default function LegalDocumentPage({ document }) {
+  const { user } = useAuth()
   const DocumentIcon = documentIcons[document.type] || FileCheck2
 
   return (
@@ -29,6 +31,24 @@ export default function LegalDocumentPage({ document }) {
       <main>
         <section className="legal-hero">
           <div className="container legal-hero__inner">
+            {user && (
+              <div style={{ marginBottom: 12 }}>
+                <Link
+                  to="/app/profile"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    color: 'var(--vc-text-secondary)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textDecoration: 'none',
+                  }}
+                >
+                  ← Back to Profile
+                </Link>
+              </div>
+            )}
             <span className="legal-hero__icon"><DocumentIcon /></span>
             <span className="eyebrow">{document.eyebrow}</span>
             <h1>{document.title}</h1>

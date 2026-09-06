@@ -19,6 +19,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import { useQueues } from '../context/QueueContext'
@@ -73,6 +74,7 @@ const getFormattedTimeRange = (startTime, endTime) => {
 }
 
 export default function QueueDetailDialog({ queue, onClose }) {
+  const location = useLocation()
   const { user } = useAuth()
   const { joinedQueues, toggleQueue, setNotice } = usePlayer()
   const { getQueueDetail, joinQueue: joinRemoteQueue } = useQueues()
@@ -82,7 +84,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
   const [chatOpen, setChatOpen] = useState(false)
   const [manageOpen, setManageOpen] = useState(false)
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
-  const [analyticsOpen, setAnalyticsOpen] = useState(false)
+  const [analyticsOpen, setAnalyticsOpen] = useState(() => new URLSearchParams(location.search).get('openAnalytics') === '1')
   const [playerListOpen, setPlayerListOpen] = useState(false)
   const [shareModalOpen, setShareModalOpen] = useState(false)
   const [headerAction, setHeaderAction] = useState(null)
@@ -344,6 +346,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
                 queue={detail}
                 user={user}
                 canInvite={canManage}
+                onClose={() => setHeaderAction(null)}
                 onLogin={() => setLoginOpen(true)}
               />
             ) : manageOpen ? (
