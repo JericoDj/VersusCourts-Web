@@ -7,8 +7,14 @@
         "paths": [
           "/c/*",
           "/club/*",
+          "/clubs/*",
+          "/app/clubs/*",
+          "/q/*",
+          "/queue/*",
           "/queues/*",
-          "/events/*"
+          "/app/queues/*",
+          "/events/*",
+          "/app/events/*"
         ],
         "components": [
           {
@@ -17,15 +23,39 @@
           },
           {
             "/": "/club/*",
-            "comment": "Club links"
+            "comment": "Club detail links"
+          },
+          {
+            "/": "/clubs/*",
+            "comment": "Club directory links"
+          },
+          {
+            "/": "/app/clubs/*",
+            "comment": "In-app club links"
+          },
+          {
+            "/": "/q/*",
+            "comment": "Queue share links"
+          },
+          {
+            "/": "/queue/*",
+            "comment": "Queue detail links"
           },
           {
             "/": "/queues/*",
-            "comment": "Queue links"
+            "comment": "Queue directory links"
+          },
+          {
+            "/": "/app/queues/*",
+            "comment": "In-app queue links"
           },
           {
             "/": "/events/*",
             "comment": "Event links"
+          },
+          {
+            "/": "/app/events/*",
+            "comment": "In-app event links"
           }
         ]
       }

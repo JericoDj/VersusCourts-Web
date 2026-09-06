@@ -644,7 +644,7 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                     <ClubEmptyState compact icon={CalendarX2} title="Nothing scheduled" subtitle="Games and events shared here will show up first." />
                   ) : (
                     <div className="club-upcoming-list">
-                      {upcoming.queues.map((queue) => <Link key={queue.id} to={`/app/queues/${queue.id}`} onClick={onClose} className="club-upcoming-item"><CalendarDays size={18} /><span><b>{queue.title || 'Queue / OpenPlay'}</b><small>{formatDate(queue.startTime)}</small></span><ChevronRight size={18} /></Link>)}
+                      {upcoming.queues.map((queue) => <Link key={queue.id} to={`/queues/${queue.id}`} onClick={onClose} className="club-upcoming-item"><CalendarDays size={18} /><span><b>{queue.title || 'Queue / OpenPlay'}</b><small>{formatDate(queue.startTime)}</small></span><ChevronRight size={18} /></Link>)}
                       {upcoming.events.map((event) => <button type="button" key={event.id} className="club-upcoming-item" onClick={() => setActiveTab('events')}><CalendarDays size={18} /><span><b>{event.title || 'Event'}</b><small>{formatDate(event.startTime || event.date)}</small></span><ChevronRight size={18} /></button>)}
                     </div>
                   )}
@@ -952,7 +952,7 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                   </div>
                   <div className="club-modal-list-col">
                     {(activeQueueDay?.queues || []).map((q) => (
-                      <Link key={q.id} to={`/app/queues/${q.id}`} onClick={onClose} className="club-modal-item-row club-queue-history-row">
+                      <Link key={q.id} to={`/queues/${q.id}`} onClick={onClose} className="club-modal-item-row club-queue-history-row">
                         <SportPill sport={sportFromApi(q.sport)} />
                         <div style={{ flex: 1 }}>
                           <strong>{q.title || 'Club Queue'}</strong>

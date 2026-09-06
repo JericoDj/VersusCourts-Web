@@ -49,7 +49,7 @@ export default function MatchResultModal({ notification, onClose }) {
   }
 
   const handleCopyLink = () => {
-    const url = queueId ? `${window.location.origin}/app/queues/${queueId}` : window.location.href
+    const url = queueId ? `${window.location.origin}/q/${queueId}` : window.location.href
     navigator.clipboard?.writeText(url)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)

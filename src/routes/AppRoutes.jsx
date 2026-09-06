@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import LandingPage from '../pages/LandingPage'
 import { useAuth } from '../context/AuthContext'
 
@@ -15,6 +15,7 @@ const TermsPage = lazy(() => import('../pages/TermsPage'))
 const SecurityPage = lazy(() => import('../pages/SecurityPage'))
 const SupportPage = lazy(() => import('../pages/SupportPage'))
 const ClubBridgePage = lazy(() => import('../pages/ClubBridgePage'))
+const QueueBridgePage = lazy(() => import('../pages/QueueBridgePage'))
 
 // Authenticated app shell and pages
 const AppShell = lazy(() => import('../components/AppShell'))
@@ -33,10 +34,23 @@ const ScoreboardPage = lazy(() => import('../pages/ScoreboardPage'))
 /// Gate for everything under /app. While a stored token is still being
 /// validated `isLoading` is true — render nothing rather than redirect, or a
 /// signed-in user gets bounced to the landing page on every refresh.
+/// Unauthenticated users opening shared queue or club links are gracefully routed
+/// to the public bridge/detail view instead of being thrown to the homepage.
 function RequireAuth({ children }) {
   const { user, isLoading } = useAuth()
+  const location = useLocation()
   if (isLoading) return null
-  if (!user) return <Navigate to="/" replace />
+  if (!user) {
+    if (location.pathname.startsWith('/app/queues/')) {
+      const qId = location.pathname.replace('/app/queues/', '')
+      return <Navigate to={`/q/${qId}`} replace />
+    }
+    if (location.pathname.startsWith('/app/clubs/')) {
+      const cId = location.pathname.replace('/app/clubs/', '')
+      return <Navigate to={`/c/${cId}`} replace />
+    }
+    return <Navigate to="/" replace />
+  }
   return children
 }
 
@@ -47,8 +61,11 @@ export default function AppRoutes() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/venues" element={<VenuesPage />} />
         <Route path="/queues" element={<PublicQueuesPage />} />
+        <Route path="/queues/:queueId" element={<PublicQueuesPage />} />
+        <Route path="/q/:queueId" element={<QueueBridgePage />} />
         <Route path="/events" element={<PublicEventsPage />} />
         <Route path="/clubs" element={<PublicClubsPage />} />
+        <Route path="/clubs/:clubId" element={<PublicClubsPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/proposal" element={<ProposalPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />

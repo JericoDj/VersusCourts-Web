@@ -1,13 +1,18 @@
 import { ShieldCheck, Star, UsersRound } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ClubCard } from '../components/Cards'
 import ClubDetailDialog from '../components/ClubDetailDialog'
 import DirectoryLayout from '../components/DirectoryLayout'
 import { usePlayer } from '../context/PlayerContext'
+import { apiRequest } from '../data/apiClient'
+import { normalizeClub } from '../controllers/discoveryController'
 import { SportFilterPills } from '../components/SportIcon'
 import '../styles/clubs.css'
 
 export default function PublicClubsPage() {
+  const { clubId } = useParams()
+  const navigate = useNavigate()
   // Clubs come from DiscoveryContext, which already fetches and normalizes
   // `/clubs` once for the whole app.
   const { allClubs: clubs } = usePlayer()
@@ -16,6 +21,27 @@ export default function PublicClubsPage() {
   const [publicOnly, setPublicOnly] = useState(false)
   const [memberSort, setMemberSort] = useState(false)
   const [selectedClub, setSelectedClub] = useState(null)
+
+  // Auto-open club if clubId is in URL route parameters
+  useEffect(() => {
+    if (!clubId) return
+    let ignore = false
+    const match = clubs.find((c) => c.id === clubId)
+    if (match) {
+      setSelectedClub(match)
+    } else {
+      apiRequest(`/clubs/${clubId}`)
+        .then((res) => {
+          if (!ignore && res) {
+            setSelectedClub(normalizeClub(res?.data || res))
+          }
+        })
+        .catch(() => {})
+    }
+    return () => {
+      ignore = true
+    }
+  }, [clubId, clubs])
 
   const results = useMemo(() => {
     const filtered = clubs.filter((club) =>
@@ -48,7 +74,15 @@ export default function PublicClubsPage() {
     >
       {results.length ? <div className="cards-grid cards-grid--clubs public-clubs-grid">{results.map((club) => <ClubCard club={club} onOpen={() => setSelectedClub(club)} key={club.id} />)}</div> : <div className="empty-state" style={{ '--empty-color': accent }}><span><ShieldCheck size={30} /></span><h3>No clubs match those filters</h3><p>Try another sport or search area.</p><button type="button" onClick={clear}>Clear filters</button></div>}
     </DirectoryLayout>
-    {selectedClub && <ClubDetailDialog club={selectedClub} onClose={() => setSelectedClub(null)} />}
+    {selectedClub && (
+      <ClubDetailDialog
+        club={selectedClub}
+        onClose={() => {
+          setSelectedClub(null)
+          if (clubId) navigate('/clubs', { replace: true })
+        }}
+      />
+    )}
     </>
   )
 }

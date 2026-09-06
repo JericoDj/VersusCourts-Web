@@ -1,19 +1,44 @@
 import { CalendarDays, Clock3, UsersRound, Zap } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { QueueCard } from '../components/Cards'
 import DirectoryLayout from '../components/DirectoryLayout'
 import QueueDetailDialog from '../components/QueueDetailDialog'
-import { isQueueActive, useQueues } from '../context/QueueContext'
+import { isQueueActive, normalizeQueue, useQueues } from '../context/QueueContext'
+import { apiRequest } from '../data/apiClient'
 import { SportFilterPills } from '../components/SportIcon'
 import '../styles/play.css'
 
 export default function PublicQueuesPage() {
+  const { queueId } = useParams()
+  const navigate = useNavigate()
   const { queues, isLoading, error, refreshQueues } = useQueues()
   const [query, setQuery] = useState('')
   const [sport, setSport] = useState('all')
   const [window, setWindow] = useState('all')
   const [spotsOnly, setSpotsOnly] = useState(false)
   const [selectedQueue, setSelectedQueue] = useState(null)
+
+  // Auto-open queue if queueId is in URL route parameters
+  useEffect(() => {
+    if (!queueId) return
+    let ignore = false
+    const match = queues.find((q) => q.id === queueId)
+    if (match) {
+      setSelectedQueue(match)
+    } else {
+      apiRequest(`/queues/${queueId}`)
+        .then((res) => {
+          if (!ignore && res) {
+            setSelectedQueue(normalizeQueue(res?.data || res))
+          }
+        })
+        .catch(() => {})
+    }
+    return () => {
+      ignore = true
+    }
+  }, [queueId, queues])
   const publicActiveQueues = useMemo(
     () => queues.filter((q) => isQueueActive(q) && !q.isPrivate),
     [queues]
@@ -51,7 +76,15 @@ export default function PublicQueuesPage() {
       extra={<section className="directory-extra queue-how-mini"><span className="eyebrow">HOW QUEUES WORK</span><div>{[[UsersRound,'Join','Claim an available spot.'],[CalendarDays,'Check in','Arrive and confirm at the venue.'],[Zap,'Rotate','Play fair rotations with the group.']].map(([Icon,title,text], index) => <article key={title}><span>{index + 1}</span><span className="icon-chip" style={{ '--chip-color': accent }}><Icon size={18} /></span><div><b>{title}</b><p>{text}</p></div></article>)}</div></section>}
     >
       {isLoading ? <div className="empty-state" style={{ '--empty-color': accent }}><span><UsersRound size={30} /></span><h3>Loading open games…</h3><p>Getting the latest queues from Versus Courts.</p></div> : error ? <div className="empty-state" style={{ '--empty-color': accent }}><span><UsersRound size={30} /></span><h3>Open games are unavailable</h3><p>{error}</p><button type="button" onClick={() => refreshQueues()}>Try again</button></div> : results.length ? <div className="cards-grid cards-grid--queues">{results.map((queue) => <QueueCard queue={queue} onOpen={() => setSelectedQueue(queue)} key={queue.id} />)}</div> : <div className="empty-state" style={{ '--empty-color': accent }}><span><UsersRound size={30} /></span><h3>No open games match</h3><p>Try another sport or a wider time window.</p><button type="button" onClick={clear}>Clear filters</button></div>}
-      {selectedQueue && <QueueDetailDialog queue={selectedQueue} onClose={() => setSelectedQueue(null)} />}
+      {selectedQueue && (
+        <QueueDetailDialog
+          queue={selectedQueue}
+          onClose={() => {
+            setSelectedQueue(null)
+            if (queueId) navigate('/queues', { replace: true })
+          }}
+        />
+      )}
     </DirectoryLayout>
   )
 }

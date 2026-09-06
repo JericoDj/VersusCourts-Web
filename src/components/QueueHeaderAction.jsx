@@ -12,7 +12,7 @@ export default function QueueHeaderAction({ action, queue, user, canInvite, onLo
   const [error, setError] = useState('')
   const [sent, setSent] = useState([])
   const [reported, setReported] = useState(false)
-  const link = `${window.location.origin}/app/queues/${encodeURIComponent(queue.id)}`
+  const link = `${window.location.origin}/q/${encodeURIComponent(queue.id)}`
   const perform = async (work) => {
     setBusy(true); setError(''); setMessage('')
     try { await work() } catch (e) { setError(e.message || 'Please try again.') }

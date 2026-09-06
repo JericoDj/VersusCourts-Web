@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { apiRequest } from '../data/apiClient'
 import { normalizeClub } from '../controllers/discoveryController'
+import { useAuth } from '../context/AuthContext'
 import { APP_STORE_URL } from '../components/StoreBadges'
 import StoreBadges from '../components/StoreBadges'
 import '../styles/modals.css'
@@ -33,6 +34,7 @@ function detectDevice() {
 export default function ClubBridgePage() {
   const { clubId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [, startTransition] = useTransition()
 
   const [club, setClub] = useState(null)
@@ -97,10 +99,11 @@ export default function ClubBridgePage() {
   useEffect(() => {
     if (!loading && club && !device.isMobile) {
       startTransition(() => {
-        navigate(`/app/clubs/${encodeURIComponent(club.id)}`, { replace: true })
+        const dest = user ? `/app/clubs/${encodeURIComponent(club.id)}` : `/clubs/${encodeURIComponent(club.id)}`
+        navigate(dest, { replace: true })
       })
     }
-  }, [loading, club, device.isMobile, navigate])
+  }, [loading, club, device.isMobile, navigate, user])
 
   const handleLaunchApp = () => {
     window.location.href = appSchemeUrl
@@ -113,7 +116,8 @@ export default function ClubBridgePage() {
   const handleContinueOnWeb = () => {
     sessionStorage.setItem('vc_prefer_web_player', '1')
     startTransition(() => {
-      navigate(`/app/clubs/${encodeURIComponent(club.id)}`)
+      const dest = user ? `/app/clubs/${encodeURIComponent(club.id)}` : `/clubs/${encodeURIComponent(club.id)}`
+      navigate(dest)
     })
   }
 

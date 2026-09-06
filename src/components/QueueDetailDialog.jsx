@@ -28,6 +28,7 @@ import QueueHeaderAction from './QueueHeaderAction'
 import QueueLeaderboardModal from './QueueLeaderboardModal'
 import QueueAnalyticsModal from './QueueAnalyticsModal'
 import QueuePlayerListModal from './QueuePlayerListModal'
+import QueueShareModal from './QueueShareModal'
 import { queueFormatLabel } from '../data/queueFormat'
 import { QueueChat, QueueMatches } from './QueueActivity'
 import { sportColor, sportGradient, sportLabel } from '../data/sports'
@@ -80,6 +81,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false)
   const [analyticsOpen, setAnalyticsOpen] = useState(false)
   const [playerListOpen, setPlayerListOpen] = useState(false)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
   const [headerAction, setHeaderAction] = useState(null)
   const [actionMessage, setActionMessage] = useState('')
   const [activeMatches, setActiveMatches] = useState([])
@@ -101,7 +103,8 @@ export default function QueueDetailDialog({ queue, onClose }) {
   useEffect(() => {
     const onKeyDown = (event) => {
       if (event.key !== 'Escape' || loginOpen) return
-      if (analyticsOpen) setAnalyticsOpen(false)
+      if (shareModalOpen) setShareModalOpen(false)
+      else if (analyticsOpen) setAnalyticsOpen(false)
       else if (leaderboardOpen) setLeaderboardOpen(false)
       else if (playerListOpen) setPlayerListOpen(false)
       else if (headerAction) setHeaderAction(null)
@@ -111,7 +114,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [loginOpen, onClose, manageOpen, chatOpen, headerAction, analyticsOpen, leaderboardOpen, playerListOpen])
+  }, [loginOpen, onClose, manageOpen, chatOpen, headerAction, analyticsOpen, leaderboardOpen, playerListOpen, shareModalOpen])
 
   const sport = String(detail.sport || queue.sport || 'badminton').toLowerCase()
 
@@ -295,10 +298,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
                 className="queue-detail-icon-btn"
                 type="button"
                 aria-label="Share game"
-                onClick={() => {
-                  setHeaderAction('share')
-                  setActionMessage('')
-                }}
+                onClick={() => setShareModalOpen(true)}
               >
                 <Share2 size={20} />
               </button>
@@ -682,6 +682,13 @@ export default function QueueDetailDialog({ queue, onClose }) {
           tentativeParticipants={tentativeParticipants}
           capacity={capacity}
           onClose={() => setPlayerListOpen(false)}
+        />
+      )}
+
+      {shareModalOpen && (
+        <QueueShareModal
+          queue={detail}
+          onClose={() => setShareModalOpen(false)}
         />
       )}
     </>
