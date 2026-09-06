@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   ArrowRight,
@@ -22,7 +22,7 @@ import QueueDetailDialog from '../components/QueueDetailDialog'
 import SportPickerModal from '../components/SportPickerModal'
 import { SportGlyph } from '../components/SportIcon'
 import { apiRequest } from '../data/apiClient'
-import { normalizeQueue, useQueues } from '../context/QueueContext'
+import { isQueueActive, normalizeQueue, useQueues } from '../context/QueueContext'
 import { sportLabel } from '../data/sports'
 import '../styles/play.css'
 
@@ -78,8 +78,8 @@ export default function QueuesPage() {
   const navigate = useNavigate()
   const { queues: publicQueues, refreshQueues } = useQueues()
 
-  const [view, setView] = useState(queueId ? 'browse' : 'hub')
-  const [prevQueueId, setPrevQueueId] = useState(queueId)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const view = queueId || searchParams.get('view') === 'browse' ? 'browse' : 'hub'
   const [browseTab, setBrowseTab] = useState('available')
 
   // Modals
@@ -94,13 +94,6 @@ export default function QueuesPage() {
   const [myQueues, setMyQueues] = useState([])
   const [myBookings, setMyBookings] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
-
-  if (queueId !== prevQueueId) {
-    setPrevQueueId(queueId)
-    if (queueId) {
-      setView('browse')
-    }
-  }
 
   // Load user data on mount
   useEffect(() => {
@@ -165,14 +158,14 @@ export default function QueuesPage() {
   const reservedCount = useMemo(() => {
     return myQueues.filter((g) => {
       const status = (g.status || '').toUpperCase()
-      return status !== 'CANCELLED' && status !== 'COMPLETED' && status !== 'STARTED'
+      return isQueueActive(g) && status !== 'STARTED'
     }).length
   }, [myQueues])
 
   const inProgressCount = useMemo(() => {
     return myQueues.filter((g) => {
       const status = (g.status || '').toUpperCase()
-      return status === 'STARTED'
+      return isQueueActive(g) && status === 'STARTED'
     }).length
   }, [myQueues])
 
@@ -187,7 +180,7 @@ export default function QueuesPage() {
 
   // Active ongoing queue for live banner
   const activeOngoingQueue = useMemo(() => {
-    return myQueues.find((g) => (g.status || '').toUpperCase() === 'STARTED')
+    return myQueues.find((g) => isQueueActive(g) && (g.status || '').toUpperCase() === 'STARTED')
   }, [myQueues])
 
   // Filter queues per browse tab
@@ -195,11 +188,11 @@ export default function QueuesPage() {
     if (browseTab === 'reserved') {
       return myQueues.filter((g) => {
         const s = (g.status || '').toUpperCase()
-        return s !== 'CANCELLED' && s !== 'COMPLETED' && s !== 'STARTED'
+        return isQueueActive(g) && s !== 'STARTED'
       })
     }
     if (browseTab === 'inProgress') {
-      return myQueues.filter((g) => (g.status || '').toUpperCase() === 'STARTED')
+      return myQueues.filter((g) => isQueueActive(g) && (g.status || '').toUpperCase() === 'STARTED')
     }
     if (browseTab === 'completed') {
       return myQueues.filter((g) => (g.status || '').toUpperCase() === 'COMPLETED')
@@ -211,8 +204,7 @@ export default function QueuesPage() {
     // Available tab: public queues + search
     const myIds = new Set(myQueues.map((g) => g.id))
     let list = publicQueues.filter((g) => {
-      const s = (g.status || '').toUpperCase()
-      return s !== 'COMPLETED' && s !== 'CANCELLED' && !g.isTimePassed && !g.isPrivate && !myIds.has(g.id)
+      return isQueueActive(g) && !g.isPrivate && !myIds.has(g.id)
     })
 
     if (searchQuery.trim()) {
@@ -234,13 +226,13 @@ export default function QueuesPage() {
   const myUpcomingQueues = useMemo(() => {
     return myQueues.filter((g) => {
       const s = (g.status || '').toUpperCase()
-      return s !== 'CANCELLED' && s !== 'COMPLETED' && s !== 'STARTED'
+      return isQueueActive(g) && s !== 'STARTED'
     })
   }, [myQueues])
 
   const handleOption = (option) => {
     if (option.action === 'browse') {
-      setView('browse')
+      setSearchParams({ view: 'browse' })
     } else if (option.action === 'scoreboard') {
       setSportPickerOpen(true)
     } else {
@@ -337,7 +329,8 @@ export default function QueuesPage() {
               type="button"
               className="queue-browse-back-btn"
               onClick={() => {
-                setView('hub')
+                navigate('/app/queues')
+                setActiveDetailQueue(null)
                 setShowMap(false)
               }}
               aria-label="Back to Play Hub"
@@ -552,7 +545,10 @@ export default function QueuesPage() {
       {activeDetailQueue && (
         <QueueDetailDialog
           queue={activeDetailQueue}
-          onClose={() => setActiveDetailQueue(null)}
+          onClose={() => {
+            setActiveDetailQueue(null)
+            if (queueId) navigate('/app/queues?view=browse')
+          }}
         />
       )}
 

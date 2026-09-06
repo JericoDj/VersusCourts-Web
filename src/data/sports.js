@@ -32,6 +32,8 @@ export const sportMeta = (id) => BY_ID.get(String(id || '').toLowerCase()) ?? SP
 
 export const sportLabel = (id) => sportMeta(id).label
 
+export const sportEmoji = (id) => sportMeta(id).emoji || '🏅'
+
 /// CSS colour for a sport, usable anywhere a custom property is allowed.
 export const sportColor = (id) =>
   id === 'all' ? 'var(--vc-primary)' : `var(--vc-sport-${sportMeta(id).id})`

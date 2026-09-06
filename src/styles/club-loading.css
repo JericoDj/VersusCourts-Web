@@ -1,0 +1,52 @@
+.club-loading-sheet { position: relative; }
+.club-loading-close { position: absolute; z-index: 1; top: 14px; right: 14px; width: 34px; height: 34px; display: grid; place-items: center; border: 0; border-radius: 50%; background: var(--vc-surface); color: var(--vc-text-primary); cursor: pointer; }
+.club-loading-block { background: linear-gradient(90deg, var(--vc-surface-alt) 25%, var(--vc-border) 50%, var(--vc-surface-alt) 75%); background-size: 250% 100%; animation: card-skeleton-sweep 1.4s ease-in-out infinite; border-radius: 12px; }
+.club-loading-hero { height: 160px; border-radius: 0; }
+.club-loading-body { display: grid; gap: 20px; padding: 20px; }
+.club-loading-title { width: 60%; height: 24px; }
+.club-loading-tabs { height: 32px; }
+.club-loading-panel { height: 100px; }
+.club-loading-error { padding: 64px 24px; text-align: center; }
+.club-modal-hero__pill.club-visibility-pill { text-transform: none; padding: 4px 10px; border: 1px solid currentColor; backdrop-filter: none; }
+.club-visibility-pill.is-public { color: #16a34a; background: #eaf8ee; }
+.club-visibility-pill.is-private { color: #b77904; background: #fff6df; }
+.club-modal-stat.club-members-pill { padding: 5px 10px; border-radius: 999px; background: #edf3ff; color: var(--vc-primary); }
+.club-members-pill strong { color: inherit; }
+.club-rating-button { border: 0; background: transparent; padding: 6px; font: inherit; font-size: 13px; cursor: pointer; border-radius: 8px; }
+.club-rating-button:hover { background: var(--vc-surface-alt); }
+.club-about-mobile .club-modal-card { padding: 0; border: 0; border-radius: 0; background: transparent; margin: 0 0 24px; }
+.club-about-mobile .club-modal-card__title { text-transform: none; font-size: 15px; letter-spacing: normal; margin-bottom: 10px; }
+.club-about-sports { display: flex; flex-wrap: wrap; gap: 8px; }
+.club-about-mobile .club-modal-code-card { border-style: solid; background: #f2f6ff; border-color: #ceddfa; margin-bottom: 24px; }
+.club-upcoming-list { display: grid; gap: 10px; }
+.club-upcoming-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px; border: 1px solid var(--vc-border); border-radius: 14px; background: var(--vc-surface); color: var(--vc-text-primary); font: inherit; text-align: left; cursor: pointer; text-decoration: none; }
+.club-upcoming-item > span { display: grid; gap: 4px; flex: 1; }
+.club-upcoming-item small { color: var(--vc-text-secondary); }
+.club-modal-sheet--detail { height: min(760px, 90dvh); }
+.club-modal-sheet--detail > .club-modal-hero,
+.club-modal-sheet--detail > .club-modal-action-row,
+.club-modal-sheet--detail > .club-modal-tabs { flex-shrink: 0; }
+.club-modal-sheet--detail .club-modal-body { min-height: 0; }
+.club-modal-sheet--detail .club-modal-body > .club-modal-section { min-height: 100%; }
+.club-empty-state { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; text-align: center; }
+.club-empty-state__icon { display: grid; place-items: center; width: 64px; height: 64px; flex-shrink: 0; border-radius: 50%; background: color-mix(in srgb, var(--vc-primary) 8%, var(--vc-surface)); color: var(--vc-primary); margin-bottom: 20px; }
+.club-empty-state h3 { margin: 0 0 6px; font-size: 15px; font-weight: 800; }
+.club-empty-state p { margin: 0; max-width: 360px; font-size: 13px; line-height: 1.4; color: var(--vc-text-secondary); }
+.club-empty-state--compact { padding: 32px 20px; background: var(--vc-surface-alt); border: 1px solid var(--vc-border); border-radius: 16px; }
+.club-empty-state--compact .club-empty-state__icon { width: 44px; height: 44px; color: var(--vc-text-tertiary); background: color-mix(in srgb, var(--vc-text-tertiary) 12%, transparent); margin-bottom: 16px; }
+.club-empty-state--compact h3 { font-size: 13px; color: var(--vc-text-secondary); }
+.club-empty-state--compact p { font-size: 12px; color: var(--vc-text-tertiary); }
+.club-queue-history-row { text-decoration: none; color: inherit; flex-wrap: wrap; }
+.club-queue-history-row:hover { border-color: var(--vc-primary); }
+.club-queue-status { padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--vc-primary); background: #edf3ff; }
+.club-queue-status--completed { color: #64748b; background: #f1f5f9; }
+.club-queue-status--cancelled { color: #dc2626; background: #fef2f2; }
+.club-queue-status--started { color: #16a34a; background: #ecfdf5; }
+.club-queue-calendar { display: flex; gap: 12px; overflow-x: auto; padding: 0 0 16px; margin-bottom: 20px; border-bottom: 1px solid var(--vc-border); }
+.club-queue-day { flex: 0 0 64px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px; border: 1px solid var(--vc-border); border-radius: 16px; background: var(--vc-surface-alt); color: var(--vc-text-secondary); font: inherit; cursor: pointer; }
+.club-queue-day strong { font-size: 24px; line-height: 1.15; }
+.club-queue-day span { font-size: 12px; }
+.club-queue-day i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.club-queue-day.is-selected { background: var(--vc-primary); border-color: var(--vc-primary); color: #fff; }
+.club-queue-day:focus-visible { outline: 2px solid var(--vc-primary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .club-loading-block { animation: none; } }

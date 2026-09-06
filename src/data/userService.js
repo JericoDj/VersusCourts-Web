@@ -1,5 +1,19 @@
 import { apiRequest } from './apiClient'
 
+export async function browsePlayers(offset = 0, { signal } = {}) {
+  const res = await apiRequest('/users', { query: { offset }, signal })
+  const list = Array.isArray(res) ? res : res?.data
+  if (!Array.isArray(list)) throw new Error('Unable to load players.')
+  return list.map((u) => ({
+    id: u.id || u._id,
+    name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username || 'Player',
+    username: u.username || '',
+    area: u.area || '',
+    level: u.level || 1,
+    image: u.avatarUrl || '',
+  }))
+}
+
 /// Search players via the live backend API (/users/search?q=...)
 /// Matches Flutter search_screen.dart & user_service.dart
 export async function searchPlayers(query = '', { signal } = {}) {

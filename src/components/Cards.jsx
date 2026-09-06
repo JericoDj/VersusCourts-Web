@@ -214,7 +214,7 @@ export function EventCard({ event }) {
   )
 }
 
-export function ClubCard({ club, onOpen }) {
+export function ClubCard({ club, onOpen, showActions = false }) {
   const { userLocation, locationStatus, requestLocation } = usePlayer()
   const clubSports = club.sports?.length ? club.sports : [club.sport].filter(Boolean)
   const hasCoordinates = Number.isFinite(club.latitude) && Number.isFinite(club.longitude)
@@ -223,8 +223,33 @@ export function ClubCard({ club, onOpen }) {
   const logo = !logoFailed ? (club.logoUrl || club.logo || club.avatarUrl) : null
   const coverUrl = club.bannerUrl || club.coverUrl || club.image
 
+  if (showActions) {
+    const compactDistance = Number.isFinite(club.distanceKm)
+      ? `${club.distanceKm.toFixed(1)} km`
+      : distance
+    return (
+      <article className="home-club-card">
+        <button type="button" className="home-club-card__details" onClick={onOpen} aria-label={`View ${club.name}`}>
+          <div className="home-club-card__cover" style={coverUrl ? { backgroundImage: `url(${coverUrl})` } : undefined}>
+            {!coverUrl && <SportGlyph sport={club.sport} size={32} />}
+          </div>
+          <h3>{club.name}</h3>
+        </button>
+        <div className="home-club-card__meta">
+          <span><Users size={13} /> {club.members.toLocaleString()}</span>
+          {compactDistance ? <span><MapPin size={13} /> {compactDistance}</span> : hasCoordinates ? (
+            <button type="button" onClick={requestLocation} disabled={locationStatus === 'requesting'}>
+              <MapPin size={13} /> {locationStatus === 'requesting' ? 'Locating…' : 'See distance'}
+            </button>
+          ) : <span><MapPin size={13} /> {club.area}</span>}
+        </div>
+        <button type="button" className="home-pill-button home-club-card__join" onClick={onOpen} aria-label={`Join ${club.name}`}>Join</button>
+      </article>
+    )
+  }
+
   return (
-    <article className={`club-card stripe-card ${onOpen ? 'club-card--interactive' : ''}`} style={{ '--stripe-color': 'var(--vc-brand-green)' }} onClick={onOpen} onKeyDown={(event) => { if (onOpen && (event.key === 'Enter' || event.key === ' ')) onOpen() }} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}>
+    <article className={`club-card stripe-card ${onOpen ? 'club-card--interactive' : ''}`} style={{ '--stripe-color': 'var(--vc-brand-green)' }} onClick={onOpen} onKeyDown={(event) => { if (event.target === event.currentTarget && onOpen && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); onOpen() } }} role={onOpen ? 'button' : undefined} tabIndex={onOpen ? 0 : undefined}>
       <div
         className="club-card__cover"
         style={{
@@ -263,6 +288,7 @@ export function ClubCard({ club, onOpen }) {
           ) : <span><MapPin size={15} /> {club.area}</span>}
         </div>
         <div className="card-pills club-card__sports">{clubSports.map((sport) => <SportPill sport={sport} key={sport} />)}</div>
+
       </div>
     </article>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Shuffle, Hand, Search, Award, Trash2, Pencil, Users, Grid2X2, Banknote, X } from 'lucide-react'
+import { Shuffle, Hand, Search, Award, Trash2, Pencil, Users, Grid2X2, Banknote, X, CalendarDays } from 'lucide-react'
 import { apiList, apiRequest } from '../data/apiClient'
 import { queueFormatLabel } from '../data/queueFormat'
 import QueueSportIcon from './QueueSportIcon'
@@ -24,6 +24,27 @@ const localDate = (value) => {
   if (!value) return ''
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? '' : new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+
+const statusLabel = (status) => {
+  const s = String(status || 'OPEN').toUpperCase()
+  if (s === 'COMPLETED' || s === 'FINISHED') return 'Finished'
+  if (s === 'CANCELLED') return 'Cancelled'
+  if (s === 'STARTED') return 'Ongoing'
+  if (s === 'FULL') return 'Full'
+  return 'Open'
+}
+
+const formatDateTimeRange = (start, end) => {
+  if (!start) return ''
+  const d = new Date(start)
+  if (Number.isNaN(d.getTime())) return ''
+  const dateStr = new Intl.DateTimeFormat('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).format(d)
+  const startTimeStr = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(d)
+  if (!end) return `${dateStr} · ${startTimeStr}`
+  const e = new Date(end)
+  const endTimeStr = !Number.isNaN(e.getTime()) ? new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(e) : ''
+  return endTimeStr ? `${dateStr} · ${startTimeStr} – ${endTimeStr}` : `${dateStr} · ${startTimeStr}`
 }
 
 function MatchEditor({ match, run, disabled, finished }) {
@@ -143,15 +164,57 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
     finally { setBusy(false) }
   }
   if (!primaryHost && !coHost) return <div className="queue-detail-white-card"><p>Only the queue host or co-host can manage this queue.</p><button onClick={onBack}>Back to queue</button></div>
-  return <div className="manage-queue">
+    const hostIsPlaying = game.hostIsPlaying !== false
+    const playingParticipants = (game.participants || []).filter((p) => {
+      if (p.status && p.status !== 'JOINED') return false
+      const isHost = p.userId === game.hostId || p.user?.id === game.hostId || p.isHost
+      if (!hostIsPlaying && isHost) return false
+      return true
+    })
+    const playingCount = playingParticipants.length + (game.localPlayers || []).length
+
+    const visibleRoster = (game.participants || [])
+      .filter((p) => !['CANCELLED', 'DECLINED'].includes(p.status))
+      .filter((p) => {
+        const isHost = p.userId === game.hostId || p.user?.id === game.hostId || p.isHost
+        if (!hostIsPlaying && isHost) return false
+        return true
+      })
+
+    return <div className="manage-queue">
     <h2>Manage Queue</h2>
     <div className="manage-queue__tabs" role="tablist" aria-label="Queue management"><button role="tab" aria-selected={tab === 'scoreboard'} onClick={() => setTab('scoreboard')}>Scoreboard</button><button role="tab" aria-selected={tab === 'management'} onClick={() => setTab('management')}>Management</button></div>
     <section className="queue-detail-white-card manage-queue__summary">
-      <div className="manage-queue__summary-title"><span style={{ color: sportColor(String(game.sport).toLowerCase()) }}><QueueSportIcon sport={String(game.sport).toLowerCase()} size={24} /></span><div><h4>{game.title}</h4><small>{sportLabel(game.sport)}</small></div>{!finished && <button className="manage-queue__pencil" type="button" aria-label="Edit game details" onClick={() => setEditor('details')}><Pencil size={17} /></button>}<span className="manage-queue__status">{game.status.toLowerCase()}</span></div>
-      <p>{new Date(game.startTime).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</p>
+      <div className="manage-queue__summary-title">
+        <span style={{ color: sportColor(String(game.sport).toLowerCase()) }}>
+          <QueueSportIcon sport={String(game.sport).toLowerCase()} size={24} />
+        </span>
+        <div>
+          <h4>{game.title}</h4>
+          <small>{sportLabel(game.sport)}</small>
+        </div>
+        {!finished && (
+          <button className="manage-queue__pencil" type="button" aria-label="Edit game details" onClick={() => setEditor('details')}>
+            <Pencil size={17} />
+          </button>
+        )}
+        <span className={`manage-queue__status is-${statusLabel(game.status).toLowerCase()}`}>
+          ● {statusLabel(game.status)}
+        </span>
+      </div>
+      <p className="manage-queue__datetime">
+        <CalendarDays size={13} />
+        <span>{formatDateTimeRange(game.startTime, game.endTime || game.rules?.endTime)}</span>
+      </p>
       {game.description && <p>{game.description}</p>}
       {queue.isHiddenFromPublic && <p className="manage-queue__hidden">Scheduled time has ended. This queue is hidden from public discovery.</p>}
-      <div className="manage-queue__summary-pills"><span><Users size={14} />{game.participants?.filter((p) => p.status === 'JOINED').length || 0}/{game.playersNeeded} players</span><button type="button" disabled={finished} onClick={() => setEditor('format')}><Grid2X2 size={14} />{queueFormatLabel(game)}{!finished && <Pencil size={13} />}</button><span className="manage-queue__fee"><Banknote size={14} />{Number(game.entryFee) ? `₱${game.entryFee}` : 'Free'}</span></div>
+      <div className="manage-queue__summary-pills">
+        <span><Users size={14} />{playingCount}/{game.playersNeeded} players</span>
+        <button type="button" disabled={finished} onClick={() => setEditor('format')}>
+          <Grid2X2 size={14} />{queueFormatLabel(game)}{!finished && <Pencil size={13} />}
+        </button>
+        <span className="manage-queue__fee"><Banknote size={14} />{Number(game.entryFee) ? `₱${game.entryFee}` : 'Free'}</span>
+      </div>
     </section>
     {error && <p role="alert" className="manage-queue__error">{error}</p>}{notice && <p role="status">{notice}</p>}
     {busy && <p role="status">Saving / refreshing…</p>}
@@ -193,21 +256,44 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
       {matches.filter((m) => m.status !== 'ONGOING' && [...(m.playersA || []), ...(m.playersB || [])].map(nameOf).join(' ').toLowerCase().includes(search.toLowerCase())).map((m) => <MatchHistoryCard key={m.id} match={m} basketball={basketball} run={run} disabled={busy || !primaryHost} finished={finished} />)}
       {!matches.some((m) => m.status !== 'ONGOING') && <p>No completed matches yet.</p>}
     </> : <>
-      <section className="queue-detail-white-card manage-queue__roster"><div className="manage-queue__roster-heading"><h3>Players</h3><button type="button" disabled={finished} onClick={() => setEditor('capacity')}>{game.playersNeeded} needed <Pencil size={14} /></button></div><fieldset disabled={busy || finished}>
-
-        <label className="manage-queue__host-switch"><span><b>I'll be playing too</b><small>Off if you're just running the queue, not playing.</small></span><input type="checkbox" role="switch" checked={game.hostIsPlaying !== false} onChange={(e) => run(`${base}/host-playing`, { hostIsPlaying: e.target.checked })} /></label>
-        {(game.participants || []).filter((p) => !['CANCELLED', 'DECLINED'].includes(p.status)).map((p) => {
-          const uid = p.userId || p.user?.id
-          return <div className="manage-queue__player" key={p.id || uid}><b>{nameOf(p.user)}</b><small>{p.status}{p.isHost ? ' · Co-host' : ''}</small>
-            {p.status === 'REQUESTED' && <><button type="button" onClick={() => run(`${base}/participants/${uid}/approve-request`, {})}>Approve</button><button type="button" onClick={() => run(`${base}/participants/${uid}/decline-request`, {})}>Decline</button></>}
-            {p.paymentMethod === 'CASH' && p.paymentStatus === 'PENDING' && <button type="button" onClick={() => window.confirm(`Confirm cash received from ${nameOf(p.user)}?`) && run(`${base}/participants/${uid}/confirm-cash`, {})}>Confirm cash received</button>}
-            {uid !== game.hostId && p.status === 'JOINED' && <button type="button" onClick={() => run(`${base}/participants/${uid}/host`, { isHost: !p.isHost })}>{p.isHost ? 'Remove co-host' : 'Make co-host'}</button>}
-            {uid !== game.hostId && <button type="button" onClick={() => { const reason = window.prompt(`Reason for removing ${nameOf(p.user)}:`); if (reason?.trim()) run(`${base}/participants/${uid}/remove`, { reason: reason.trim() }, 'DELETE') }}>Remove player</button>}
-          </div>
-        })}
-        {(game.localPlayers || []).map((name, i) => <div className="manage-queue__player" key={`${name}-${i}`}><span>{name} · Guest</span><button type="button" onClick={() => window.confirm(`Remove guest ${name}?`) && run(`${base}/local-players`, { localPlayers: game.localPlayers.filter((_, index) => index !== i) })}>Remove guest</button></div>)}
-        <form onSubmit={async (e) => { e.preventDefault(); const form = e.currentTarget; const name = new FormData(form).get('guest').trim(); if (name && await run(`${base}/local-players`, { localPlayers: [...(game.localPlayers || []), name] })) form.reset() }}><label>Guest name<input name="guest" required /></label><button>Add guest</button></form>
-      </fieldset></section>
+      <section className="queue-detail-white-card manage-queue__roster">
+        <div className="manage-queue__roster-heading">
+          <h3>Players</h3>
+          <button type="button" disabled={finished} onClick={() => setEditor('capacity')}>
+            {queueFormatLabel(game)} · {game.playersNeeded} needed {!finished && <Pencil size={14} />}
+          </button>
+        </div>
+        <fieldset disabled={busy || finished}>
+          <label className="manage-queue__host-switch">
+            <span>
+              <b>I'll be playing too</b>
+              <small>Off if you're just running the queue, not playing.</small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              checked={game.hostIsPlaying !== false}
+              onChange={(e) => run(`${base}/host-playing`, { hostIsPlaying: e.target.checked })}
+            />
+          </label>
+          {visibleRoster.length === 0 && (game.localPlayers || []).length === 0 && (
+            <p className="manage-queue__empty-roster" style={{ color: 'var(--vc-text-secondary)', fontSize: '13px', margin: '4px 0 12px' }}>
+              No players yet — add a guest below.
+            </p>
+          )}
+          {visibleRoster.map((p) => {
+            const uid = p.userId || p.user?.id
+            return <div className="manage-queue__player" key={p.id || uid}><b>{nameOf(p.user)}</b><small>{p.status}{p.isHost ? ' · Co-host' : ''}</small>
+              {p.status === 'REQUESTED' && <><button type="button" onClick={() => run(`${base}/participants/${uid}/approve-request`, {})}>Approve</button><button type="button" onClick={() => run(`${base}/participants/${uid}/decline-request`, {})}>Decline</button></>}
+              {p.paymentMethod === 'CASH' && p.paymentStatus === 'PENDING' && <button type="button" onClick={() => window.confirm(`Confirm cash received from ${nameOf(p.user)}?`) && run(`${base}/participants/${uid}/confirm-cash`, {})}>Confirm cash received</button>}
+              {uid !== game.hostId && p.status === 'JOINED' && <button type="button" onClick={() => run(`${base}/participants/${uid}/host`, { isHost: !p.isHost })}>{p.isHost ? 'Remove co-host' : 'Make co-host'}</button>}
+              {uid !== game.hostId && <button type="button" onClick={() => { const reason = window.prompt(`Reason for removing ${nameOf(p.user)}:`); if (reason?.trim()) run(`${base}/participants/${uid}/remove`, { reason: reason.trim() }, 'DELETE') }}>Remove player</button>}
+            </div>
+          })}
+          {(game.localPlayers || []).map((name, i) => <div className="manage-queue__player" key={`${name}-${i}`}><span>{name} · Guest</span><button type="button" onClick={() => window.confirm(`Remove guest ${name}?`) && run(`${base}/local-players`, { localPlayers: game.localPlayers.filter((_, index) => index !== i) })}>Remove guest</button></div>)}
+          <form onSubmit={async (e) => { e.preventDefault(); const form = e.currentTarget; const name = new FormData(form).get('guest').trim(); if (name && await run(`${base}/local-players`, { localPlayers: [...(game.localPlayers || []), name] })) form.reset() }}><label>Guest name<input name="guest" required /></label><button>Add guest</button></form>
+        </fieldset>
+      </section>
       {!finished && <section className="manage-queue__actions"><h3 className="sr-only">Queue actions</h3><fieldset disabled={busy}>
         {['OPEN', 'FULL'].includes(game.status) && <button type="button" onClick={() => run(`${base}/status`, { status: 'STARTED' })}>Start Queue</button>}
         {game.status === 'STARTED' && <><label className="manage-queue__check"><input type="checkbox" checked={!!game.requestsLocked} onChange={(e) => run(`${base}/requests-lock`, { requestsLocked: e.target.checked })} />Lock join requests</label><label className="manage-queue__check"><input type="checkbox" checked={!!game.playersCanScore} onChange={(e) => run(`${base}/players-can-score`, { playersCanScore: e.target.checked })} />Allow players to score</label></>}

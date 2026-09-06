@@ -17,3 +17,11 @@
 /llms.txt
   Cache-Control: public, max-age=86400
   X-Robots-Tag: all, index, follow
+
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+  Cache-Control: public, max-age=3600
+
+/apple-app-site-association
+  Content-Type: application/json
+  Cache-Control: public, max-age=3600

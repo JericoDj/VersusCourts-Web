@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { QueueCard } from '../components/Cards'
 import DirectoryLayout from '../components/DirectoryLayout'
 import QueueDetailDialog from '../components/QueueDetailDialog'
-import { useQueues } from '../context/QueueContext'
+import { isQueueActive, useQueues } from '../context/QueueContext'
 import { SportFilterPills } from '../components/SportIcon'
 import '../styles/play.css'
 
@@ -15,7 +15,7 @@ export default function PublicQueuesPage() {
   const [spotsOnly, setSpotsOnly] = useState(false)
   const [selectedQueue, setSelectedQueue] = useState(null)
   const publicActiveQueues = useMemo(
-    () => queues.filter((q) => !q.isTimePassed && !q.isFinished && !q.isPrivate),
+    () => queues.filter((q) => isQueueActive(q) && !q.isPrivate),
     [queues]
   )
   const results = useMemo(

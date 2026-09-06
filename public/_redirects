@@ -1,4 +1,6 @@
-/robots.txt    /robots.txt    200
-/sitemap.xml   /sitemap.xml   200
-/llms.txt      /llms.txt      200
-/*             /index.html    200
+/robots.txt                             /robots.txt                             200
+/sitemap.xml                            /sitemap.xml                            200
+/llms.txt                               /llms.txt                               200
+/.well-known/apple-app-site-association /.well-known/apple-app-site-association 200
+/apple-app-site-association             /apple-app-site-association             200
+/*                                      /index.html                             200

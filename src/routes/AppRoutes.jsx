@@ -14,6 +14,7 @@ const PrivacyPage = lazy(() => import('../pages/PrivacyPage'))
 const TermsPage = lazy(() => import('../pages/TermsPage'))
 const SecurityPage = lazy(() => import('../pages/SecurityPage'))
 const SupportPage = lazy(() => import('../pages/SupportPage'))
+const ClubBridgePage = lazy(() => import('../pages/ClubBridgePage'))
 
 // Authenticated app shell and pages
 const AppShell = lazy(() => import('../components/AppShell'))
@@ -54,6 +55,8 @@ export default function AppRoutes() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/security" element={<SecurityPage />} />
         <Route path="/support" element={<SupportPage />} />
+        <Route path="/c/:clubId" element={<ClubBridgePage />} />
+        <Route path="/c/code/:clubId" element={<ClubBridgePage />} />
         <Route path="/app" element={<RequireAuth><AppShell /></RequireAuth>}>
           <Route index element={<HomePage />} />
           <Route path="discover" element={<DiscoverPage />} />

@@ -15,8 +15,12 @@
 .manage-queue__summary { color: var(--vc-text-secondary); }
 .manage-queue__summary-title { display: flex; gap: 10px; align-items: center; }
 .manage-queue__summary-title > div { flex: 1; }
-.manage-queue__status { font-size: 11px; padding: 4px 8px; border-radius: 12px; background: #eef1f5; text-transform: capitalize; }
-.manage-queue .manage-queue__hidden { padding: 10px; border: 1px solid #fed08d; border-radius: 12px; background: #fff5e5; color: #e58a00; font-size: 12px; }
+.manage-queue__status { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 9999px; background: #f1f5f9; color: #475569; display: inline-flex; align-items: center; gap: 5px; letter-spacing: 0.2px; }
+.manage-queue__status.is-finished { background: #f1f5f9; color: #475569; }
+.manage-queue__status.is-ongoing { background: #dcfce7; color: #16a34a; }
+.manage-queue__status.is-cancelled { background: #fee2e2; color: #dc2626; }
+.manage-queue__datetime { display: flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--vc-text-secondary, #64748b); margin: 2px 0 0; }
+.manage-queue__empty-roster { color: var(--vc-text-secondary, #64748b); font-size: 13px; margin: 4px 0 12px; }
 .manage-queue__row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .manage-queue .manage-queue__check { display: flex; align-items: center; gap: 8px; }
 .manage-queue__check input { width: 18px; height: 18px; }

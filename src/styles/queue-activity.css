@@ -1,18 +1,244 @@
-.queue-activity { display: grid; gap: 12px; }
-.queue-activity h3, .queue-inline-chat h3 { margin: 8px 0; font-size: 18px; }
-.queue-match-card { overflow: hidden; border: 1px solid var(--vc-border); border-radius: 20px; background: white; }
-.queue-match-card__status { padding: 10px 16px; text-align: center; background: linear-gradient(135deg, #06b6d4, #0d9488); color: white; font-size: 12px; font-weight: 800; letter-spacing: 1px; }
-.queue-match-card__status.is-complete { background: #eef2f7; color: var(--vc-text-secondary); }
-.queue-match-card__score { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 16px; font-size: 14px; }
-.queue-match-card__score b { font-size: 24px; color: var(--vc-primary); }
-.queue-match-card__sets { margin: 0; padding: 0 16px 12px; color: var(--vc-text-secondary); font-size: 12px; }
-.queue-inline-chat { display: flex; flex-direction: column; min-height: 400px; gap: 12px; }
-.queue-inline-chat__messages { display: flex; flex-direction: column; gap: 10px; }
-.queue-inline-chat__messages article { padding: 12px; background: white; border: 1px solid var(--vc-border); border-radius: 16px; max-width: 90%; }
-.queue-inline-chat__messages article.is-own { align-self: flex-end; background: #eef4ff; }
-.queue-inline-chat__messages p { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.queue-inline-chat__messages small, .queue-inline-chat__messages time { font-size: 11px; color: var(--vc-text-secondary); }
-.queue-inline-chat form { position: sticky; bottom: 0; display: flex; gap: 8px; padding: 10px 0; background: #f8fafc; }
-.queue-inline-chat input { width: 0; flex: 1; border: 1px solid var(--vc-border); border-radius: 20px; padding: 12px; font: inherit; }
-.queue-inline-chat form button { border: none; border-radius: 20px; padding: 10px 16px; background: var(--vc-primary); color: white; font: inherit; }
-.queue-inline-chat form button:disabled { opacity: .55; }
+.queue-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.queue-matches-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 4px 0 2px;
+}
+
+.queue-matches-header__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.queue-matches-header__title h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--vc-text-primary, #0f172a);
+}
+
+.queue-matches-icon {
+  color: var(--vc-primary, #1B3BFF);
+}
+
+.queue-matches-leaderboard-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--vc-primary, #1B3BFF);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  transition: background 0.15s ease;
+}
+
+.queue-matches-leaderboard-btn:hover {
+  background: rgba(27, 59, 255, 0.08);
+}
+
+.queue-matches-error {
+  margin: 0;
+  padding: 8px 12px;
+  background: #fef2f2;
+  border-radius: 12px;
+  color: #dc2626;
+  font-size: 12.5px;
+}
+
+/* No Match Waiting Card */
+.queue-no-match-card {
+  background: #ffffff;
+  border: 1px solid var(--vc-border, #e2e8f0);
+  border-radius: 20px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.queue-no-match-icon {
+  color: var(--vc-text-secondary, #94a3b8);
+  opacity: 0.8;
+}
+
+.queue-no-match-card p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--vc-text-secondary, #64748b);
+  font-weight: 500;
+}
+
+/* Match Cards */
+.queue-match-card {
+  overflow: hidden;
+  border: 1px solid var(--vc-border, #e2e8f0);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.queue-match-card__status {
+  padding: 8px 16px;
+  text-align: center;
+  background: linear-gradient(135deg, #06b6d4, #0d9488);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.queue-match-card__status.is-complete {
+  background: #f1f5f9;
+  color: var(--vc-text-secondary, #64748b);
+}
+
+.queue-match-card__score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.queue-match-card__score.is-winner {
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.queue-match-card__score b {
+  font-size: 20px;
+  color: var(--vc-primary, #1B3BFF);
+}
+
+.queue-match-card__score.is-winner b {
+  color: #16a34a;
+}
+
+.queue-match-card__team-name {
+  font-weight: 600;
+  color: var(--vc-text-primary, #0f172a);
+}
+
+.queue-match-card__sets {
+  margin: 0;
+  padding: 0 16px 10px;
+  color: var(--vc-text-secondary, #64748b);
+  font-size: 12px;
+}
+
+.queue-match-card__winner {
+  margin: 0;
+  padding: 0 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #16a34a;
+}
+
+/* Recent Results */
+.queue-recent-results {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.queue-recent-results__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--vc-text-primary, #0f172a);
+}
+
+/* Inline Chat */
+.queue-inline-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px;
+  gap: 12px;
+}
+
+.queue-inline-chat h3 {
+  margin: 8px 0;
+  font-size: 18px;
+}
+
+.queue-inline-chat__messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.queue-inline-chat__messages article {
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--vc-border);
+  border-radius: 16px;
+  max-width: 90%;
+}
+
+.queue-inline-chat__messages article.is-own {
+  align-self: flex-end;
+  background: #eef4ff;
+}
+
+.queue-inline-chat__messages p {
+  margin: 6px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.queue-inline-chat__messages small,
+.queue-inline-chat__messages time {
+  font-size: 11px;
+  color: var(--vc-text-secondary);
+}
+
+.queue-inline-chat form {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 0;
+  background: #f8fafc;
+}
+
+.queue-inline-chat input {
+  width: 0;
+  flex: 1;
+  border: 1px solid var(--vc-border);
+  border-radius: 20px;
+  padding: 12px;
+  font: inherit;
+}
+
+.queue-inline-chat form button {
+  border: none;
+  border-radius: 20px;
+  padding: 10px 16px;
+  background: var(--vc-primary);
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+
+.queue-inline-chat form button:disabled {
+  opacity: 0.55;
+}

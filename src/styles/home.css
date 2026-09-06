@@ -1,0 +1,115 @@
+.home-feed .section-empty {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 24px 16px;
+  color: var(--vc-text-tertiary);
+}
+
+.home-feed .section-empty > p {
+  white-space: pre-line;
+  line-height: 1.45;
+}
+
+.home-pill-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 120px;
+  min-height: 36px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--vc-primary);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-pill-button:hover { background: var(--vc-primary-hover); }
+.home-feed .section-empty > button { margin-top: 12px; }
+
+.home-feed .cards-grid--clubs {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scroll-snap-type: x proximity;
+}
+
+.home-club-card {
+  flex: 0 0 200px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--vc-border);
+  border-radius: 22px;
+  background: var(--vc-surface);
+  padding-bottom: 16px;
+  scroll-snap-align: start;
+}
+
+.home-club-card__details {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-club-card__cover {
+  height: 80px;
+  display: grid;
+  place-items: center;
+  background-color: var(--vc-border);
+  background-size: cover;
+  background-position: center;
+}
+
+.home-club-card__details h3 {
+  margin: 10px 12px 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 700;
+}
+
+.home-club-card__meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0 12px 10px;
+  min-height: 16px;
+  color: var(--vc-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.home-club-card__meta span,
+.home-club-card__meta button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.home-club-card__meta button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.home-club-card__meta svg { flex-shrink: 0; }
+.home-club-card__join { display: flex; width: calc(100% - 24px); margin: 0 12px; }
+.home-club-card button:focus-visible { outline: 2px solid var(--vc-primary); outline-offset: -2px; }

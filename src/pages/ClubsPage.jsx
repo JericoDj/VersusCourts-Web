@@ -333,7 +333,7 @@ export default function ClubsPage() {
                 </div>
               </div>
 
-              {club.isPrivate || myIds.has(String(club.id)) || club.joined || club.myRole ? (
+              {club.isPrivate || club.joined || club.myRole ? (
                 <button
                   type="button"
                   className="club-tile__chevron"

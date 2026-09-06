@@ -55,6 +55,8 @@ export const isQueueFinished = (queue) => {
   return status === 'COMPLETED' || status === 'CANCELLED'
 }
 
+export const isQueueActive = (queue) => !isQueueFinished(queue) && !isQueueTimePassed(queue)
+
 export const isQueueHiddenFromPublic = (queue) => {
   return isQueueTimePassed(queue) && !isQueueFinished(queue)
 }

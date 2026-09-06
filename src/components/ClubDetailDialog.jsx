@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   CalendarDays,
+  CalendarX2,
   Check,
   ChevronRight,
   Clock3,
@@ -13,11 +15,11 @@ import {
   MapPin,
   MessageCircle,
   MoreVertical,
-  Send,
   Share2,
   Shield,
   ShieldOff,
   Star,
+  Trophy,
   UserMinus,
   Users,
   X,
@@ -27,8 +29,20 @@ import { apiRequest } from '../data/apiClient'
 import { sportFromApi } from '../data/sports'
 import LoginDialog from './LoginDialog'
 import UserProfileDialog from './UserProfileDialog'
+import ClubShareModal from './ClubShareModal'
 import { SportPill } from './Cards'
 import '../styles/modals.css'
+import '../styles/club-loading.css'
+
+function ClubEmptyState({ icon: Icon, title, subtitle, compact = false }) {
+  return (
+    <div className={`club-empty-state${compact ? ' club-empty-state--compact' : ''}`}>
+      <span className="club-empty-state__icon"><Icon size={compact ? 22 : 30} /></span>
+      <h3>{title}</h3>
+      <p>{subtitle}</p>
+    </div>
+  )
+}
 
 const formatDate = (value) =>
   value
@@ -42,9 +56,15 @@ const formatDate = (value) =>
 
 export default function ClubDetailDialog({ club, initialTab = 'about', onClose, onClubUpdated }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const [loadedClubId, setLoadedClubId] = useState(null)
+  const [loadError, setLoadError] = useState('')
+  const loadGeneration = useRef(0)
   const [detail, setDetail] = useState(club)
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const [activeTab, setActiveTab] = useState(initialTab === 'chat' ? 'about' : initialTab)
   const [upcoming, setUpcoming] = useState({ queues: [], events: [] })
+  const [clubQueues, setClubQueues] = useState([])
+  const [selectedQueueDay, setSelectedQueueDay] = useState(null)
   const [reviews, setReviews] = useState([])
   const [messages, setMessages] = useState([])
   const [members, setMembers] = useState([])
@@ -54,11 +74,7 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
   const [joinState, setJoinState] = useState('idle')
   const [loginOpen, setLoginOpen] = useState(false)
   const [copiedCode, setCopiedCode] = useState(false)
-
-  // Chat message input
-  const [chatText, setChatText] = useState('')
-  const [sendingMsg, setSendingMsg] = useState(false)
-  const chatEndRef = useRef(null)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
 
   // Review input
   const [myRating, setMyRating] = useState(0)
@@ -80,12 +96,19 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
   // Fetch full club details from API
   const fetchClubFull = useCallback(async () => {
     if (!clubId) return
+    const generation = ++loadGeneration.current
+    setLoadError('')
     try {
-      const [clubRes, upcomingRes, reviewsRes] = await Promise.allSettled([
+      const [clubRes, upcomingRes, reviewsRes, queuesRes] = await Promise.allSettled([
         apiRequest(`/clubs/${clubId}`),
         apiRequest(`/clubs/${clubId}/upcoming`),
         apiRequest('/reviews', { query: { targetType: 'CLUB', targetId: clubId } }),
+        apiRequest(`/clubs/${clubId}/queues`),
       ])
+      if (generation !== loadGeneration.current) return
+      if ([clubRes, upcomingRes, reviewsRes, queuesRes].some((result) => result.status === 'rejected')) {
+        throw new Error('Unable to load club details. Please try again.')
+      }
 
       if (clubRes.status === 'fulfilled') {
         const c = clubRes.value?.data || clubRes.value
@@ -101,22 +124,31 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
         setUpcoming({ queues: u?.queues || [], events: u?.events || [] })
       }
 
+      if (queuesRes.status === 'fulfilled') {
+        const queues = queuesRes.value?.data || queuesRes.value
+        if (!Array.isArray(queues)) throw new Error('Invalid club queue history')
+        setClubQueues(queues)
+      }
+
       if (reviewsRes.status === 'fulfilled') {
         const r = reviewsRes.value?.data || reviewsRes.value
         setReviews(Array.isArray(r) ? r : [])
       }
+      setLoadedClubId(clubId)
     } catch {
-      // Keep existing data
+      if (generation === loadGeneration.current) setLoadError('Unable to load club details. Please try again.')
     }
   }, [clubId])
 
   useEffect(() => {
     let ignore = false
+    const generationRef = loadGeneration
     Promise.resolve().then(() => {
       if (!ignore) fetchClubFull()
     })
     return () => {
       ignore = true
+      generationRef.current++
     }
   }, [fetchClubFull])
 
@@ -127,13 +159,6 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [loginOpen, confirmLeaveOpen, onClose])
-
-  // Scroll to bottom of chat when messages change
-  useEffect(() => {
-    if (activeTab === 'chat' && chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, [activeTab, messages])
 
   // Compute permissions
   const myId = user?.id || ''
@@ -241,28 +266,6 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
     return () => window.removeEventListener('click', onDocClick)
   }, [memberActionMenuId])
 
-  // Send message in club chat
-  const handleSendMessage = async (e) => {
-    e.preventDefault()
-    if (!chatText.trim() || sendingMsg) return
-    setSendingMsg(true)
-    const textToSend = chatText.trim()
-    setChatText('')
-
-    try {
-      const res = await apiRequest(`/clubs/${clubId}/posts`, {
-        method: 'POST',
-        body: { text: textToSend },
-      })
-      const newPost = res?.data || res
-      setMessages((prev) => [...prev, newPost])
-    } catch {
-      setChatText(textToSend)
-    } finally {
-      setSendingMsg(false)
-    }
-  }
-
   // Submit Rating & Review
   const handleSubmitReview = async (e) => {
     e.preventDefault()
@@ -334,11 +337,55 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
     return [...new Set(images)]
   }, [detail.bannerUrl, detail.logoUrl, detail.image, messages])
 
+  const queueDays = useMemo(() => {
+    const groups = new Map()
+    for (const queue of clubQueues) {
+      const date = queue.startTime ? new Date(queue.startTime) : null
+      const valid = date && !Number.isNaN(date.getTime())
+      const key = valid ? new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() : 'tba'
+      if (!groups.has(key)) groups.set(key, { key, date: valid ? date : null, queues: [] })
+      groups.get(key).queues.push(queue)
+    }
+    return [...groups.values()].sort((a, b) => a.key === 'tba' ? 1 : b.key === 'tba' ? -1 : a.key - b.key)
+      .map((group) => ({ ...group, queues: [...group.queues].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)) }))
+  }, [clubQueues])
+  const today = new Date()
+  const todayKey = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+  const defaultQueueDay = queueDays.find((day) => day.key !== 'tba' && day.key >= todayKey)
+    || queueDays.filter((day) => day.key !== 'tba').at(-1) || queueDays[0]
+  const activeQueueDay = queueDays.find((day) => day.key === selectedQueueDay) || defaultQueueDay
+
+  if (loadedClubId !== clubId) {
+    return (
+      <div className="sport-picker-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-label="Club details">
+        <div className="club-modal-sheet club-loading-sheet" onClick={(event) => event.stopPropagation()}>
+          <button type="button" className="club-loading-close" onClick={onClose} aria-label="Close club details"><X size={20} /></button>
+          {loadError ? (
+            <div className="club-loading-error" role="alert"><p>{loadError}</p><button type="button" className="club-modal-chat-btn" onClick={fetchClubFull}>Try again</button></div>
+          ) : (
+            <div role="status" aria-label="Loading club details" aria-busy="true">
+              <div aria-hidden="true">
+                <div className="club-loading-block club-loading-hero" />
+                <div className="club-loading-body">
+                  <div className="club-loading-block club-loading-title" />
+                  <div className="club-loading-block club-loading-tabs" />
+                  <div className="club-loading-block club-loading-panel" />
+                  <div className="club-loading-block club-loading-panel" />
+                  <div className="club-loading-block club-loading-panel" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="sport-picker-backdrop" onClick={onClose} role="dialog" aria-modal="true">
         <div
-          className="club-modal-sheet"
+          className="club-modal-sheet club-modal-sheet--detail"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Hero Banner Header */}
@@ -370,7 +417,7 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
 
               <div className="club-modal-hero__text">
                 <div className="club-modal-hero__meta">
-                  <span className="club-modal-hero__pill">
+                  <span className={`club-modal-hero__pill club-visibility-pill ${isPrivate ? 'is-private' : 'is-public'}`}>
                     {isPrivate ? <Lock size={12} /> : <Globe2 size={12} />}
                     {isPrivate ? 'Private' : 'Public'}
                   </span>
@@ -388,12 +435,12 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
           {/* Action Row */}
           <div className="club-modal-action-row">
             <div className="club-modal-stats-strip">
-              <div className="club-modal-stat">
+              <div className="club-modal-stat club-members-pill">
                 <Users size={16} />
                 <strong>{totalMembers}</strong>
                 <span>{totalMembers === 1 ? 'member' : 'members'}</span>
               </div>
-              <div className="club-modal-stat">
+              <button type="button" className="club-modal-stat club-rating-button" onClick={() => setActiveTab('reviews')} aria-label="Open ratings and reviews">
                 <Star
                   size={16}
                   fill={clubRating > 0 ? '#eab308' : 'none'}
@@ -401,7 +448,7 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                 />
                 <strong>{clubRating > 0 ? clubRating.toFixed(1) : 'New'}</strong>
                 <span>rating</span>
-              </div>
+              </button>
             </div>
 
             <div className="club-modal-buttons">
@@ -409,24 +456,24 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                 <>
                   <button
                     type="button"
-                    className={`club-modal-chat-btn ${activeTab === 'chat' ? 'is-active' : ''}`}
-                    onClick={() => setActiveTab('chat')}
+                    className="club-modal-chat-btn"
+                    onClick={() => {
+                      onClose()
+                      navigate(`/app/messages/club_${clubId}`)
+                    }}
                   >
                     <MessageCircle size={16} />
-                    <span>Chat</span>
-                    {messages.length > 0 && (
-                      <span className="club-modal-chat-count">{messages.length}</span>
-                    )}
+                    <span>Open Chat</span>
                   </button>
 
                   <button
                     type="button"
                     className="scoreboard-icon-btn"
-                    onClick={copyInviteCode}
-                    title="Copy Invite Code"
+                    onClick={() => setShareModalOpen(true)}
+                    title="Share Club"
                   >
                     <Share2 size={15} />
-                    <span>{copiedCode ? 'Copied!' : 'Share'}</span>
+                    <span>Share</span>
                   </button>
 
                   {!isCaptain && (
@@ -442,23 +489,35 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                   )}
                 </>
               ) : (
-                <button
-                  type="button"
-                  className="queue-modal-btn"
-                  style={{ width: 'auto', padding: '10px 20px' }}
-                  onClick={handleJoin}
-                  disabled={joinState === 'joining' || hasRequested}
-                >
-                  {joinState === 'joining' ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : hasRequested || joinState === 'requested' ? (
-                    'Request Sent'
-                  ) : isPrivate ? (
-                    'Request to Join'
-                  ) : (
-                    'Join Club'
-                  )}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="scoreboard-icon-btn"
+                    onClick={() => setShareModalOpen(true)}
+                    title="Share Club"
+                  >
+                    <Share2 size={15} />
+                    <span>Share</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="queue-modal-btn"
+                    style={{ width: 'auto', padding: '10px 20px' }}
+                    onClick={handleJoin}
+                    disabled={joinState === 'joining' || hasRequested}
+                  >
+                    {joinState === 'joining' ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : hasRequested || joinState === 'requested' ? (
+                      'Request Sent'
+                    ) : isPrivate ? (
+                      'Request to Join'
+                    ) : (
+                      'Join Club'
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -472,10 +531,9 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                 label: `Members (${totalMembers})`,
                 badge: isAdmin && requests.length > 0 ? requests.length : 0,
               },
-              { key: 'queues', label: 'Queues' },
+              { key: 'queues', label: 'Queue / OpenPlay' },
               { key: 'events', label: 'Events' },
               { key: 'gallery', label: 'Gallery' },
-              ...(isMember ? [{ key: 'chat', label: 'Chat' }] : []),
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -497,28 +555,27 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
           <div className="club-modal-body">
             {/* TAB 1: ABOUT */}
             {activeTab === 'about' && (
-              <div className="club-modal-section">
-                {/* Sports pills */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
-                  {sports.map((s) => (
-                    <SportPill sport={s} key={s} />
-                  ))}
-                </div>
-
+              <div className="club-modal-section club-about-mobile">
                 {/* About description */}
                 <div className="club-modal-card">
-                  <h3 className="club-modal-card__title">About Club</h3>
+                  <h3 className="club-modal-card__title">About</h3>
                   <p className="club-modal-card__desc">
                     {detail.about || 'No description added yet for this club.'}
                   </p>
                 </div>
 
+                <section className="club-modal-card">
+                  <h3 className="club-modal-card__title">Sports</h3>
+                  <div className="club-about-sports">{sports.map((s) => <SportPill sport={s} key={s} />)}</div>
+                </section>
+
                 {/* Invite Code card */}
+                {(detail.inviteCode || detail.code) && <>
+                <h3 className="club-modal-card__title">Club invite code</h3>
                 <div className="club-modal-code-card">
                   <div>
-                    <span className="club-modal-code-label">CLUB INVITE CODE</span>
                     <strong className="club-modal-code-val">
-                      {detail.inviteCode || detail.code || 'CODE'}
+                      {detail.inviteCode || detail.code}
                     </strong>
                   </div>
                   <button
@@ -530,10 +587,11 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                     <span>{copiedCode ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
+                </>}
 
                 {/* Leaders Section */}
                 <div className="club-modal-card" style={{ marginTop: 14 }}>
-                  <h3 className="club-modal-card__title">Club Leaders</h3>
+                  <h3 className="club-modal-card__title">Leaders</h3>
                   {leaders.length > 0 ? (
                     <div className="club-modal-leaders-list">
                       {leaders.map((m) => {
@@ -580,7 +638,23 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                   )}
                 </div>
 
-                {/* Ratings & Reviews */}
+                <section className="club-modal-card">
+                  <h3 className="club-modal-card__title">Upcoming</h3>
+                  {!upcoming.queues.length && !upcoming.events.length ? (
+                    <ClubEmptyState compact icon={CalendarX2} title="Nothing scheduled" subtitle="Games and events shared here will show up first." />
+                  ) : (
+                    <div className="club-upcoming-list">
+                      {upcoming.queues.map((queue) => <Link key={queue.id} to={`/app/queues/${queue.id}`} onClick={onClose} className="club-upcoming-item"><CalendarDays size={18} /><span><b>{queue.title || 'Queue / OpenPlay'}</b><small>{formatDate(queue.startTime)}</small></span><ChevronRight size={18} /></Link>)}
+                      {upcoming.events.map((event) => <button type="button" key={event.id} className="club-upcoming-item" onClick={() => setActiveTab('events')}><CalendarDays size={18} /><span><b>{event.title || 'Event'}</b><small>{formatDate(event.startTime || event.date)}</small></span><ChevronRight size={18} /></button>)}
+                    </div>
+                  )}
+                </section>
+              </div>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div className="club-modal-section">
+                <button type="button" className="scoreboard-icon-btn" onClick={() => setActiveTab('about')}>Back to About</button>
                 <div className="club-modal-card" style={{ marginTop: 14 }}>
                   <h3 className="club-modal-card__title">Ratings & Reviews</h3>
 
@@ -861,10 +935,24 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
             {/* TAB 3: QUEUES */}
             {activeTab === 'queues' && (
               <div className="club-modal-section">
-                {upcoming.queues.length > 0 ? (
+                {clubQueues.length > 0 ? (
+                  <>
+                  <div className="club-queue-calendar" role="group" aria-label="Queue dates">
+                    {queueDays.map((day) => (
+                      <button type="button" key={day.key} className={`club-queue-day${day.key === activeQueueDay?.key ? ' is-selected' : ''}`}
+                        aria-pressed={day.key === activeQueueDay?.key}
+                        aria-label={`${day.date ? day.date.toLocaleDateString('en-PH', { dateStyle: 'full' }) : 'Date to be announced'}, ${day.queues.length} game${day.queues.length === 1 ? '' : 's'}`}
+                        onClick={() => setSelectedQueueDay(day.key)}>
+                        <span>{day.date ? day.date.toLocaleDateString('en-PH', { month: 'short' }).toUpperCase() : 'DATE'}</span>
+                        <strong>{day.date ? day.date.getDate() : 'TBA'}</strong>
+                        <span>{day.date ? day.date.toLocaleDateString('en-PH', { weekday: 'short' }) : 'Pending'}</span>
+                        <i aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
                   <div className="club-modal-list-col">
-                    {upcoming.queues.map((q) => (
-                      <div key={q.id} className="club-modal-item-row">
+                    {(activeQueueDay?.queues || []).map((q) => (
+                      <Link key={q.id} to={`/app/queues/${q.id}`} onClick={onClose} className="club-modal-item-row club-queue-history-row">
                         <SportPill sport={sportFromApi(q.sport)} />
                         <div style={{ flex: 1 }}>
                           <strong>{q.title || 'Club Queue'}</strong>
@@ -873,14 +961,16 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                             {formatDate(q.startTime)}
                           </span>
                         </div>
-                      </div>
+                        <span className={`club-queue-status club-queue-status--${String(q.status || 'OPEN').toLowerCase()}`}>
+                          {({ COMPLETED: 'Finished', CANCELLED: 'Cancelled', STARTED: 'Ongoing', FULL: 'Full', OPEN: 'Open' })[String(q.status || 'OPEN').toUpperCase()] || q.status}
+                        </span>
+                        <ChevronRight size={16} />
+                      </Link>
                     ))}
                   </div>
+                  </>
                 ) : (
-                  <div className="queue-empty-box">
-                    <Clock3 size={24} style={{ marginBottom: 6, opacity: 0.6 }} />
-                    <p style={{ margin: 0 }}>No queues scheduled for this club right now.</p>
-                  </div>
+                  <ClubEmptyState icon={Clock3} title="No queues yet" subtitle="Queues linked to this club will show up here." />
                 )}
               </div>
             )}
@@ -904,10 +994,7 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                     ))}
                   </div>
                 ) : (
-                  <div className="queue-empty-box">
-                    <CalendarDays size={24} style={{ marginBottom: 6, opacity: 0.6 }} />
-                    <p style={{ margin: 0 }}>No tournaments or events hosted by this club yet.</p>
-                  </div>
+                  <ClubEmptyState icon={Trophy} title="No events yet" subtitle="Tournaments and events hosted by this club will show up here." />
                 )}
               </div>
             )}
@@ -924,79 +1011,11 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
                     ))}
                   </div>
                 ) : (
-                  <div className="queue-empty-box">
-                    <ImageIcon size={24} style={{ marginBottom: 6, opacity: 0.6 }} />
-                    <p style={{ margin: 0 }}>Photos shared in this club will appear here.</p>
-                  </div>
+                  <ClubEmptyState icon={ImageIcon} title="No photos yet" subtitle="Photos shared in this club will appear here." />
                 )}
               </div>
             )}
 
-            {/* TAB 6: CHAT */}
-            {activeTab === 'chat' && (
-              <div className="club-modal-chat-section">
-                <div className="club-modal-chat-messages">
-                  {messages.length === 0 ? (
-                    <div className="queue-empty-box" style={{ margin: 'auto' }}>
-                      <MessageCircle size={28} style={{ opacity: 0.5, marginBottom: 8 }} />
-                      <strong>Welcome to the club board!</strong>
-                      <p style={{ margin: '4px 0 0', fontSize: 12.5 }}>
-                        Say hi to fellow members and coordinate your next game.
-                      </p>
-                    </div>
-                  ) : (
-                    messages.map((msg) => {
-                      const author = msg.author || msg.user || {}
-                      const isMe = (author.id || msg.authorId) === myId
-                      const aName = author.name || `${author.firstName || ''} ${author.lastName || ''}`.trim() || 'Player'
-
-                      return (
-                        <div
-                          key={msg.id}
-                          className={`club-chat-bubble ${isMe ? 'is-me' : 'is-other'}`}
-                        >
-                          {!isMe && (
-                            <span
-                              className="club-chat-author"
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => setViewingUser(author)}
-                              title="View player profile"
-                            >
-                              {aName}
-                            </span>
-                          )}
-                          <div className="club-chat-text">{msg.text}</div>
-                          {msg.imageUrl && (
-                            <img src={msg.imageUrl} alt="" className="club-chat-img" />
-                          )}
-                          <span className="club-chat-time">
-                            {formatDate(msg.createdAt)}
-                          </span>
-                        </div>
-                      )
-                    })
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-
-                <form onSubmit={handleSendMessage} className="club-modal-chat-input-row">
-                  <input
-                    className="queue-modal-input"
-                    placeholder="Type a message..."
-                    value={chatText}
-                    onChange={(e) => setChatText(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    disabled={!chatText.trim() || sendingMsg}
-                    className="scoreboard-point-btn"
-                    style={{ minWidth: 44, height: 44, borderRadius: 12 }}
-                  >
-                    {sendingMsg ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                  </button>
-                </form>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1038,6 +1057,14 @@ export default function ClubDetailDialog({ club, initialTab = 'about', onClose, 
         open={Boolean(viewingUser)}
         onClose={() => setViewingUser(null)}
       />
+
+      {/* Club Share Modal */}
+      {shareModalOpen && (
+        <ClubShareModal
+          club={detail}
+          onClose={() => setShareModalOpen(false)}
+        />
+      )}
 
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
     </>

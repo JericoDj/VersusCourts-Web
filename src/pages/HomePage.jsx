@@ -1,17 +1,23 @@
+import { useState } from 'react'
+import CreateQueueModal from '../components/CreateQueueModal'
+import CreateClubModal from '../components/CreateClubModal'
 import { useNavigate } from 'react-router-dom'
 import { ClubCard, QueueCard } from '../components/Cards'
 import DiscoveryMap from '../components/DiscoveryMap'
 import SectionFeed from '../components/SectionFeed'
 import { SportSelector } from '../components/SportIcon'
 import { usePlayer } from '../context/PlayerContext'
-import { useQueues } from '../context/QueueContext'
+import { isQueueActive, useQueues } from '../context/QueueContext'
 import '../styles/play.css'
+import '../styles/home.css'
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { sport, setSport, clubs, isLoading, hasLoadedOnce } = usePlayer()
-  const { queues, isLoading: queuesLoading } = useQueues()
-  const sportQueues = sport === 'all' ? queues : queues.filter((queue) => queue.sport === sport)
+  const { sport, setSport, clubs, refresh, setNotice, isLoading, hasLoadedOnce } = usePlayer()
+  const { queues, myQueues, refreshQueues, refreshMyQueues, isLoading: queuesLoading } = useQueues()
+  const [createQueueOpen, setCreateQueueOpen] = useState(false)
+  const [createClubOpen, setCreateClubOpen] = useState(false)
+  const sportQueues = queues.filter((queue) => isQueueActive(queue) && !queue.isPrivate && (sport === 'all' || queue.sport === sport))
   /// Only the very first load shows skeletons; later refreshes keep the
   /// current feed on screen rather than flashing it away.
   const loading = isLoading && !hasLoadedOnce
@@ -23,22 +29,48 @@ export default function HomePage() {
         <SportSelector value={sport} onChange={setSport} />
       </section>
       <SectionFeed
-        title="Queue / Open Play" to="/app/queues" variant="queues"
+        className="home-feed"
+        title="Queue / Open Play" to="/app/queues?view=browse" variant="queues"
         loading={queuesLoading} items={sportQueues.slice(0, 3)}
-        empty="No open games right now. Check back soon."
-        render={(queue) => <QueueCard queue={queue} key={queue.id} />}
+        empty={"No games are active.\nHost the first game."}
+        emptyAction={<button type="button" className="home-pill-button" onClick={() => setCreateQueueOpen(true)}>Host Game</button>}
+        render={(queue) => (
+          <QueueCard
+            queue={queue}
+            key={queue.id}
+            joined={myQueues.some((mine) => String(mine.id) === String(queue.id))}
+            onOpen={() => navigate(`/app/queues/${queue.id}`)}
+          />
+        )}
       />
       <SectionFeed
+        className="home-feed"
         title="Popular Clubs Near You" to="/app/clubs" variant="clubs"
         loading={loading} items={clubs.slice(0, 3)}
-        empty="No clubs in your area yet."
+        empty={"No clubs yet.\nCreate the first club."}
+        emptyAction={<button type="button" className="home-pill-button" onClick={() => setCreateClubOpen(true)}>Create Club</button>}
         render={(club) => (
           <ClubCard
             club={club}
+            showActions
             key={club.id}
             onOpen={() => navigate(`/app/clubs/${club.id}`)}
           />
         )}
+      />
+      <CreateQueueModal
+        open={createQueueOpen}
+        onClose={() => setCreateQueueOpen(false)}
+        onCreated={() => { refreshQueues(); refreshMyQueues() }}
+      />
+      <CreateClubModal
+        open={createClubOpen}
+        onClose={() => setCreateClubOpen(false)}
+        onCreated={(club) => {
+          refresh()
+          setNotice('Club created — you are its captain!')
+          if (club) navigate(`/app/clubs/${club.id}`)
+        }}
       />
     </>
   )
