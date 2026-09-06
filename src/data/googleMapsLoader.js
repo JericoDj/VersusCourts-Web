@@ -1,5 +1,5 @@
 export const GOOGLE_MAPS_API_KEY =
-  import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyDE-r3GWJPGiDeAKl08aF6FZGytxJ9d2Do'
+  import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
 
 let googleMapsPromise = null
 
@@ -9,6 +9,12 @@ let googleMapsPromise = null
 export function loadGoogleMaps(apiKey = GOOGLE_MAPS_API_KEY) {
   if (window.google?.maps) return Promise.resolve(window.google.maps)
   if (googleMapsPromise) return googleMapsPromise
+
+  if (!apiKey) {
+    return Promise.reject(
+      new Error('Google Maps API key is not configured. Please set VITE_GOOGLE_MAPS_API_KEY.')
+    )
+  }
 
   googleMapsPromise = new Promise((resolve, reject) => {
     const callbackName = '__versusGoogleMapsReady'
