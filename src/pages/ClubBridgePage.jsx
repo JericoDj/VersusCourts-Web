@@ -179,6 +179,12 @@ export default function ClubBridgePage() {
           <div className="club-bridge-cover__scrim" />
 
           <div className="club-bridge-brand-tag">
+            <img
+              src="/versus-courts-player-logo.png"
+              alt=""
+              className="club-bridge-brand-tag__logo"
+              onError={(e) => { e.currentTarget.style.display = 'none' }}
+            />
             <span>VERSUS COURTS</span>
           </div>
 
@@ -194,13 +200,14 @@ export default function ClubBridgePage() {
         {/* Club Info */}
         <div className="club-bridge-body">
           <div className="club-bridge-meta-row">
-            <span className={`club-modal-hero__pill club-visibility-pill ${club.private ? 'is-private' : 'is-public'}`}>
+            <span className={`club-bridge-pill ${club.private ? 'is-private' : 'is-public'}`}>
               {club.private ? <Lock size={12} /> : <Globe size={12} />}
-              {club.private ? 'Private Club' : 'Public Club'}
+              <span>{club.private ? 'Private Club' : 'Public Club'}</span>
             </span>
             {club.area && (
-              <span className="club-bridge-area">
-                <MapPin size={12} /> {club.area}
+              <span className="club-bridge-area" title={club.area}>
+                <MapPin size={12} />
+                <span>{club.area}</span>
               </span>
             )}
           </div>
@@ -212,12 +219,12 @@ export default function ClubBridgePage() {
 
           <div className="club-bridge-stats">
             <div className="club-bridge-stat">
-              <Users size={16} />
-              <span><strong>{totalMembers}</strong> members</span>
+              <Users size={15} />
+              <span><strong>{totalMembers}</strong> {totalMembers === 1 ? 'member' : 'members'}</span>
             </div>
             {club.sport && (
-              <div className="club-bridge-stat">
-                <ShieldCheck size={16} />
+              <div className="club-bridge-stat club-bridge-stat--sport">
+                <ShieldCheck size={15} />
                 <span>{club.sport.toUpperCase()}</span>
               </div>
             )}
