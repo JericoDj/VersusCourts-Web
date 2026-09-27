@@ -40,7 +40,7 @@ async function loadWallet() {
     summary: {
       available: Number(summary?.available) || 0,
       pending: Number(summary?.pending) || 0,
-      minWithdrawal: Number(summary?.minWithdrawal ?? 100),
+      minWithdrawal: Number(summary?.minWithdrawal ?? 20),
       accounts: Array.isArray(summary?.accounts) ? summary.accounts : [],
     },
     withdrawals: Array.isArray(withdrawals) ? withdrawals : [],
