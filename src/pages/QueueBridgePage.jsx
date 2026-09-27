@@ -18,12 +18,11 @@ import { normalizeQueue } from '../context/QueueContext'
 import { queueFormatLabel } from '../data/queueFormat'
 import { sportColor, sportGradient, sportLabel } from '../data/sports'
 import { useAuth } from '../context/AuthContext'
-import { APP_STORE_URL } from '../components/StoreBadges'
+import { APP_STORE_URL, PLAY_STORE_URL } from '../components/StoreBadges'
 import StoreBadges from '../components/StoreBadges'
 import QueueSportIcon from '../components/QueueSportIcon'
 import '../styles/modals.css'
 
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.leos.versuscourtsplayer'
 
 function detectDevice() {
   if (typeof navigator === 'undefined') return { isMobile: false, isIOS: false, isAndroid: false }

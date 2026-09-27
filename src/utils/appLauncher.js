@@ -1,6 +1,7 @@
-import { APP_STORE_URL } from '../components/StoreBadges'
+import { APP_STORE_URL, PLAY_STORE_URL } from '../components/StoreBadges'
 
-export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.leos.versuscourtsplayer'
+// Re-exported so callers can keep importing store links from here.
+export { APP_STORE_URL, PLAY_STORE_URL }
 
 export function detectDevice() {
   if (typeof navigator === 'undefined') return { isMobile: false, isIOS: false, isAndroid: false }
