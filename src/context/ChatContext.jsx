@@ -10,8 +10,11 @@ import {
   setDoc,
   serverTimestamp,
   updateDoc,
+  arrayUnion,
+  getDoc,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { apiRequest } from '../data/apiClient'
 import { toIsoSafely } from '../utils/dateUtils'
 import { useAuth } from './AuthContext'
 import { usePlayer } from './PlayerContext'
@@ -69,6 +72,68 @@ function storeMessages(threadId, msgs) {
     /* ignore */
   }
 }
+
+/// Club chat is the backend's club posts (`GET/POST /clubs/:id[/posts]`) —
+/// the same messages the Player app shows — not a Firestore thread.
+const CLUB_PREFIX = 'club_'
+const isClubThread = (threadId) => String(threadId || '').startsWith(CLUB_PREFIX)
+const clubIdOf = (threadId) => String(threadId).slice(CLUB_PREFIX.length)
+const CLUB_POLL_MS = 8000
+
+/// A club post in the shape the chat UI uses. A coach-mode post's sender is
+/// `<userId>:coach`, like the app's ClubUser.key, so it isn't "mine" as a player.
+const clubPostToMessage = (p) => {
+  const author = p.author || {}
+  const name = [author.firstName, author.lastName].filter(Boolean).join(' ').trim()
+  return {
+    id: p.id,
+    senderId: p.asCoach ? `${p.authorId}:coach` : p.authorId,
+    senderName: name || 'Player',
+    senderAvatarUrl: author.avatarUrl || '',
+    text: p.type === 'QUEUE' && !p.removedForEveryone ? p.text || 'Shared a queue' : p.text || '',
+    type: p.imageUrl ? 'image' : 'text',
+    attachmentUrl: p.imageUrl || null,
+    timestamp: p.createdAt,
+    reactions: {},
+    removedFor: Array.isArray(p.removedFor) ? p.removedFor : [],
+    removedForEveryone: p.removedForEveryone === true,
+  }
+}
+
+/// Queue chat is the backend's queue messages (`GET /queues/:id`,
+/// `POST /queues/:id/messages`) — the same chat the Player app shows.
+const QUEUE_PREFIX = 'queue_'
+const isQueueThread = (threadId) => String(threadId || '').startsWith(QUEUE_PREFIX)
+const queueIdOf = (threadId) => String(threadId).slice(QUEUE_PREFIX.length)
+
+const queueMessageToMessage = (m, names) => ({
+  id: m.id,
+  senderId: m.isSystem ? 'system' : m.userId,
+  senderName: m.isSystem ? 'System' : names[m.userId] || 'Player',
+  text: m.text || '',
+  type: 'text',
+  timestamp: m.createdAt,
+  reactions: {},
+  removedFor: Array.isArray(m.removedFor) ? m.removedFor : [],
+  removedForEveryone: m.removedForEveryone === true,
+})
+
+/// Loads a backend-backed thread (club or queue) as chat messages.
+async function loadBackendThread(threadId) {
+  if (isClubThread(threadId)) {
+    const club = await apiRequest(`/clubs/${clubIdOf(threadId)}`)
+    return (Array.isArray(club?.posts) ? club.posts : []).map(clubPostToMessage)
+  }
+  const queue = await apiRequest(`/queues/${queueIdOf(threadId)}`)
+  const names = {}
+  for (const p of queue?.participants || []) {
+    const u = p.user || {}
+    if (u.id) names[u.id] = [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || 'Player'
+  }
+  return (Array.isArray(queue?.messages) ? queue.messages : []).map((m) => queueMessageToMessage(m, names))
+}
+
+const isBackendThread = (threadId) => isClubThread(threadId) || isQueueThread(threadId)
 
 export function ChatProvider({ children }) {
   const { user } = useAuth()
@@ -151,9 +216,25 @@ export function ChatProvider({ children }) {
     }
   }, [user?.id])
 
+  // Club and queue threads: load from the API and poll while open.
+  useEffect(() => {
+    if (!activeThreadId || !isBackendThread(activeThreadId) || !user?.id) return undefined
+    let active = true
+    const load = () => loadBackendThread(activeThreadId)
+      .then((list) => {
+        if (!active) return
+        const msgs = [...list].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        setMessagesMap((prev) => ({ ...prev, [activeThreadId]: msgs }))
+      })
+      .catch((err) => console.warn('[ChatProvider] chat load failed:', err))
+    load()
+    const timer = setInterval(load, CLUB_POLL_MS)
+    return () => { active = false; clearInterval(timer) }
+  }, [activeThreadId, user?.id])
+
   // Listen to messages of the active thread in Firestore
   useEffect(() => {
-    if (!db || !activeThreadId || !user?.id) return
+    if (!db || !activeThreadId || !user?.id || isBackendThread(activeThreadId)) return
 
     try {
       const q = query(collection(db, 'chats', activeThreadId, 'messages'), orderBy('timestamp', 'asc'))
@@ -162,9 +243,11 @@ export function ChatProvider({ children }) {
         (snapshot) => {
           const msgs = snapshot.docs.map((d) => {
             const data = d.data() || {}
+            // Doc id last: web-sent messages also store their own `id` field,
+            // which must not shadow the real document id (removal targets it).
             return {
-              id: d.id,
               ...data,
+              id: d.id,
               timestamp: toIsoSafely(data.timestamp),
             }
           })
@@ -316,13 +399,72 @@ export function ChatProvider({ children }) {
     [mergedThreads]
   )
 
+  /// A thread's messages minus the ones I removed for myself ("Remove for
+  /// me" adds my id to message.removedFor — same field the app uses).
   const getMessages = useCallback(
     (threadId) => {
-      if (messagesMap[threadId]) return messagesMap[threadId]
-      return getStoredMessages(threadId)
+      const list = messagesMap[threadId] || getStoredMessages(threadId)
+      return list.filter((m) => !(Array.isArray(m.removedFor) && m.removedFor.includes(currentUserId)))
     },
-    [messagesMap]
+    [messagesMap, currentUserId]
   )
+
+  /// Applies a patch to one message in local state (and the local cache for
+  /// non-Firestore threads), so the UI updates before the snapshot lands.
+  const patchLocalMessage = useCallback((threadId, messageId, patch) => {
+    setMessagesMap((prev) => {
+      const list = prev[threadId] || getStoredMessages(threadId)
+      const updated = list.map((m) => (m.id === messageId ? { ...m, ...patch(m) } : m))
+      storeMessages(threadId, updated)
+      return { ...prev, [threadId]: updated }
+    })
+  }, [])
+
+  /// Soft "Remove for me": hidden only for me; the message stays.
+  const removeMessageForMe = useCallback(async (threadId, messageId) => {
+    if (isQueueThread(threadId)) {
+      await apiRequest(`/queues/${queueIdOf(threadId)}/messages/${messageId}/remove-for-me`, { method: 'POST' })
+      patchLocalMessage(threadId, messageId, (m) => ({ removedFor: [...(m.removedFor || []), currentUserId] }))
+      return
+    }
+    if (isClubThread(threadId)) {
+      await apiRequest(`/clubs/posts/${messageId}/remove-for-me`, { method: 'POST' })
+      patchLocalMessage(threadId, messageId, (m) => ({ removedFor: [...(m.removedFor || []), currentUserId] }))
+      return
+    }
+    patchLocalMessage(threadId, messageId, (m) => ({ removedFor: [...(m.removedFor || []), currentUserId] }))
+    if (db && user?.id) {
+      await updateDoc(doc(db, 'chats', threadId, 'messages', messageId), { removedFor: arrayUnion(currentUserId) })
+    }
+  }, [currentUserId, patchLocalMessage, user?.id])
+
+  /// Soft "Remove for everyone" (own messages): everyone sees a placeholder;
+  /// the doc is kept. Updates the thread preview if it was the latest.
+  const removeMessageForEveryone = useCallback(async (threadId, messageId) => {
+    if (isQueueThread(threadId)) {
+      await apiRequest(`/queues/${queueIdOf(threadId)}/messages/${messageId}/remove-for-everyone`, { method: 'POST' })
+      patchLocalMessage(threadId, messageId, () => ({ removedForEveryone: true, text: '' }))
+      return
+    }
+    if (isClubThread(threadId)) {
+      await apiRequest(`/clubs/posts/${messageId}/remove-for-everyone`, { method: 'POST' })
+      patchLocalMessage(threadId, messageId, () => ({ removedForEveryone: true, text: '', attachmentUrl: null }))
+      return
+    }
+    patchLocalMessage(threadId, messageId, () => ({ removedForEveryone: true }))
+    if (db && user?.id) {
+      const threadRef = doc(db, 'chats', threadId)
+      await updateDoc(doc(db, 'chats', threadId, 'messages', messageId), {
+        removedForEveryone: true,
+        removedAt: serverTimestamp(),
+        removedBy: currentUserId,
+      })
+      const snap = await getDoc(threadRef)
+      if (snap.data()?.lastMessage?.id === messageId) {
+        await updateDoc(threadRef, { 'lastMessage.text': 'Message removed' })
+      }
+    }
+  }, [currentUserId, patchLocalMessage, user?.id])
 
   const markAsRead = useCallback(
     async (threadId) => {
@@ -346,6 +488,28 @@ export function ChatProvider({ children }) {
   const sendMessage = useCallback(
     async (threadId, text, { replyTo = null, type = 'text', attachmentUrl = null } = {}) => {
       if (!text?.trim() && !attachmentUrl) return
+
+      // Queue chat → the backend's queue messages, so the app sees it too.
+      if (isQueueThread(threadId)) {
+        const m = await apiRequest(`/queues/${queueIdOf(threadId)}/messages`, {
+          method: 'POST',
+          body: { text: text?.trim() || '' },
+        })
+        const msg = queueMessageToMessage(m, { [currentUserId]: user?.name || 'You' })
+        setMessagesMap((prev) => ({ ...prev, [threadId]: [...(prev[threadId] || []), msg] }))
+        return
+      }
+
+      // Club chat → the backend's club posts, so the app sees it too.
+      if (isClubThread(threadId)) {
+        const post = await apiRequest(`/clubs/${clubIdOf(threadId)}/posts`, {
+          method: 'POST',
+          body: { text: text?.trim() || '', ...(attachmentUrl ? { imageUrl: attachmentUrl } : {}) },
+        })
+        const msg = clubPostToMessage(post)
+        setMessagesMap((prev) => ({ ...prev, [threadId]: [...(prev[threadId] || []), msg] }))
+        return
+      }
 
       const cleanText = text.trim()
       const newMsg = {
@@ -521,6 +685,8 @@ export function ChatProvider({ children }) {
       sendMessage,
       markAsRead,
       toggleReaction,
+      removeMessageForMe,
+      removeMessageForEveryone,
       startDirectThread,
       startCoachThread,
       activeThreadId,
@@ -538,6 +704,8 @@ export function ChatProvider({ children }) {
       sendMessage,
       markAsRead,
       toggleReaction,
+      removeMessageForMe,
+      removeMessageForEveryone,
       startDirectThread,
       startCoachThread,
       activeThreadId,

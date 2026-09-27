@@ -263,18 +263,20 @@ export default function ProfilePage() {
         <ChevronRight size={20} />
       </button>
 
-      <h2 className="pf-section-title">My Clubs</h2>
+      <div className="pf-section-head">
+        <h2 className="pf-section-title">My Clubs</h2>
+        {myClubs.length > 0 && (
+          <button type="button" className="pf-view-all" onClick={() => setComingSoon('My Clubs')}>View all · {myClubs.length}</button>
+        )}
+      </div>
       <div className="pf-list">
-        {myClubs.map((club) => (
-          <Link key={club.id} to={`/app/clubs/${club.id}`} className="pf-club-row">
-            <img className="pf-club-logo" src={club.image} alt="" />
-            <div>
-              <b>{club.name}</b>
-              <small>{club.members} members</small>
-            </div>
-            <span className="pf-tag">Member</span>
+        {myClubs.length === 0 && (
+          <Link to="/app/clubs" className="pf-club-row">
+            <span className="pf-club-logo pf-club-logo--empty" aria-hidden="true">+</span>
+            <div><b>You haven&apos;t joined a club yet</b><small>Find one near you in Clubs</small></div>
           </Link>
-        ))}
+        )}
+        {myClubs.slice(0, 2).map((club) => <ClubRow key={club.id} club={club} />)}
       </div>
 
       <h2 className="pf-section-title">Account</h2>
@@ -327,6 +329,11 @@ export default function ProfilePage() {
       </div>
 
       {editProfileOpen && <EditProfileDialog profileUser={user} onClose={() => { setEditProfileOpen(false); profile.reload() }} />}
+      {comingSoon === 'My Clubs' && (
+        <ProfileDialog title={`My Clubs · ${myClubs.length}`} onClose={() => setComingSoon('')}>
+          <div className="pf-list">{myClubs.map((club) => <ClubRow key={club.id} club={club} />)}</div>
+        </ProfileDialog>
+      )}
       {comingSoon === 'Share Stats' && <ShareStatsDialog user={{ ...user, level }} stats={stats} onClose={() => setComingSoon('')} />}
       {comingSoon === 'Achievements' && <ProfileDialog title="Achievements" onClose={() => { setComingSoon(''); setAchievement(null) }}><p>{unlocked.length} of {ACHIEVEMENTS.length} unlocked · {xp} XP · Level {level}</p><div className="pf-achievement-grid">{ACHIEVEMENTS.map((item) => <button key={item.id} className={`pf-achievement-card${item.progress(stats) >= item.target ? ' is-unlocked' : ''}`} onClick={() => setAchievement(item)}><span>{item.emoji}</span><b>{item.title}</b><small>{Math.min(item.target, item.progress(stats))}/{item.target} · +{item.xpReward} XP</small><progress max={item.target} value={Math.min(item.target, item.progress(stats))} /></button>)}</div>{achievement && <article className="pf-account-card"><h3>{achievement.emoji} {achievement.title}</h3><p>{achievement.criteria}</p><p>{achievement.progress(stats) >= achievement.target ? 'Unlocked' : 'Keep playing to unlock'} · {achievement.xpReward} XP</p></article>}</ProfileDialog>}
 
@@ -377,5 +384,18 @@ export default function ProfilePage() {
         </div>
       )}
     </div>
+  )
+}
+
+function ClubRow({ club }) {
+  return (
+    <Link to={`/app/clubs/${club.id}`} className="pf-club-row">
+      <img className="pf-club-logo" src={club.image} alt="" />
+      <div>
+        <b>{club.name}</b>
+        <small>{club.members} members</small>
+      </div>
+      <span className="pf-tag">Member</span>
+    </Link>
   )
 }

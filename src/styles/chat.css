@@ -785,3 +785,34 @@
   color: var(--vc-text-tertiary);
   cursor: default;
 }
+
+/* Removed messages + remove menu */
+.chat-bubble--removed {
+  display: inline-flex; align-items: center; gap: 6px; font-style: italic;
+  background: transparent !important; color: var(--vc-text-tertiary) !important;
+  border: 1px solid var(--vc-border);
+}
+.chat-bubble--removed .chat-bubble-meta { margin: 0 0 0 6px; }
+.chat-remove-overlay {
+  position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(15, 23, 42, 0.4); padding: 16px;
+}
+@media (min-width: 640px) { .chat-remove-overlay { align-items: center; } }
+.chat-remove-sheet {
+  width: min(100%, 380px); background: var(--vc-surface); border-radius: 18px; padding: 12px;
+  display: flex; flex-direction: column; gap: 6px; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+.chat-remove-preview {
+  margin: 4px 6px 8px; font-size: 13px; color: var(--vc-text-secondary);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.chat-remove-sheet > button {
+  display: flex; align-items: center; gap: 12px; padding: 12px; border: 0; border-radius: 12px;
+  background: none; text-align: left; font: inherit; color: var(--vc-text-primary); cursor: pointer;
+}
+.chat-remove-sheet > button:hover { background: var(--vc-surface-alt); }
+.chat-remove-sheet > button span { display: flex; flex-direction: column; }
+.chat-remove-sheet > button small { color: var(--vc-text-secondary); font-size: 12px; }
+.chat-remove-sheet > button.is-danger { color: var(--vc-danger); }
+.chat-remove-sheet .chat-remove-cancel { justify-content: center; font-weight: 700; color: var(--vc-text-secondary); }
+.chat-remove-error { margin: 0 6px; color: var(--vc-danger); font-size: 12.5px; }

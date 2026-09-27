@@ -18,6 +18,8 @@ export default function CoachNotificationsPage() {
     const queueId = n.data?.queueId
     if (trainingId) navigate(`/coach/trainings/${trainingId}`)
     else if (queueId) navigate(`/app/queues/${queueId}`)
+    // "Withdrawal sent / declined" and earnings → the Versus Wallet on Profile.
+    else if (n.data?.withdrawalId || n.data?.kind === 'withdrawal' || n.type === 'PAYMENT') navigate('/coach/profile')
   }
 
   return (

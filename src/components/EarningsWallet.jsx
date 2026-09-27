@@ -58,6 +58,7 @@ export default function EarningsWallet({ embedded = false, reloadKey = 0 }) {
   const [accountSheet, setAccountSheet] = useState(null) // { existing? }
   const [withdrawOpen, setWithdrawOpen] = useState(false)
   const [menuFor, setMenuFor] = useState(null)
+  const [history, setHistory] = useState(null) // 'withdrawals' | 'activity'
 
   const reload = useCallback(() => setVersion((v) => v + 1), [])
 
@@ -153,35 +154,29 @@ export default function EarningsWallet({ embedded = false, reloadKey = 0 }) {
         </div>
       )}
 
-      <div className="ew-section-head"><h3>Withdrawals</h3></div>
-      {withdrawals.length === 0 ? <p className="ew-quiet">No withdrawals yet.</p> : withdrawals.slice(0, rows).map((w) => {
-        const status = String(w.status || '').toUpperCase()
-        const [label, cls] = status === 'PAID' ? ['Sent', 'ok'] : status === 'REJECTED' ? ['Declined', 'danger'] : ['Processing', 'warn']
-        const detail = [w.destination, w.createdAt && fmtDate(w.createdAt), w.reference && (status === 'REJECTED' ? w.reference : `Ref ${w.reference}`)].filter(Boolean).join(' · ')
-        return (
-          <div key={w.id} className="ew-card ew-withdrawal">
-            <span className="ew-grow"><b>{money(w.amount)}</b><small>{detail}</small></span>
-            <em className={`ew-badge ew-badge--${cls}`}>{label}</em>
-          </div>
-        )
-      })}
+      <div className="ew-section-head">
+        <h3>Withdrawals</h3>
+        {withdrawals.length > 0 && <button type="button" className="ew-link" onClick={() => setHistory('withdrawals')}>View all · {withdrawals.length}</button>}
+      </div>
+      {withdrawals.length === 0 ? <p className="ew-quiet">No withdrawals yet.</p> : withdrawals.slice(0, rows).map((w) => <WithdrawalRow key={w.id} w={w} />)}
 
       {activity.length > 0 && (
         <>
-          <div className="ew-section-head"><h3>Earnings activity</h3></div>
-          {activity.slice(0, rows).map((t, i) => {
-            const credit = t.type !== 'WITHDRAWAL'
-            return (
-              <div key={t.id || i} className={`ew-activity${credit ? ' is-credit' : ''}`}>
-                {credit ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
-                <span className="ew-grow"><b>{t.description}</b><small>{t.createdAt && fmtDateTime(t.createdAt)}</small></span>
-                <strong>{credit ? '+' : '−'}{money(Math.abs(Number(t.amount) || 0))}</strong>
-              </div>
-            )
-          })}
+          <div className="ew-section-head">
+            <h3>Earnings activity</h3>
+            <button type="button" className="ew-link" onClick={() => setHistory('activity')}>View all · {activity.length}</button>
+          </div>
+          {activity.slice(0, rows).map((t, i) => <ActivityRow key={t.id || i} t={t} />)}
         </>
       )}
 
+      {history && (
+        <HistoryDialog
+          kind={history}
+          items={history === 'withdrawals' ? withdrawals : activity}
+          onClose={() => setHistory(null)}
+        />
+      )}
       {accountSheet && (
         <PayoutAccountDialog
           existing={accountSheet.existing}
@@ -332,6 +327,76 @@ function WithdrawDialog({ summary: s, onClose, onSent }) {
         {error && <p className="tr-error">{error}</p>}
         <button type="submit" className="button button--primary button--full coach-btn" disabled={sending || !accountId}>{sending ? 'Requesting…' : 'Request withdrawal'}</button>
       </form>
+    </ProfileDialog>
+  )
+}
+
+function WithdrawalRow({ w }) {
+  const status = String(w.status || '').toUpperCase()
+  const [label, cls] = status === 'PAID' ? ['Sent', 'ok'] : status === 'REJECTED' ? ['Declined', 'danger'] : ['Processing', 'warn']
+  const detail = [w.destination, w.createdAt && fmtDate(w.createdAt), w.reference && (status === 'REJECTED' ? w.reference : `Ref ${w.reference}`)].filter(Boolean).join(' · ')
+  return (
+    <div className="ew-card ew-withdrawal">
+      <span className="ew-grow"><b>{money(w.amount)}</b><small>{detail}</small></span>
+      <em className={`ew-badge ew-badge--${cls}`}>{label}</em>
+    </div>
+  )
+}
+
+function ActivityRow({ t }) {
+  const credit = t.type !== 'WITHDRAWAL'
+  return (
+    <div className={`ew-activity${credit ? ' is-credit' : ''}`}>
+      {credit ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
+      <span className="ew-grow"><b>{t.description}</b><small>{t.createdAt && fmtDateTime(t.createdAt)}</small></span>
+      <strong>{credit ? '+' : '−'}{money(Math.abs(Number(t.amount) || 0))}</strong>
+    </div>
+  )
+}
+
+const PAGE_SIZE = 10
+
+/// Page numbers with ellipses: 1 … 4 5 6 … 12.
+function pageList(page, pages) {
+  const set = new Set([1, pages, page - 1, page, page + 1].filter((p) => p >= 1 && p <= pages))
+  const sorted = [...set].sort((a, b) => a - b)
+  const out = []
+  sorted.forEach((p, i) => {
+    if (i > 0 && p - sorted[i - 1] > 1) out.push(`gap-${p}`)
+    out.push(p)
+  })
+  return out
+}
+
+/// "View all" — every withdrawal or earnings line, PAGE_SIZE per page. The
+/// API returns the full list, so pages are cut client-side.
+function HistoryDialog({ kind, items, onClose }) {
+  const [page, setPage] = useState(1)
+  const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+  const current = Math.min(page, pages)
+  const start = (current - 1) * PAGE_SIZE
+  const slice = items.slice(start, start + PAGE_SIZE)
+  const isWithdrawals = kind === 'withdrawals'
+
+  return (
+    <ProfileDialog title={isWithdrawals ? 'Withdrawals' : 'Earnings activity'} onClose={onClose}>
+      <p className="coach-hint">
+        {items.length ? `Showing ${start + 1}–${start + slice.length} of ${items.length}` : 'Nothing here yet.'}
+      </p>
+      <div className="ew ew-history">
+        {slice.map((item, i) => (isWithdrawals
+          ? <WithdrawalRow key={item.id || start + i} w={item} />
+          : <ActivityRow key={item.id || start + i} t={item} />))}
+      </div>
+      {pages > 1 && (
+        <nav className="ew-pager" aria-label="Pages">
+          <button type="button" disabled={current === 1} onClick={() => setPage(current - 1)}>Prev</button>
+          {pageList(current, pages).map((p) => (typeof p === 'string'
+            ? <span key={p} className="ew-pager__gap">…</span>
+            : <button key={p} type="button" className={p === current ? 'is-active' : ''} aria-current={p === current ? 'page' : undefined} onClick={() => setPage(p)}>{p}</button>))}
+          <button type="button" disabled={current === pages} onClick={() => setPage(current + 1)}>Next</button>
+        </nav>
+      )}
     </ProfileDialog>
   )
 }

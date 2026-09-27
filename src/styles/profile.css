@@ -1693,3 +1693,9 @@
 }
 
 
+
+/* My Clubs › View all */
+.pf-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.pf-view-all { border: 0; background: none; padding: 0; color: var(--vc-primary); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.pf-view-all:hover { text-decoration: underline; }
+.pf-club-logo--empty { display: grid; place-items: center; background: var(--vc-surface-alt); color: var(--vc-text-secondary); font-size: 22px; font-weight: 700; }

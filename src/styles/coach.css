@@ -397,3 +397,16 @@ button.coach-stat:hover { border-color: var(--vc-accent); }
   background: var(--vc-surface); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
 }
 .ew-quick button:hover { border-color: var(--vc-accent); color: var(--vc-accent); }
+
+/* Wallet "View all" dialog */
+.ew-history { min-height: 120px; }
+.ew-pager { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-top: 16px; }
+.ew-pager button {
+  min-width: 36px; height: 36px; padding: 0 10px; border-radius: var(--vc-radius-sm);
+  border: 1px solid var(--vc-border); background: var(--vc-surface); color: var(--vc-text-primary);
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.ew-pager button:hover:not(:disabled) { border-color: var(--vc-accent); color: var(--vc-accent); }
+.ew-pager button:disabled { opacity: 0.45; cursor: default; }
+.ew-pager button.is-active { background: var(--vc-accent); border-color: var(--vc-accent); color: #fff; }
+.ew-pager__gap { color: var(--vc-text-tertiary); padding: 0 2px; }

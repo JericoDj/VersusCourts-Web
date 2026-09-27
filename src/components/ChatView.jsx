@@ -1,4 +1,4 @@
-import { Check, CheckCheck, ChevronLeft, CornerUpLeft, Flame, Paperclip, Send, X } from 'lucide-react'
+import { Ban, Check, CheckCheck, ChevronLeft, CornerUpLeft, EyeOff, Flame, Paperclip, Send, Trash2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useChat } from '../context/ChatContext'
@@ -8,7 +8,10 @@ import '../styles/chat.css'
 const QUICK_EMOJIS = ['👍', '❤️', '🔥', '😂', '👏']
 
 export default function ChatView({ threadId, onBack }) {
-  const { getThread, getMessages, sendMessage, markAsRead, toggleReaction, currentUserId } = useChat()
+  const { getThread, getMessages, sendMessage, markAsRead, toggleReaction, removeMessageForMe, removeMessageForEveryone, setActiveThreadId, currentUserId } = useChat()
+  const [removing, setRemoving] = useState(null) // { msg, isMe }
+  const [removeError, setRemoveError] = useState('')
+  const holdTimer = useRef(null)
   const [inputText, setInputText] = useState('')
   const [replyingTo, setReplyingTo] = useState(null)
   const feedEndRef = useRef(null)
@@ -16,6 +19,15 @@ export default function ChatView({ threadId, onBack }) {
 
   const thread = getThread(threadId)
   const messages = getMessages(threadId)
+
+  // The open thread is the "active" one: ChatContext only subscribes to a
+  // thread's real messages (Firestore, or the backend for club/queue chats)
+  // while it is active.
+  useEffect(() => {
+    if (!threadId) return undefined
+    setActiveThreadId(threadId)
+    return () => setActiveThreadId((current) => (current === threadId ? null : current))
+  }, [threadId, setActiveThreadId])
 
   useEffect(() => {
     if (threadId) {
@@ -134,12 +146,25 @@ export default function ChatView({ threadId, onBack }) {
               <div key={msg.id} style={{ display: 'contents' }}>
                 {showDate && <div className="chat-date-separator">{msgDate}</div>}
 
-                <div className={`chat-message-row ${isMe ? 'is-me' : 'is-other'}`}>
+                <div
+                  className={`chat-message-row ${isMe ? 'is-me' : 'is-other'}`}
+                  // Right-click, or press-and-hold on touch, opens Remove.
+                  onContextMenu={(e) => { e.preventDefault(); setRemoving({ msg, isMe }) }}
+                  onTouchStart={() => { holdTimer.current = setTimeout(() => setRemoving({ msg, isMe }), 500) }}
+                  onTouchEnd={() => clearTimeout(holdTimer.current)}
+                  onTouchMove={() => clearTimeout(holdTimer.current)}
+                >
                   {/* Sender Name in Group/Club/Queue chats */}
                   {!isMe && thread.type !== 'direct' && (
                     <span className="chat-sender-name">{msg.senderName || 'Player'}</span>
                   )}
 
+                  {msg.removedForEveryone ? (
+                    <div className="chat-bubble chat-bubble--removed">
+                      <Ban size={14} /> {isMe ? 'You removed this message' : 'This message was removed'}
+                      <span className="chat-bubble-meta"><span>{formatTime(msg.timestamp)}</span></span>
+                    </div>
+                  ) : (<>
                   {/* Bubble Container */}
                   <div className="chat-bubble">
                     {/* Quoted reply */}
@@ -198,7 +223,11 @@ export default function ChatView({ threadId, onBack }) {
                         {emoji}
                       </button>
                     ))}
+                    <button type="button" className="chat-action-emoji-btn" onClick={() => setRemoving({ msg, isMe })} title="Remove">
+                      <Trash2 size={13} />
+                    </button>
                   </div>
+                  </>)}
                 </div>
               </div>
             )
@@ -206,6 +235,35 @@ export default function ChatView({ threadId, onBack }) {
         )}
         <div ref={feedEndRef} />
       </div>
+
+      {removing && (
+        <div className="chat-remove-overlay" role="presentation" onClick={() => { setRemoving(null); setRemoveError('') }}>
+          <div className="chat-remove-sheet" role="dialog" aria-modal="true" aria-label="Remove message" onClick={(e) => e.stopPropagation()}>
+            <p className="chat-remove-preview">{removing.msg.removedForEveryone ? 'Removed message' : removing.msg.text || 'Attachment'}</p>
+            <button
+              type="button"
+              onClick={async () => {
+                try { await removeMessageForMe(threadId, removing.msg.id); setRemoving(null) } catch { setRemoveError('Could not remove the message. Try again.') }
+              }}
+            >
+              <EyeOff size={16} /> <span><b>Remove for me</b><small>Hidden for you. Others still see it.</small></span>
+            </button>
+            {removing.isMe && !removing.msg.removedForEveryone && (
+              <button
+                type="button"
+                className="is-danger"
+                onClick={async () => {
+                  try { await removeMessageForEveryone(threadId, removing.msg.id); setRemoving(null) } catch { setRemoveError('Could not remove the message. Try again.') }
+                }}
+              >
+                <Trash2 size={16} /> <span><b>Remove for everyone</b><small>Everyone sees “This message was removed”.</small></span>
+              </button>
+            )}
+            {removeError && <p className="chat-remove-error">{removeError}</p>}
+            <button type="button" className="chat-remove-cancel" onClick={() => { setRemoving(null); setRemoveError('') }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {/* Replying Banner */}
       {replyingTo && (
