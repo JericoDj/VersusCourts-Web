@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Building2, Check, ChevronRight, Loader2, MapPin, Plus, Search, X } from 'lucide-react'
 import { apiRequest } from '../data/apiClient'
 import { getPlacePredictions, geocodePlaceId } from '../data/googleMapsLoader'
+import { addVenue, searchVenues } from '../data/venues'
 import '../styles/modals.css'
 
 export default function CourtPickerModal({ open, value, onSelect, onClose }) {
@@ -21,6 +22,9 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
   const [customArea, setCustomArea] = useState('')
   const [customLat, setCustomLat] = useState(null)
   const [customLng, setCustomLng] = useState(null)
+  const [customPlaceId, setCustomPlaceId] = useState(null)
+  const [savingCustom, setSavingCustom] = useState(false)
+  const [customNotice, setCustomNotice] = useState('')
   const [pickedFromMaps, setPickedFromMaps] = useState(false)
   const placeDebounceRef = useRef(null)
 
@@ -38,19 +42,24 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
           queryParams.set('q', searchQuery.trim())
         }
         queryParams.set('limit', '20')
-        const res = await apiRequest(`/courts?${queryParams.toString()}`)
+        // Listed courts, then venues people saved via "Can't find your court?".
+        const [res, venues] = await Promise.all([
+          apiRequest(`/courts?${queryParams.toString()}`),
+          searchVenues(searchQuery),
+        ])
         if (!active) return
         const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []
-        setCourts(
-          list.map((c) => ({
+        setCourts([
+          ...list.map((c) => ({
             id: c.id,
             name: c.name || '',
             area: c.branch?.area || c.address || '',
             organizationName: c.branch?.organization?.name || c.organization?.name || '',
             sports: c.sports || [],
             isCustom: false,
-          }))
-        )
+          })),
+          ...venues,
+        ])
       } catch {
         if (active) setError('Could not load courts.')
       } finally {
@@ -100,6 +109,7 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
         setCustomArea(geo.area || prediction.secondaryText || '')
         setCustomLat(geo.lat)
         setCustomLng(geo.lng)
+        setCustomPlaceId(prediction.placeId)
         setPickedFromMaps(true)
       } else {
         setCustomName(prediction.mainText)
@@ -118,10 +128,14 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
     onClose()
   }
 
-  const handleConfirmCustom = (e) => {
+  /// Saves the venue so the next host finds it in search. If it's already a
+  /// listed court or a saved venue, that one is used instead of a duplicate.
+  /// If saving fails, the venue is still used for this queue (the backend
+  /// saves it when the queue is created).
+  const handleConfirmCustom = async (e) => {
     e.preventDefault()
-    if (!customName.trim()) return
-    onSelect({
+    if (!customName.trim() || savingCustom) return
+    const fallback = {
       id: '',
       name: customName.trim(),
       area: customArea.trim() || 'Metro Manila',
@@ -130,8 +144,29 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
       isCustom: true,
       lat: customLat,
       lng: customLng,
-    })
-    onClose()
+    }
+    setSavingCustom(true)
+    setCustomNotice('')
+    try {
+      const { option, existing } = await addVenue({
+        name: fallback.name,
+        area: customArea,
+        lat: customLat,
+        lng: customLng,
+        placeId: pickedFromMaps ? customPlaceId : null,
+      })
+      if (existing) {
+        // Brief heads-up before closing that an existing place was reused.
+        setCustomNotice(option.isCustom ? `"${option.name}" was already added — using it.` : `"${option.name}" is already listed — using it.`)
+        await new Promise((r) => setTimeout(r, 900))
+      }
+      onSelect(option.isCustom && !option.area ? { ...option, area: fallback.area } : option)
+    } catch {
+      onSelect(fallback)
+    } finally {
+      setSavingCustom(false)
+      onClose()
+    }
   }
 
   if (!open) return null
@@ -244,7 +279,7 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
                     const isSelected = value?.id === c.id
                     return (
                       <button
-                        key={c.id}
+                        key={c.venueId || c.id}
                         type="button"
                         className={`court-item-row ${isSelected ? 'is-selected' : ''}`}
                         onClick={() => handleSelectCourt(c)}
@@ -257,7 +292,7 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
                             {c.name}
                           </div>
                           <div style={{ fontSize: 12, color: 'var(--vc-text-secondary, #64748b)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {c.organizationName ? `${c.organizationName}${c.area ? ` · ${c.area}` : ''}` : c.area}
+                            {c.venueId ? `Added venue${c.area ? ` · ${c.area}` : ''}` : c.organizationName ? `${c.organizationName}${c.area ? ` · ${c.area}` : ''}` : c.area}
                           </div>
                         </div>
                         {isSelected && <Check size={18} color="var(--vc-primary, #2563eb)" />}
@@ -360,13 +395,16 @@ export default function CourtPickerModal({ open, value, onSelect, onClose }) {
             </div>
 
             <div style={{ marginTop: 'auto', paddingTop: 10 }}>
+              {customNotice && (
+                <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 600, color: 'var(--vc-primary)' }}>{customNotice}</p>
+              )}
               <button
                 type="submit"
-                disabled={!customName.trim()}
+                disabled={!customName.trim() || savingCustom}
                 className="scoreboard-main-point-btn"
-                style={{ width: '100%', opacity: customName.trim() ? 1 : 0.5 }}
+                style={{ width: '100%', opacity: customName.trim() && !savingCustom ? 1 : 0.5 }}
               >
-                Use This Court
+                {savingCustom ? 'Saving…' : 'Use This Court'}
               </button>
             </div>
           </form>

@@ -6,6 +6,7 @@ import { useCoach } from '../../context/CoachContext'
 import { usePlayer } from '../../context/PlayerContext'
 import { SPORTS } from '../../data/sports'
 import { SKILLS, coachApi, commissionFor, formatPeso, skillLabel } from '../../data/trainings'
+import { addVenue, searchVenues } from '../../data/venues'
 
 const MIN_PRICE = 20
 
@@ -91,7 +92,11 @@ function TrainingForm({ existing }) {
     if (!editing && start <= new Date()) return setError('Pick a start time in the future.')
 
     const venueBody = venue.unchanged ? {} : venue.custom
-      ? { customCourtName: venue.name.trim(), ...(venue.area?.trim() ? { customArea: venue.area.trim() } : {}) }
+      ? {
+          customCourtName: venue.name.trim(),
+          ...(venue.area?.trim() ? { customArea: venue.area.trim() } : {}),
+          ...(venue.lat != null && venue.lng != null ? { customLat: venue.lat, customLng: venue.lng } : {}),
+        }
       : { courtId: venue.id }
     const body = {
       ...venueBody,
@@ -199,13 +204,30 @@ function VenuePicker({ value, onChange }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState(null) // null while a search is in flight
   const [custom, setCustom] = useState({ name: '', area: '' })
+  const [savingCustom, setSavingCustom] = useState(false)
+
+  /// Saves the typed venue so the next coach finds it in search — or reuses
+  /// the listed court / saved venue that is already this place.
+  const applyCustom = async () => {
+    const fallback = { name: custom.name.trim(), area: custom.area.trim(), custom: true }
+    setSavingCustom(true)
+    try {
+      const { option } = await addVenue({ name: fallback.name, area: fallback.area })
+      onChange(option.isCustom ? { ...option, custom: true } : { ...option, custom: false })
+    } catch {
+      onChange(fallback)
+    } finally {
+      setSavingCustom(false)
+    }
+  }
 
   useEffect(() => {
     if (mode !== 'search' || value) return undefined
     let active = true
     const timer = setTimeout(() => {
-      coachApi.searchCourts(query)
-        .then((list) => { if (active) setResults(list) })
+      // Coaching courts, then venues people saved via "Other venue".
+      Promise.all([coachApi.searchCourts(query), searchVenues(query)])
+        .then(([courts, venues]) => { if (active) setResults([...courts, ...venues]) })
         .catch(() => { if (active) setResults([]) })
     }, 250)
     return () => { active = false; clearTimeout(timer) }
@@ -229,21 +251,21 @@ function VenuePicker({ value, onChange }) {
       </div>
       {mode === 'search' ? (
         <>
-          <div className="queue-search-bar"><Search size={18} /><input value={query} onChange={(e) => { setQuery(e.target.value); setResults(null) }} placeholder="Search courts that offer coaching" /></div>
+          <div className="queue-search-bar"><Search size={18} /><input value={query} onChange={(e) => { setQuery(e.target.value); setResults(null) }} placeholder="Search coaching courts or saved venues" /></div>
           <div className="coach-venue-results">
             {results === null ? <p className="coach-hint">Searching…</p> : results.length ? results.map((c) => (
-              <button key={c.id} type="button" className="coach-row" onClick={() => onChange({ ...c, custom: false })}>
+              <button key={c.venueId || c.id} type="button" className="coach-row" onClick={() => onChange({ ...c, custom: Boolean(c.venueId) })}>
                 <MapPin size={16} />
-                <span className="coach-row__body"><b>{c.name}</b><small>{[c.organizationName, c.area].filter(Boolean).join(' · ')}</small></span>
+                <span className="coach-row__body"><b>{c.name}</b><small>{c.venueId ? ['Added venue', c.area].filter(Boolean).join(' · ') : [c.organizationName, c.area].filter(Boolean).join(' · ')}</small></span>
               </button>
-            )) : <p className="coach-hint">No listed courts offer coaching for that search. Use “Other venue” for an unlisted spot.</p>}
+            )) : <p className="coach-hint">No courts or saved venues match. Use “Other venue” to add an unlisted spot.</p>}
           </div>
         </>
       ) : (
         <>
           <label className="tr-field"><span>Venue name</span><input className="tr-input" value={custom.name} onChange={(e) => setCustom((c) => ({ ...c, name: e.target.value }))} placeholder="e.g. Barangay covered court" /></label>
           <label className="tr-field"><span>Area / address</span><input className="tr-input" value={custom.area} onChange={(e) => setCustom((c) => ({ ...c, area: e.target.value }))} placeholder="e.g. Quezon City" /></label>
-          <button type="button" className="button button--outline coach-btn" disabled={custom.name.trim().length < 2} onClick={() => onChange({ name: custom.name.trim(), area: custom.area.trim(), custom: true })}>Use this venue</button>
+          <button type="button" className="button button--outline coach-btn" disabled={custom.name.trim().length < 2 || savingCustom} onClick={applyCustom}>{savingCustom ? 'Saving…' : 'Use this venue'}</button>
         </>
       )}
     </div>
