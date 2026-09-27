@@ -10,6 +10,9 @@ import { addVenue, searchVenues } from '../../data/venues'
 
 const MIN_PRICE = 20
 
+/// Training sports: Badminton first (the default), Basketball last.
+const TRAINING_SPORTS = [...SPORTS.filter((s) => s.id !== 'basketball'), ...SPORTS.filter((s) => s.id === 'basketball')]
+
 const pad = (n) => String(n).padStart(2, '0')
 const toDateInput = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const toTimeInput = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -143,7 +146,7 @@ function TrainingForm({ existing }) {
         <ImagePickerField label="Cover photo" value={form.image} onChange={(url) => setForm((f) => ({ ...f, image: url || '' }))} folder="trainings" aspectRatio={16 / 9} deferUpload={false} />
         <div className="tr-field-row">
           <label className="tr-field"><span>Sport</span>
-            <select className="tr-input" value={form.sport} onChange={set('sport')}>{SPORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
+            <select className="tr-input" value={form.sport} onChange={set('sport')}>{TRAINING_SPORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
           </label>
           <label className="tr-field"><span>Skill level</span>
             <select className="tr-input" value={form.skill} onChange={set('skill')}>{SKILLS.map((s) => <option key={s} value={s}>{skillLabel(s)}</option>)}</select>
