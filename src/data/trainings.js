@@ -231,6 +231,8 @@ export const coachApi = {
   settlementPreview: (id) => apiRequest(`/coach/trainings/${id}/settlement-preview`),
   complete: (id) => patch(`/coach/trainings/${id}/complete`),
   cancel: (id, reason) => patch(`/coach/trainings/${id}/cancel`, reason?.trim() ? { reason: reason.trim() } : undefined),
+  /// `{ current, upcoming }` — admin-created incentives for me (display only).
+  incentives: () => apiRequest('/coach/incentives'),
   confirmCash: (id, userId) => patch(`/trainings/${id}/participants/${userId}/confirm-cash`),
   declineCash: (id, userId) => patch(`/trainings/${id}/participants/${userId}/decline-cash`),
   /// Listed courts that offer coaching (`CoachProvider.searchCourts`).

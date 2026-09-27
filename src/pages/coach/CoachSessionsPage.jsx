@@ -7,6 +7,7 @@ import { normalizeQueue } from '../../context/QueueContext'
 import { sportColor, sportLabel } from '../../data/sports'
 import { formatTrainingDate, formatTrainingTimeRange } from '../../data/trainings'
 import CoachHeader from './CoachHeader'
+import { CoachIncentivesStrip } from '../../components/CoachIncentives'
 
 const ACTIVE_QUEUE = new Set(['OPEN', 'FULL', 'STARTED'])
 
@@ -45,6 +46,8 @@ export default function CoachSessionsPage() {
   return (
     <div className="coach-page">
       <CoachHeader title="Sessions" subtitle={`${activeQueues.length} active · ${pastQueues.length} past queues`} />
+
+      <CoachIncentivesStrip />
 
       {error && (
         <p className="tr-error">{error} <button type="button" className="coach-link-btn" onClick={() => setReloadKey((k) => k + 1)}>Retry</button></p>

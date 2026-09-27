@@ -16,7 +16,8 @@ export default function CoachNotificationsPage() {
     if (!n.read) markNotificationRead(n.id)
     const trainingId = n.data?.trainingId
     const queueId = n.data?.queueId
-    if (trainingId) navigate(`/coach/trainings/${trainingId}`)
+    if (n.data?.kind === 'incentive') navigate('/coach')
+    else if (trainingId) navigate(`/coach/trainings/${trainingId}`)
     else if (queueId) navigate(`/app/queues/${queueId}`)
     // "Withdrawal sent / declined" and earnings → the Versus Wallet on Profile.
     else if (n.data?.withdrawalId || n.data?.kind === 'withdrawal' || n.type === 'PAYMENT') navigate('/coach/profile')

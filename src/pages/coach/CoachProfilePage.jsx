@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Award, ChevronRight, History, Pencil, Receipt, Star, StarHalf, UserRound } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Award, ChevronRight, History, LogOut, Pencil, Receipt, Star, StarHalf, UserRound } from 'lucide-react'
 import EarningsWallet from '../../components/EarningsWallet'
 import EditProfileDialog from '../../components/EditProfileDialog'
 import { ModeSwitcherBar } from '../../components/ModeSwitcher'
@@ -21,9 +22,10 @@ import '../../styles/profile.css'
 /// Versus Wallet, and the Account menu.
 export default function CoachProfilePage() {
   const { identity, overview } = useCoach()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const { setNotice } = usePlayer()
-  const [dialog, setDialog] = useState(null) // 'identity' | 'credits' | 'history' | 'host' | 'player'
+  const [dialog, setDialog] = useState(null) // 'identity' | 'credits' | 'history' | 'host' | 'player' | 'logout'
   const [playerProfile, setPlayerProfile] = useState(null)
   const [walletKey, setWalletKey] = useState(0)
   const isHost = Boolean(user?.roles?.includes('QUEUE_MASTER'))
@@ -43,7 +45,19 @@ export default function CoachProfilePage() {
     { id: 'history', icon: History, tone: 'var(--vc-brand-green)', title: 'Queue history', onClick: () => setDialog('history') },
     ...(isHost ? [{ id: 'host', icon: Award, tone: 'var(--vc-accent)', title: 'Host application', onClick: () => setDialog('host') }] : []),
     { id: 'player', icon: UserRound, tone: 'var(--vc-text-secondary)', title: 'Edit player profile', onClick: openPlayerProfile },
+    { id: 'logout', icon: LogOut, tone: 'var(--vc-danger)', title: 'Log out', danger: true, onClick: () => setDialog('logout') },
   ]
+
+  /// Same as the player Profile: sign out, then land on the public site root
+  /// (replace, so Back can't return to coach mode).
+  const logout = async () => {
+    setDialog(null)
+    try {
+      await signOut()
+    } finally {
+      navigate('/', { replace: true })
+    }
+  }
 
   return (
     <div className="coach-page">
@@ -81,11 +95,11 @@ export default function CoachProfilePage() {
 
       <h2 className="cp-section-title">Account</h2>
       <div className="ew-card cp-menu">
-        {MENU.map(({ id, icon: Icon, tone, title, onClick }) => (
-          <button key={id} type="button" className="cp-menu__row" onClick={onClick}>
+        {MENU.map(({ id, icon: Icon, tone, title, danger, onClick }) => (
+          <button key={id} type="button" className={`cp-menu__row${danger ? ' cp-menu__row--danger' : ''}`} onClick={onClick}>
             <span className="ew-icon" style={{ '--tone': tone }}><Icon size={19} /></span>
             <span className="ew-grow"><b>{title}</b></span>
-            <ChevronRight size={18} />
+            {!danger && <ChevronRight size={18} />}
           </button>
         ))}
       </div>
@@ -98,6 +112,15 @@ export default function CoachProfilePage() {
       {dialog === 'credits' && <TransactionsDialog isOpen onClose={() => setDialog(null)} />}
       {dialog === 'history' && <QueueHistoryDialog isOpen onClose={() => setDialog(null)} />}
       {dialog === 'host' && <QueueMasterDialog isOpen onClose={() => setDialog(null)} />}
+      {dialog === 'logout' && (
+        <ProfileDialog title="Log out?" onClose={() => setDialog(null)}>
+          <p>You will need to sign in again to continue.</p>
+          <div className="tr-confirm__row">
+            <button type="button" className="button button--outline" onClick={() => setDialog(null)}>Cancel</button>
+            <button type="button" className="button pf-button--danger" onClick={logout}>Log out</button>
+          </div>
+        </ProfileDialog>
+      )}
       {dialog === 'player' && playerProfile && <EditProfileDialog profileUser={playerProfile} onClose={() => setDialog(null)} />}
     </div>
   )

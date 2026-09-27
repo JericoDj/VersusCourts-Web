@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import CreateQueueModal from '../components/CreateQueueModal'
 import CreateClubModal from '../components/CreateClubModal'
 import { useNavigate } from 'react-router-dom'
@@ -8,6 +8,10 @@ import SectionFeed from '../components/SectionFeed'
 import { SportSelector } from '../components/SportIcon'
 import { usePlayer } from '../context/PlayerContext'
 import { isQueueActive, useQueues } from '../context/QueueContext'
+import { useAuth } from '../context/AuthContext'
+import { fetchTrainings } from '../data/trainings'
+import { TrainingCard } from './TrainingsPage'
+import '../styles/trainings.css'
 import '../styles/play.css'
 import '../styles/home.css'
 
@@ -17,6 +21,20 @@ export default function HomePage() {
   const { queues, myQueues, refreshQueues, refreshMyQueues, isLoading: queuesLoading } = useQueues()
   const [createQueueOpen, setCreateQueueOpen] = useState(false)
   const [createClubOpen, setCreateClubOpen] = useState(false)
+  const { user } = useAuth()
+  // Upcoming public trainings (GET /trainings) for the Trainings row.
+  const [trainings, setTrainings] = useState({ list: [], loaded: false })
+  useEffect(() => {
+    let active = true
+    fetchTrainings()
+      .then((list) => { if (active) setTrainings({ list, loaded: true }) })
+      .catch(() => { if (active) setTrainings({ list: [], loaded: true }) })
+    return () => { active = false }
+  }, [])
+  const now = new Date()
+  const sportTrainings = trainings.list
+    .filter((t) => t.status === 'SCHEDULED' && t.startTime > now && (sport === 'all' || t.sport === sport))
+    .sort((a, b) => a.startTime - b.startTime)
   const sportQueues = queues.filter((queue) => isQueueActive(queue) && !queue.isPrivate && (sport === 'all' || queue.sport === sport))
   /// Only the very first load shows skeletons; later refreshes keep the
   /// current feed on screen rather than flashing it away.
@@ -40,6 +58,20 @@ export default function HomePage() {
             key={queue.id}
             joined={myQueues.some((mine) => String(mine.id) === String(queue.id))}
             onOpen={() => navigate(`/app/queues/${queue.id}`)}
+          />
+        )}
+      />
+      <SectionFeed
+        className="home-feed"
+        title="Trainings" to="/app/trainings" variant="trainings"
+        loading={!trainings.loaded} items={sportTrainings.slice(0, 3)}
+        empty={"No trainings scheduled.\nCheck back soon."}
+        render={(training) => (
+          <TrainingCard
+            key={training.id}
+            training={training}
+            me={user?.id}
+            onOpen={() => navigate(`/app/trainings/${training.id}`)}
           />
         )}
       />
