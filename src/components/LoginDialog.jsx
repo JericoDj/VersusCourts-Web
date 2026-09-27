@@ -7,7 +7,9 @@ import authTextLogo from '../assets/logos/Logo_Text_No_Background.webp'
 
 /// Sign-in / sign-up as a modal instead of a standalone route, so visitors
 /// never lose the page they were browsing to authenticate.
-export default function LoginDialog({ open, onClose }) {
+/// `redirectTo` lets a deep link (e.g. a shared training) land back where the
+/// visitor was headed instead of on the home dashboard.
+export default function LoginDialog({ open, onClose, redirectTo = '/app' }) {
   const [mode, setMode] = useState('login')
   const [flow, setFlow] = useState('auth')
   const [resetEmail, setResetEmail] = useState('')
@@ -43,7 +45,7 @@ export default function LoginDialog({ open, onClose }) {
       if (mode === 'login') await signIn({ email, password })
       else await signUp({ name: fullName, email, password })
       onClose()
-      navigate('/app')
+      navigate(redirectTo)
     } catch (requestError) {
       setError(requestError.message)
     } finally {
@@ -57,7 +59,7 @@ export default function LoginDialog({ open, onClose }) {
     try {
       await signInWithGoogle()
       onClose()
-      navigate('/app')
+      navigate(redirectTo)
     } catch (requestError) {
       setError(requestError.message)
     } finally {

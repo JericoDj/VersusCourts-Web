@@ -1,0 +1,184 @@
+/* ===========================================================================
+   Trainings — player browse/detail and the /t/<id> bridge.
+   Uses the shared tokens in global.css; mirrors trainings_list_screen.dart.
+   =========================================================================== */
+
+.tr-page .queue-browse-header { align-items: center; }
+.tr-page .queue-browse-header-titles { flex: 1; min-width: 0; }
+
+.tr-icon-btn {
+  display: inline-grid; place-items: center; flex: none;
+  width: 38px; height: 38px; border-radius: var(--vc-radius-pill);
+  border: 1px solid var(--vc-border); background: var(--vc-surface);
+  color: var(--vc-text-primary); cursor: pointer;
+  transition: border-color var(--vc-transition), color var(--vc-transition);
+}
+.tr-icon-btn:hover { border-color: var(--vc-primary); color: var(--vc-primary); }
+.tr-icon-btn:disabled { opacity: 0.5; cursor: default; }
+
+@keyframes tr-spin { to { transform: rotate(360deg); } }
+.tr-spin { animation: tr-spin 0.9s linear infinite; }
+
+/* Sport filter chips */
+.tr-sport-row {
+  display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  padding: 2px 0 14px;
+}
+.tr-sport-row::-webkit-scrollbar { display: none; }
+.tr-chip {
+  flex: none; padding: 7px 14px; border-radius: var(--vc-radius-pill);
+  border: 1px solid var(--vc-border); background: var(--vc-surface);
+  color: var(--vc-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.tr-chip.is-active {
+  border-color: var(--chip-color); color: #fff; background: var(--chip-color);
+}
+
+/* Cards */
+.tr-grid {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  padding-bottom: 24px;
+}
+.tr-card {
+  display: flex; flex-direction: column; text-align: left; padding: 0; overflow: hidden;
+  border: 1px solid var(--vc-border); border-radius: var(--vc-radius-lg);
+  background: var(--vc-surface); box-shadow: var(--vc-shadow-card);
+  font: inherit; color: var(--vc-text-primary); cursor: pointer;
+  transition: transform var(--vc-transition), box-shadow var(--vc-transition);
+}
+.tr-card:hover { transform: translateY(-2px); box-shadow: var(--vc-shadow-card-hover); }
+.tr-card:focus-visible { outline: 2px solid var(--vc-primary); outline-offset: 2px; }
+.tr-card--skeleton {
+  min-height: 250px; cursor: default;
+  background: linear-gradient(90deg, var(--vc-surface-alt), var(--vc-surface), var(--vc-surface-alt));
+  background-size: 200% 100%; animation: tr-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes tr-shimmer { to { background-position: -200% 0; } }
+
+.tr-card__cover, .tr-detail__cover {
+  position: relative; display: block; height: 120px;
+  background-size: cover; background-position: center;
+}
+.tr-detail__cover { height: 160px; border-radius: var(--vc-radius-md); margin-bottom: 14px; }
+.tr-card__sport {
+  position: absolute; left: 12px; top: 12px; padding: 4px 10px;
+  border-radius: var(--vc-radius-pill); background: rgba(255, 255, 255, 0.94);
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.tr-card__badge {
+  position: absolute; right: 12px; top: 12px; padding: 4px 10px;
+  border-radius: var(--vc-radius-pill); background: rgba(15, 23, 42, 0.78); color: #fff;
+  font-size: 11px; font-weight: 800;
+}
+.tr-card__badge--ok { background: var(--vc-success); }
+.tr-card__badge--warn { background: var(--vc-warning); }
+
+.tr-card__body { display: flex; flex-direction: column; gap: 6px; padding: 14px; }
+.tr-card__title { font-size: 16px; font-weight: 800; line-height: 1.25; }
+.tr-card__coach { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--vc-text-secondary); }
+.tr-card__coach img, .tr-card__coach i {
+  width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex: none;
+  display: grid; place-items: center; font-style: normal; font-size: 11px; font-weight: 800;
+  background: color-mix(in srgb, var(--vc-accent) 16%, transparent); color: var(--vc-accent);
+}
+.tr-card__meta { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--vc-text-secondary); }
+.tr-card__meta svg { flex: none; color: var(--vc-text-tertiary); }
+.tr-card__foot {
+  display: flex; align-items: center; justify-content: space-between; margin-top: 4px;
+  padding-top: 10px; border-top: 1px solid var(--vc-border); font-size: 13px; color: var(--vc-text-secondary);
+}
+.tr-card__foot span { display: inline-flex; align-items: center; gap: 6px; }
+.tr-card__foot b { color: var(--vc-brand-green); font-size: 15px; font-weight: 800; }
+
+/* Pills & shared bits */
+.tr-pill {
+  display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  border-radius: var(--vc-radius-pill); background: var(--vc-surface-alt);
+  color: var(--vc-text-secondary); font-size: 11.5px; font-weight: 700;
+}
+.tr-pill--muted { opacity: 0.8; }
+.tr-pill--live { background: color-mix(in srgb, var(--vc-success) 14%, transparent); color: var(--vc-success); }
+.tr-pill--warn { background: color-mix(in srgb, var(--vc-warning) 16%, transparent); color: #b45309; }
+
+.tr-facts { list-style: none; display: flex; flex-direction: column; gap: 9px; margin: 14px 0; padding: 0; text-align: left; }
+.tr-facts li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--vc-text-secondary); line-height: 1.35; }
+.tr-facts svg { flex: none; margin-top: 1px; color: var(--vc-primary); }
+.tr-facts strong { color: var(--vc-text-primary); }
+
+.tr-error { margin: 10px 0; padding: 10px 12px; border-radius: var(--vc-radius-sm); background: color-mix(in srgb, var(--vc-danger) 9%, transparent); color: var(--vc-danger); font-size: 13px; font-weight: 600; }
+.tr-status { margin: 4px 0 10px; padding: 10px 12px; border-radius: var(--vc-radius-sm); background: var(--vc-surface-alt); color: var(--vc-text-secondary); font-size: 13.5px; font-weight: 600; }
+.tr-status--ok { background: color-mix(in srgb, var(--vc-success) 10%, transparent); color: var(--vc-success); }
+.tr-status--warn { background: color-mix(in srgb, var(--vc-warning) 14%, transparent); color: #b45309; }
+
+/* Detail dialog */
+.tr-detail-loading { display: grid; place-items: center; min-height: 180px; }
+.tr-detail__title { margin: 0 0 8px; font-size: 22px; font-weight: 800; line-height: 1.2; }
+.tr-detail__desc { margin: 0 0 14px; color: var(--vc-text-secondary); font-size: 14px; line-height: 1.5; white-space: pre-line; }
+
+.tr-coach-row {
+  display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px;
+  border: 1px solid var(--vc-border); border-radius: var(--vc-radius-md);
+}
+.tr-coach-row > img, .tr-coach-row__initial {
+  width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex: none;
+  display: grid; place-items: center; font-weight: 800; font-size: 18px;
+  background: color-mix(in srgb, var(--vc-accent) 16%, transparent); color: var(--vc-accent);
+}
+.tr-coach-row > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tr-coach-row small { display: inline-flex; align-items: center; gap: 4px; color: var(--vc-accent); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.tr-coach-row b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-coach-row__msg { min-height: 38px; padding: 0 14px; font-size: 13px; flex: none; }
+
+.tr-roster { margin-bottom: 14px; }
+.tr-roster small { display: block; margin-bottom: 8px; color: var(--vc-text-secondary); font-size: 12px; font-weight: 700; }
+.tr-roster__faces { display: flex; flex-wrap: wrap; gap: 6px; }
+.tr-roster__faces span {
+  width: 34px; height: 34px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  background: var(--vc-surface-alt); color: var(--vc-text-secondary); font-weight: 800; font-size: 13px;
+  border: 2px solid var(--vc-surface); box-shadow: 0 0 0 1px var(--vc-border);
+}
+.tr-roster__faces span.is-tentative { opacity: 0.55; box-shadow: 0 0 0 1px var(--vc-warning); }
+.tr-roster__faces img { width: 100%; height: 100%; object-fit: cover; }
+.tr-roster__more { font-size: 11px !important; }
+
+.tr-actions { display: flex; flex-direction: column; gap: 10px; }
+.tr-actions .button svg { margin-right: 4px; }
+
+.tr-pay { display: flex; flex-direction: column; gap: 10px; }
+.tr-pay__title { margin: 0; font-weight: 800; }
+.tr-pay__option {
+  display: flex; align-items: flex-start; gap: 12px; padding: 14px; text-align: left;
+  border: 1.5px solid var(--vc-border); border-radius: var(--vc-radius-md);
+  background: var(--vc-surface); color: var(--vc-text-primary); font: inherit; cursor: pointer;
+}
+.tr-pay__option:hover { border-color: var(--vc-primary); }
+.tr-pay__option svg { flex: none; color: var(--vc-primary); margin-top: 2px; }
+.tr-pay__option span { display: flex; flex-direction: column; gap: 2px; }
+.tr-pay__option small { color: var(--vc-text-secondary); font-size: 12.5px; }
+
+.tr-confirm { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: var(--vc-radius-md); background: var(--vc-surface-alt); }
+.tr-confirm p { margin: 0; font-size: 14px; line-height: 1.45; }
+.tr-confirm__row { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 6px; }
+.tr-confirm__row .button { min-height: 42px; }
+
+.tr-stars { display: flex; gap: 4px; justify-content: center; }
+.tr-stars button { border: 0; background: none; padding: 4px; color: var(--vc-warning); cursor: pointer; }
+
+/* Form fields (shared with coach mode) */
+.tr-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin-bottom: 12px; }
+.tr-field > span { font-size: 12.5px; font-weight: 700; color: var(--vc-text-secondary); }
+.tr-field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 0 12px; }
+.tr-input {
+  width: 100%; min-height: 44px; padding: 10px 12px; box-sizing: border-box;
+  border: 1.5px solid var(--vc-border); border-radius: var(--vc-radius-sm);
+  background: var(--vc-surface); color: var(--vc-text-primary); font: inherit; font-size: 14px;
+}
+textarea.tr-input { resize: vertical; }
+.tr-input:focus { outline: none; border-color: var(--vc-primary); }
+
+/* Bridge page extras */
+.tr-bridge-avatar { background: var(--vc-surface) !important; }
+.tr-bridge-coach { display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin: 4px 0 0; color: var(--vc-text-secondary); font-size: 14px; }
+.tr-bridge-coach svg { color: var(--vc-accent); }
+.tr-bridge-desc { margin: 0 0 12px; text-align: left; color: var(--vc-text-secondary); font-size: 13.5px; line-height: 1.5; white-space: pre-line; }

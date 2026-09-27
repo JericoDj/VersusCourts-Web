@@ -16,7 +16,7 @@ export function detectDevice() {
  * If the app is not installed, falls back to the App Store (iOS) or Google Play (Android).
  *
  * @param {Object} options
- * @param {'club'|'queue'|'chat'} [options.type='club']
+ * @param {'club'|'queue'|'chat'|'training'} [options.type='club']
  * @param {string} options.id - Target club ID or queue ID
  * @param {boolean} [options.fallbackToStore=true]
  */

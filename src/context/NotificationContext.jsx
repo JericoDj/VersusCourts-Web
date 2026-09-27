@@ -84,7 +84,8 @@ export function NotificationProvider({ children }) {
         let combined = []
 
         if (notifsRes.status === 'fulfilled' && Array.isArray(notifsRes.value)) {
-          combined = notifsRes.value
+          // Coach-audience notifications live in coach mode's own bell.
+          combined = notifsRes.value.filter((n) => n.audience !== 'COACH')
         }
 
         // Merge staff invites if they haven't been captured as an in-app notification record

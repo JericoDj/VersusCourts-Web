@@ -5,6 +5,38 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '')
 const TOKEN_KEY = 'vc-auth-token'
 
+/// Mirrors `ApiClient.actingAsCoach` in the Flutter app: while coach mode is
+/// open, club actions (join, post, "my clubs") belong to the coach identity.
+/// The backend only reads `X-Acting-As` in the clubs module, so the header
+/// goes on `/clubs` calls only — a custom header forces a CORS preflight, and
+/// an API whose CORS config doesn't list it would otherwise reject every
+/// coach-mode request.
+let actingAsCoach = false
+let coachHeaderBlocked = false
+export const setActingAsCoach = (value) => { actingAsCoach = Boolean(value) }
+export const isActingAsCoach = () => actingAsCoach
+const wantsCoachHeader = (path) => actingAsCoach && !coachHeaderBlocked && /^\/clubs(\/|\?|$)/.test(path)
+
+/// Club routes whose result depends on *who* is acting (`@ActingAsCoach` in
+/// clubs.module.ts). These must never silently fall back to the player
+/// account — that would mix the coach's and the player's clubs.
+const IDENTITY_CLUB_ROUTES = [
+  ['GET', /^\/clubs\/mine(\?|$)/],
+  ['POST', /^\/clubs\/?(\?|$)/],
+  ['POST', /^\/clubs\/join-by-code(\?|$)/],
+  ['POST', /^\/clubs\/[^/]+\/(join|request|leave|posts)(\?|$)/],
+  ['POST', /^\/clubs\/posts\/[^/]+\/comments(\?|$)/],
+]
+const dependsOnIdentity = (path, method = 'GET') =>
+  IDENTITY_CLUB_ROUTES.some(([m, re]) => m === String(method).toUpperCase() && re.test(path))
+
+const coachClubsBlocked = () => {
+  const error = new Error('Coach clubs need the latest Versus Courts server update. Please try again later.')
+  error.status = 0
+  error.coachHeaderBlocked = true
+  return error
+}
+
 export const authToken = () => {
   const token = localStorage.getItem(TOKEN_KEY)
   return !token || token === 'undefined' || token === 'null' ? null : token
@@ -19,7 +51,28 @@ const buildQuery = (params) => {
   return query ? `?${query}` : ''
 }
 
-export async function apiRequest(path, { query, auth = true, signal, ...options } = {}) {
+export async function apiRequest(path, options = {}) {
+  if (actingAsCoach && coachHeaderBlocked && dependsOnIdentity(path, options.method)) {
+    throw coachClubsBlocked()
+  }
+  try {
+    return await sendRequest(path, options, wantsCoachHeader(path))
+  } catch (error) {
+    // Preflight rejected (API not yet allowing X-Acting-As): remember it.
+    // Identity-scoped club calls fail loudly; anything else (e.g. browsing
+    // all clubs) retries without the header, since the backend ignores it there.
+    if (error.status === 0 && wantsCoachHeader(path)) {
+      coachHeaderBlocked = true
+      if (dependsOnIdentity(path, options.method)) {
+        throw coachClubsBlocked()
+      }
+      return sendRequest(path, options, false)
+    }
+    throw error
+  }
+}
+
+async function sendRequest(path, { query, auth = true, signal, ...options } = {}, coachHeader = false) {
   const token = auth ? authToken() : null
   let response
   try {
@@ -35,6 +88,7 @@ export async function apiRequest(path, { query, auth = true, signal, ...options 
         Accept: 'application/json',
         ...(isFormData ? {} : options.body ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(token && coachHeader ? { 'X-Acting-As': 'coach' } : {}),
         ...options.headers,
       },
     })

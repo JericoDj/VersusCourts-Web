@@ -106,7 +106,17 @@ export function ChatProvider({ children }) {
             let avatarUrl = data.avatarUrl || ''
             const type = data.type || 'direct'
 
-            if (type === 'direct' && Array.isArray(data.participantIds)) {
+            // Coach threads carry a `persona` (the coach identity). The player
+            // sees the coach's name; the coach sees the player who wrote in.
+            if (data.persona?.ownerId) {
+              if (data.persona.ownerId === user.id) {
+                title = data.playerName || title
+                avatarUrl = data.playerAvatarUrl || avatarUrl
+              } else {
+                title = data.persona.name || title
+                avatarUrl = data.persona.avatarUrl || avatarUrl
+              }
+            } else if (type === 'direct' && Array.isArray(data.participantIds)) {
               const otherId = data.participantIds.find((pid) => pid !== user.id)
               if (otherId && data.participantProfiles?.[otherId]) {
                 const p = data.participantProfiles[otherId]
@@ -280,15 +290,23 @@ export function ChatProvider({ children }) {
     return Array.from(map.values())
   }, [myClubs, myQueues, localThreads, firestoreThreads])
 
+  /// Chats players open with *my* coach identity belong to the coach inbox,
+  /// never the personal Messages list or its badge (chat_provider.dart
+  /// `_personalThreads` / `coachThreads`).
+  const isMyCoachThread = useCallback((t) => Boolean(t.persona?.ownerId) && t.persona.ownerId === currentUserId, [currentUserId])
+  const personalThreads = useMemo(() => mergedThreads.filter((t) => !isMyCoachThread(t)), [mergedThreads, isMyCoachThread])
+  const coachThreads = useMemo(() => mergedThreads.filter(isMyCoachThread), [mergedThreads, isMyCoachThread])
+  const coachUnreadCount = useMemo(() => coachThreads.reduce((acc, t) => acc + (t.unreadCount || 0), 0), [coachThreads])
+
   const totalUnreadCount = useMemo(() => {
-    return mergedThreads.reduce((acc, t) => acc + (t.unreadCount || 0), 0)
-  }, [mergedThreads])
+    return personalThreads.reduce((acc, t) => acc + (t.unreadCount || 0), 0)
+  }, [personalThreads])
 
   const threadsOf = useCallback(
     (type) => {
-      return mergedThreads.filter((t) => t.type === type)
+      return personalThreads.filter((t) => t.type === type)
     },
-    [mergedThreads]
+    [personalThreads]
   )
 
   const getThread = useCallback(
@@ -466,9 +484,36 @@ export function ChatProvider({ children }) {
     [currentUserId, mergedThreads, user?.id]
   )
 
+  /// Opens (or reuses) a chat with a coach identity ("Coach Jerico") — it
+  /// lands in their coach-mode inbox. Same doc shape and id as the Flutter
+  /// `ChatProvider.startCoachThread`, so both clients share the thread.
+  const startCoachThread = useCallback(
+    async ({ coachId, coachOwnerId, coachName, coachAvatarUrl, myName, myAvatarUrl }) => {
+      if (!coachId || !coachOwnerId || !user?.id) return null
+      const threadId = `coach_${coachId}_${currentUserId}`
+      if (!db) throw new Error('Chat is unavailable right now.')
+      await setDoc(
+        doc(db, 'chats', threadId),
+        {
+          participantIds: [currentUserId, coachOwnerId],
+          type: 'direct',
+          persona: { ownerId: coachOwnerId, coachId, name: coachName || 'Coach', avatarUrl: coachAvatarUrl || '' },
+          playerName: myName || 'Player',
+          playerAvatarUrl: myAvatarUrl || '',
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      )
+      return threadId
+    },
+    [currentUserId, user?.id]
+  )
+
   const value = useMemo(
     () => ({
-      threads: mergedThreads,
+      threads: personalThreads,
+      coachThreads,
+      coachUnreadCount,
       totalUnreadCount,
       threadsOf,
       getThread,
@@ -477,12 +522,15 @@ export function ChatProvider({ children }) {
       markAsRead,
       toggleReaction,
       startDirectThread,
+      startCoachThread,
       activeThreadId,
       setActiveThreadId,
       currentUserId,
     }),
     [
-      mergedThreads,
+      personalThreads,
+      coachThreads,
+      coachUnreadCount,
       totalUnreadCount,
       threadsOf,
       getThread,
@@ -491,6 +539,7 @@ export function ChatProvider({ children }) {
       markAsRead,
       toggleReaction,
       startDirectThread,
+      startCoachThread,
       activeThreadId,
       currentUserId,
     ]

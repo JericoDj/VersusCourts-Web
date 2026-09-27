@@ -26,6 +26,7 @@ import QueueHistoryDialog from '../components/QueueHistoryDialog'
 import PrivacyPolicyDialog from '../components/PrivacyPolicyDialog'
 import TermsOfUseDialog from '../components/TermsOfUseDialog'
 import AccountSecurityDialog from '../components/AccountSecurityDialog'
+import { ModeSwitcherBar } from '../components/ModeSwitcher'
 import { apiRequest } from '../data/apiClient'
 import { useAccountData, AccountLoading } from './ProfileAccountPage'
 import { useAuth } from '../context/AuthContext'
@@ -238,6 +239,8 @@ export default function ProfilePage() {
           </div>}
         </div>
       </header>
+
+      {profileReady && <ModeSwitcherBar roles={roles} avatarUrl={avatarUrl} />}
 
       {profile.loading || profile.error ? <AccountLoading state={profile} /> : <div className="pf-stats">
         <div className="pf-stat pf-stat--primary"><b>{stats.gamesPlayed}</b><span>Games</span></div>

@@ -14,7 +14,11 @@
           "/queues/*",
           "/app/queues/*",
           "/events/*",
-          "/app/events/*"
+          "/app/events/*",
+          "/t/*",
+          "/training/*",
+          "/trainings/*",
+          "/app/trainings/*"
         ],
         "components": [
           {
@@ -56,6 +60,22 @@
           {
             "/": "/app/events/*",
             "comment": "In-app event links"
+          },
+          {
+            "/": "/t/*",
+            "comment": "Training share links"
+          },
+          {
+            "/": "/training/*",
+            "comment": "Training detail links"
+          },
+          {
+            "/": "/trainings/*",
+            "comment": "Training directory links"
+          },
+          {
+            "/": "/app/trainings/*",
+            "comment": "In-app training links"
           }
         ]
       }

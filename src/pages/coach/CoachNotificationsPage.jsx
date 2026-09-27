@@ -1,0 +1,49 @@
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, Bell, CheckCheck } from 'lucide-react'
+import { useCoach } from '../../context/CoachContext'
+import { formatRelativeTime } from '../../utils/dateUtils'
+
+/// Coach notifications — the coach-audience feed only (`?audience=COACH`):
+/// trainings, hosted queues, earnings and coach chats.
+export default function CoachNotificationsPage() {
+  const navigate = useNavigate()
+  const { notifications, unreadNotifications, fetchNotifications, markNotificationRead, markAllNotificationsRead } = useCoach()
+
+  useEffect(() => { fetchNotifications() }, [fetchNotifications])
+
+  const open = (n) => {
+    if (!n.read) markNotificationRead(n.id)
+    const trainingId = n.data?.trainingId
+    const queueId = n.data?.queueId
+    if (trainingId) navigate(`/coach/trainings/${trainingId}`)
+    else if (queueId) navigate(`/app/queues/${queueId}`)
+  }
+
+  return (
+    <div className="coach-page">
+      <div className="coach-page__head">
+        <button type="button" className="tr-icon-btn" onClick={() => navigate(-1)} aria-label="Back"><ArrowLeft size={18} /></button>
+        <h1>Notifications</h1>
+        {unreadNotifications > 0 && (
+          <button type="button" className="button button--outline coach-btn" onClick={markAllNotificationsRead}><CheckCheck size={16} /> Mark all read</button>
+        )}
+      </div>
+      {notifications.length ? notifications.map((n) => (
+        <button key={n.id} type="button" className={`coach-row coach-notif${n.read ? '' : ' is-unread'}`} onClick={() => open(n)}>
+          <Bell size={18} />
+          <span className="coach-row__body coach-notif__body">
+            <b>{n.title || 'Notification'}</b>
+            {n.body && <small>{n.body}</small>}
+          </span>
+          {n.createdAt && <span className="coach-row__count">{formatRelativeTime(n.createdAt)}</span>}
+        </button>
+      )) : (
+        <div className="coach-empty">
+          <Bell size={22} />
+          <p>Coach updates — new joins, cash requests, completed trainings — show up here.</p>
+        </div>
+      )}
+    </div>
+  )
+}

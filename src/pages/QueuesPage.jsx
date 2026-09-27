@@ -52,8 +52,8 @@ const PLAY_OPTIONS = [
     subtitle: 'Level up your game with pro sessions',
     Icon: Dumbbell,
     variant: 'training',
-    comingSoon: true,
-    action: 'coming-soon',
+    comingSoon: false,
+    action: 'trainings',
   },
   {
     id: 'score',
@@ -253,6 +253,8 @@ export default function QueuesPage() {
       setSearchParams({ view: 'browse' })
     } else if (option.action === 'scoreboard') {
       setSportPickerOpen(true)
+    } else if (option.action === 'trainings') {
+      navigate('/app/trainings')
     } else {
       setComingSoon(option.title)
     }

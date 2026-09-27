@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight, Lock, MapPin, Plus, QrCode, Search, Star, Users } from 'lucide-react'
 import { SportPill } from '../components/Cards'
 import { SportGlyph } from '../components/SportIcon'
@@ -46,6 +46,9 @@ function SportTags({ sports = [], max = 2, priority }) {
 export default function ClubsPage() {
   const { clubId } = useParams()
   const navigate = useNavigate()
+  // Also mounted as coach mode's Clubs tab, where club actions are the coach identity's.
+  const inCoachMode = useLocation().pathname.startsWith('/coach')
+  const basePath = inCoachMode ? '/coach/clubs' : '/app/clubs'
   const { user } = useAuth()
   const { allClubs: clubs, myClubs: contextMyClubs, setNotice } = usePlayer()
   const discovery = useDiscovery()
@@ -122,12 +125,12 @@ export default function ClubsPage() {
 
   const openClub = (club) => {
     setActiveDetailClub(club)
-    navigate(`/app/clubs/${club.id}`)
+    navigate(`${basePath}/${club.id}`)
   }
 
   const closeClub = () => {
     setActiveDetailClub(null)
-    navigate('/app/clubs')
+    navigate(basePath)
   }
 
   const handleJoinClub = async (e, club) => {
@@ -194,7 +197,7 @@ export default function ClubsPage() {
       {myClubs.length > 0 && (
         <>
           <div className="clubs-section-head">
-            <h2>My clubs</h2>
+            <h2>{inCoachMode ? 'My coach clubs' : 'My clubs'}</h2>
           </div>
           <div className="clubs-rail">
             {myClubs.map((club) => (

@@ -12,6 +12,7 @@ const ROUTES = {
   '/app/clubs': { mode: 'title', title: () => 'Clubs', subtitle: 'Find your community' },
   '/app/queues': { mode: 'title', title: () => 'Play', subtitle: 'Book, play, & train' },
   '/app/bookings': { mode: 'title', title: () => 'My Bookings', subtitle: 'View your reservations and history' },
+  '/app/trainings': { mode: 'title', title: () => 'Trainings', subtitle: 'Level up with a coach' },
   '/app/events': { mode: 'title', title: () => 'Events', subtitle: 'Compete & win' },
   '/app/messages': { mode: 'title', title: () => 'Messages', subtitle: 'Connect with players & squads' },
   '/app/notifications': { mode: 'title', title: () => 'Notifications', subtitle: 'Updates & invitations' },
