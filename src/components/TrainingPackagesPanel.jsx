@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { CalendarPlus, Minus, Plus, Smartphone, Ticket, X } from 'lucide-react'
+import { CalendarPlus, Minus, Plus, Ticket, X } from 'lucide-react'
 import CheckoutDialog from './CheckoutDialog'
+import RefundDestinationDialog from './RefundDestinationDialog'
 import { usePlayer } from '../context/PlayerContext'
 import {
   PACKAGE_STATUS,
@@ -12,7 +13,6 @@ import {
   formatSessionTime,
   packageSizeLabel,
   schedulePackageSession,
-  trainingAppUrl,
 } from '../data/trainings'
 
 const peso = (n) => `₱${new Intl.NumberFormat('en-PH', { maximumFractionDigits: 0 }).format(Math.round(Number(n) || 0))}`
@@ -114,13 +114,14 @@ export default function TrainingPackagesPanel({ training: t, me }) {
               {cancelling?.id === p.id && (
                 <div className="tr-confirm">
                   {p.refundOnCancel > 0 ? (
-                    <>
-                      <p>About {peso(p.refundOnCancel)} would come back for what's unused — cancel in the app to choose where the refund goes.</p>
-                      <div className="tr-confirm__row">
-                        <button type="button" className="button button--outline" onClick={() => setCancelling(null)}>Keep it</button>
-                        <button type="button" className="button button--primary" onClick={() => { window.location.href = trainingAppUrl(t.id) }}><Smartphone size={16} /> Open app</button>
-                      </div>
-                    </>
+                    <RefundDestinationDialog
+                      amount={p.refundOnCancel}
+                      title={p.title}
+                      busy={busy}
+                      confirmLabel="Cancel package & send refund here"
+                      onPick={(accountId) => run(async () => { put(await cancelPackage(p.id, accountId)); setCancelling(null); setNotice('Package cancelled — your refund is on its way.') })}
+                      onClose={() => setCancelling(null)}
+                    />
                   ) : (
                     <>
                       <p>Cancel {p.title}? Upcoming sessions from it are removed{p.paysCash ? ' — settle anything unused with your coach' : ''}.</p>
@@ -213,6 +214,7 @@ function PackageCheckout({ training: t, offer, order, onClose, onDone }) {
   const buy = (extra) => buyPackage(t.id, offer.id, { ...order, ...extra }).then((p) => { purchaseId.current = p.id; return p })
   return (
     <CheckoutDialog
+      couponScope="TRAINING"
       title="Buy package"
       itemTitle={`${t.title} · ${offer.sessions}-session package`}
       venueLabel={t.courtName || t.businessName}

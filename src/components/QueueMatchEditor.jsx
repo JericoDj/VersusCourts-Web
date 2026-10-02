@@ -5,6 +5,7 @@ import QueueSportIcon from './QueueSportIcon'
 import { apiRequest } from '../data/apiClient'
 import { createScoreWriter } from '../data/scoreWriter'
 import { queueScoreState, isQueueSetWon, pointsToQueueWin } from '../data/queueScoring'
+import { callOf, rally, resumeGame, serveFromRight, serveJson } from '../data/pickleball'
 import '../styles/queue-match-scoring.css'
 
 const playerName = (player) => player.displayName || player.name || [player.firstName, player.lastName].filter(Boolean).join(' ') || player.username || 'Player'
@@ -19,6 +20,8 @@ export default function QueueMatchEditor({ match, game, run, disabled, finished,
   const [celebration, setCelebration] = useState(0)
   const [swapped, setSwapped] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
+  // Pickleball: who serves, saved with each score (null = use the match's).
+  const [localServe, setLocalServe] = useState(null)
   const localSets = useRef(null)
   const timer = useRef(null)
   const [writer] = useState(() => createScoreWriter(
@@ -36,6 +39,10 @@ export default function QueueMatchEditor({ match, game, run, disabled, finished,
   const scoringRule = !usesSets ? 'Tap to add a point' : sport === 'tennis' || sport === 'padel'
     ? `First to 6 games · win by 2 (tie-break at 6–6) · best of ${game.rules?.bestOf || 1}`
     : `First to ${target} · win by 2${sport === 'badminton' ? ' (cap 30)' : ''} · best of ${game.rules?.bestOf || 1}`
+  const pickleball = sport === 'pickleball'
+  const pbGame = pickleball
+    ? resumeGame({ scoreA: current.scoreA, scoreB: current.scoreB, doubles: (match.playersA?.length || 1) > 1, serve: localServe ?? match.serve })
+    : null
   const latestSaved = [...(optimistic || match.sets || [])].sort((a, b) => a.setNumber - b.setNumber).at(-1)
   const lastEdit = history.at(-1)
   const canUndo = lastEdit && latestSaved?.setNumber === lastEdit.after.setNumber
@@ -89,11 +96,22 @@ export default function QueueMatchEditor({ match, game, run, disabled, finished,
     }
   }, [expanded])
 
-  const bump = (side, delta) => {
+  /// Pickleball side-out: only the serving side scores; otherwise the serve
+  /// moves (partner, or side out). The serve is saved with the score.
+  const playRally = (aWon) => {
+    if (!pbGame || locked || match.paused || decided) return
+    const { game: next, scored } = rally(pbGame, aWon)
+    const serve = serveJson(next)
+    setLocalServe(serve)
+    if (scored) bump(aWon ? 'scoreA' : 'scoreB', 1, { serve })
+    else queueScore({ setNumber: current.setNumber, scoreA: current.scoreA, scoreB: current.scoreB, serve })
+  }
+
+  const bump = (side, delta, extra = {}) => {
     const live = queueScoreState(game, localSets.current || match.sets || [])
     if (locked || match.paused || live.decided || live.current.setNumber > 9) return
     const previous = live.current
-    const next = { setNumber: previous.setNumber, scoreA: previous.scoreA, scoreB: previous.scoreB, [side]: Math.min(999, Math.max(0, previous[side] + delta)) }
+    const next = { setNumber: previous.setNumber, scoreA: previous.scoreA, scoreB: previous.scoreB, [side]: Math.min(999, Math.max(0, previous[side] + delta)), ...extra }
     if (next.scoreA === previous.scoreA && next.scoreB === previous.scoreB) return
     const prior = [...(localSets.current || match.sets || [])].sort((a, b) => a.setNumber - b.setNumber).at(-1) || previous
     historyRef.current = [...historyRef.current, { before: { setNumber: prior.setNumber, scoreA: prior.scoreA, scoreB: prior.scoreB }, after: next }]
@@ -101,7 +119,7 @@ export default function QueueMatchEditor({ match, game, run, disabled, finished,
     queueScore(next)
     if (delta > 0 && isQueueSetWon(game, next.scoreA, next.scoreB)) {
       const after = queueScoreState(game, (localSets.current || []))
-      setCelebration(Date.now())
+      setCelebration((n) => n + 1)
       setPrompt({ type: after.decided ? 'win' : 'set', winner: next.scoreA > next.scoreB ? 'A' : 'B', setNumber: next.setNumber, scoreA: next.scoreA, scoreB: next.scoreB })
     } else if (delta > 0 && ['badminton', 'pickleball'].includes(sport)
       && previous.setNumber === Number(game.rules?.bestOf || 1)
@@ -146,6 +164,17 @@ export default function QueueMatchEditor({ match, game, run, disabled, finished,
     <div className={`queue-live-scores${large ? ' is-expanded' : ''}`}>
       <div className="queue-live-scores__caption">{decided ? 'Match decided' : usesSets ? `Set ${current.setNumber}` : 'Score'}<span aria-live="polite">{optimistic ? 'Saving…' : 'Scores save automatically'}</span></div>
       {saveError && <p className="queue-live-score-error" role="alert">{saveError} <button type="button" onClick={() => writer.flush()}>Retry</button></p>}
+      {pbGame && !decided && (
+        <div className="pb-serve">
+          <span className="pb-serve__call" aria-label="Score call">{callOf(pbGame)}</span>
+          <small>{teams[pbGame.aServing ? 0 : 1]} serving{pbGame.doubles ? ` · server ${pbGame.server}` : ''} · from the {serveFromRight(pbGame) ? 'right' : 'left'}</small>
+          <div className="pb-serve__rally">
+            {['A', 'B'].map((side, i) => (
+              <button key={side} type="button" disabled={locked || match.paused} onClick={() => playRally(side === 'A')}>Rally won: {teams[i]}</button>
+            ))}
+          </div>
+        </div>
+      )}
       {['A', 'B'].map((side, index) => <div className="queue-live-score" key={side}>
         <div className="queue-live-score__team"><small>Team {side}</small><strong>{teams[index]}</strong>{usesSets && <small>{wins[side]} set {wins[side] === 1 ? 'win' : 'wins'}</small>}{warning(side)}</div>
         <div className="queue-live-score__controls">

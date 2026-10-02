@@ -11,12 +11,19 @@ import {
   formatPeso,
   formatTrainingDate,
   formatTrainingTimeRange,
-  shareTraining,
-  skillLabel,
 } from '../../data/trainings'
 import '../../styles/profile.css'
 import CoachBookingsView from './CoachBookingsView'
+import TrainingShareDialog from '../../components/TrainingShareDialog'
 import CoachPackagesPanel from './CoachPackagesPanel'
+import { percentLabel, usePlatformFees } from '../../data/platformFees'
+
+const CANCEL_REASONS = [
+  'Schedule conflict',
+  'Emergency or illness',
+  'Court or facility unavailable',
+  'Adverse weather conditions',
+]
 
 /// Web port of the coach `TrainingDetailScreen`: roster with cash
 /// confirmations, Start, Complete (with the settlement preview), Cancel
@@ -27,12 +34,14 @@ export default function CoachTrainingDetailPage() {
   const { trainings, loading, act } = useCoach()
   const { setNotice } = usePlayer()
   const t = trainings.find((x) => x.id === trainingId)
+  const fees = usePlatformFees()
 
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [dialog, setDialog] = useState(null) // 'complete' | 'cancel'
   const [settlement, setSettlement] = useState(null)
   const [reason, setReason] = useState('')
+  const [shareOpen, setShareOpen] = useState(false)
 
   if (!t) {
     return (
@@ -88,13 +97,6 @@ export default function CoachTrainingDetailPage() {
     if (res !== null) { setDialog(null); setReason('') }
   }
 
-  const share = async () => {
-    try {
-      if ((await shareTraining(t)) === 'copied') setNotice('Training link copied')
-    } catch {
-      setNotice('Could not share this training')
-    }
-  }
 
   const pendingCash = t.students.filter((s) => s.isPendingCash)
   const confirmed = t.students.filter((s) => !s.isPendingCash)
@@ -105,9 +107,10 @@ export default function CoachTrainingDetailPage() {
       <div className="coach-page__head">
         <button type="button" className="tr-icon-btn" onClick={() => navigate('/coach/trainings')} aria-label="Back"><ArrowLeft size={18} /></button>
         <h1>Training</h1>
-        <button type="button" className="tr-icon-btn" onClick={share} aria-label="Share training"><Share2 size={18} /></button>
+        <button type="button" className="tr-icon-btn" onClick={() => setShareOpen(true)} aria-label="Share training"><Share2 size={18} /></button>
         {t.status === 'SCHEDULED' && <Link to={`/coach/trainings/${t.id}/edit`} className="tr-icon-btn" aria-label="Edit training"><Pencil size={18} /></Link>}
       </div>
+      {shareOpen && <TrainingShareDialog training={t} asCoach onClose={() => setShareOpen(false)} />}
 
       <div className="tr-detail__cover" style={t.imageUrl ? { backgroundImage: `url(${JSON.stringify(t.imageUrl)})` } : { background: sportGradient(t.sport) }}>
         <span className="tr-card__sport" style={{ color: sportColor(t.sport) }}>{sportLabel(t.sport)}</span>
@@ -115,7 +118,7 @@ export default function CoachTrainingDetailPage() {
       </div>
 
       <h2 className="tr-detail__title">{t.title || 'Training'}</h2>
-      <span className="tr-pill">{skillLabel(t.skill)}</span>
+      <span className="tr-pill">{t.skillsLabel}</span>
 
       <ul className="tr-facts">
         <li><CalendarDays size={16} /><span><strong>{formatTrainingDate(t.startTime)}</strong> · {formatTrainingTimeRange(t.startTime, t.durationHours)}</span></li>
@@ -183,12 +186,12 @@ export default function CoachTrainingDetailPage() {
 
       {dialog === 'complete' && (
         <ProfileDialog title="Complete training" onClose={() => setDialog(null)} busy={busy === 'complete'}>
-          <p>Mark <b>{t.title}</b> as done and settle the 15% commission.</p>
+          <p>Mark <b>{t.title}</b> as done and settle the {percentLabel(fees.training)} commission.</p>
           {settlement && (
             <dl className="coach-settle">
               <div><dt>Online seats</dt><dd>{settlement.onlineSeats} · {formatPeso(settlement.totalOnlinePaid || 0)}</dd></div>
               <div><dt>Cash seats</dt><dd>{settlement.cashSeats} · {formatPeso(settlement.totalCashPaid || 0)}</dd></div>
-              <div><dt>Commission (15%)</dt><dd>{formatPeso(settlement.totalPlatformFee || 0)}</dd></div>
+              <div><dt>Commission ({percentLabel(fees.training)})</dt><dd>{formatPeso(settlement.totalPlatformFee || 0)}</dd></div>
               <div className="is-strong"><dt>To your wallet</dt><dd>{formatPeso(settlement.payout || 0)}</dd></div>
               {Number(settlement.amountOwedByHost) > 0 && <div className="is-owed"><dt>You'll owe</dt><dd>{formatPeso(settlement.amountOwedByHost)}</dd></div>}
             </dl>
@@ -203,7 +206,13 @@ export default function CoachTrainingDetailPage() {
       {dialog === 'cancel' && (
         <ProfileDialog title="Cancel training" onClose={() => setDialog(null)} busy={busy === 'cancel'}>
           <p>Cancel <b>{t.title}</b>? Everyone who joined is notified{t.pricePerPlayer > 0 ? ' and online payments are refunded' : ''}.</p>
-          <textarea className="tr-input" rows={3} maxLength={300} placeholder="Reason (optional) — included in the notice to players" value={reason} onChange={(e) => setReason(e.target.value)} />
+          {/* The app's preset reasons (`_showRequestDeleteSheet`), or type one. */}
+          <div className="coach-skills" role="group" aria-label="Reason">
+            {CANCEL_REASONS.map((r) => (
+              <button key={r} type="button" aria-pressed={reason === r} className={reason === r ? 'is-on' : ''} onClick={() => setReason(reason === r ? '' : r)}>{r}</button>
+            ))}
+          </div>
+          <textarea className="tr-input" rows={3} maxLength={300} placeholder="Or write a reason (optional) — included in the notice to players" value={CANCEL_REASONS.includes(reason) ? '' : reason} onChange={(e) => setReason(e.target.value)} />
           <div className="tr-confirm__row">
             <button type="button" className="button button--outline" onClick={() => setDialog(null)}>Keep it</button>
             <button type="button" className="button pf-button--danger" disabled={busy === 'cancel'} onClick={cancel}>Cancel training</button>

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, MapPin, Minus, Plus, Search, X } from 'lucide-react'
-import ImagePickerField from '../../components/ImagePickerField'
+import MultiImagePicker, { imageItems, uploadPendingImages } from '../../components/MultiImagePicker'
+import MultiDateCalendar from '../../components/MultiDateCalendar'
 import { useCoach } from '../../context/CoachContext'
 import { usePlayer } from '../../context/PlayerContext'
 import { SPORTS } from '../../data/sports'
-import { SKILLS, TRAINING_KINDS, coachApi, commissionFor, formatPeso, isBookableKind, skillLabel } from '../../data/trainings'
+import { SKILLS, TRAINING_KINDS, coachApi, formatPeso, isBookableKind, skillLabel } from '../../data/trainings'
 import { addVenue, searchVenues } from '../../data/venues'
+import { feeLabel, usePlatformFees } from '../../data/platformFees'
 
 const MIN_PRICE = 20
 
@@ -29,7 +31,8 @@ const initialForm = (existing) => {
     title: existing?.title || '',
     description: existing?.description || '',
     sport: existing?.sport || 'badminton',
-    skill: existing?.skill || 'BEGINNER',
+    // Every level welcome to start, like a queue (and like the app).
+    skills: existing?.skills?.length ? existing.skills : [...SKILLS],
     kind: existing?.kind || 'SCHEDULED',
     capacity: String(existing?.capacity ?? 8),
     paid: existing ? existing.pricePerPlayer > 0 : true,
@@ -37,7 +40,6 @@ const initialForm = (existing) => {
     date: toDateInput(start),
     time: toTimeInput(start),
     duration: existing?.durationHours || 1,
-    image: existing?.imageUrl || '',
   }
 }
 
@@ -71,6 +73,7 @@ function TrainingForm({ existing }) {
   const navigate = useNavigate()
   const { act } = useCoach()
   const { setNotice } = usePlayer()
+  const fees = usePlatformFees()
 
   const [form, setForm] = useState(() => initialForm(existing))
   const [venue, setVenue] = useState(() => (existing
@@ -78,6 +81,11 @@ function TrainingForm({ existing }) {
     : null)) // { id?, name, area, custom }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [images, setImages] = useState(() => imageItems(existing?.images))
+  /// "Multiple dates" (new scheduled trainings): the same training on each
+  /// picked day at the same time — one training credit per date.
+  const [multiple, setMultiple] = useState(false)
+  const [days, setDays] = useState(() => new Set())
   // Packages ("10 sessions · ₱4,500"): rows as typed; null while an existing
   // training's are loading (then left untouched on save).
   const [packages, setPackages] = useState(() => (existing?.canHavePackages ? null : []))
@@ -98,9 +106,22 @@ function TrainingForm({ existing }) {
   const perUnit = form.kind === 'PRIVATE' ? 'session' : 'player'
   // A dated training's price can't change once someone has paid.
   const priceLocked = !bookable && editing && existing.participantCount > 0 && existing.pricePerPlayer > 0
-  // Bookable listings, or an existing multiple-dates series.
-  const packagesAllowed = bookable || Boolean(existing?.seriesId)
-  const maxPackageSessions = bookable ? 100 : existing?.seriesCount || 2
+  // Bookable listings, or several dates (a new or existing series).
+  const series = !bookable && !editing && multiple
+  const packagesAllowed = bookable || series || Boolean(existing?.seriesId)
+  const maxPackageSessions = bookable ? 100 : series ? Math.max(2, days.size) : existing?.seriesCount || 2
+  const toggleSkill = (level) => setForm((f) => {
+    const has = f.skills.includes(level)
+    // Keep at least one level, in the standard order.
+    const next = has ? f.skills.filter((x) => x !== level) : [...f.skills, level]
+    return { ...f, skills: next.length ? SKILLS.filter((x) => next.includes(x)) : f.skills }
+  })
+  const toggleDay = (key) => setDays((prev) => {
+    const next = new Set(prev)
+    if (next.has(key)) next.delete(key)
+    else if (next.size < 30) next.add(key)
+    return next
+  })
   const setPackage = (i, key) => (e) => setPackages((list) => list.map((p, j) => (j === i ? { ...p, [key]: e.target.value } : p)))
   const pickKind = (kind) => setForm((f) => ({
     ...f,
@@ -120,8 +141,13 @@ function TrainingForm({ existing }) {
     if (group && (capacity < 2 || capacity > 50)) return setError('A group training takes 2 to 50 players per booking.')
     if (!bookable && editing && capacity < existing.participantCount) return setError(`Capacity can't go below the ${existing.participantCount} players already in.`)
     if (form.paid && price < MIN_PRICE) return setError(`Paid trainings start at ₱${MIN_PRICE} — or choose Free.`)
-    if (!bookable && Number.isNaN(start.getTime())) return setError('Pick a valid date and time.')
-    if (!bookable && !editing && start <= new Date()) return setError('Pick a start time in the future.')
+    const seriesStarts = series
+      ? [...days].sort().map((d) => new Date(`${d}T${form.time}`))
+      : []
+    if (series && seriesStarts.length < 2) return setError('Pick at least two dates, or switch to Single.')
+    if (series && seriesStarts.some((d) => d <= new Date())) return setError('Every date has to be in the future — check today’s start time.')
+    if (!bookable && !series && Number.isNaN(start.getTime())) return setError('Pick a valid date and time.')
+    if (!bookable && !series && !editing && start <= new Date()) return setError('Pick a start time in the future.')
     if (packagesAllowed && packages) {
       for (const p of packages) {
         const n = Number.parseInt(p.sessions, 10)
@@ -143,11 +169,13 @@ function TrainingForm({ existing }) {
       title: form.title.trim(),
       ...(form.description.trim() || editing ? { description: form.description.trim() } : {}),
       sport: form.sport.toUpperCase(),
-      skill: form.skill,
+      skill: form.skills[0],
+      skills: form.skills,
       ...(form.kind === 'PRIVATE' ? {} : { capacity }),
       pricePerPlayer: price,
       // Bookable listings have no date; the kind is fixed once created.
-      ...(bookable ? {} : { startTime: start.toISOString() }),
+      ...(bookable ? {} : { startTime: (series ? seriesStarts[0] : start).toISOString() }),
+      ...(series ? { startTimes: seriesStarts.map((d) => d.toISOString()) } : {}),
       ...(!editing && bookable ? { kind: form.kind } : {}),
       ...(packagesAllowed && packages ? {
         packages: packages.map((p) => ({
@@ -158,17 +186,20 @@ function TrainingForm({ existing }) {
         })),
       } : {}),
       durationHours: form.duration,
-      images: form.image ? [form.image] : [],
     }
 
     setBusy(true)
     try {
-      const saved = await act(() => (editing ? coachApi.update(trainingId, body) : coachApi.create(body)))
+      body.images = await uploadPendingImages(images, 'trainings')
+      const result = await act(() => (editing ? coachApi.update(trainingId, body) : series ? coachApi.createSeries(body) : coachApi.create(body)))
+      const saved = Array.isArray(result) ? result[0] : result
       setNotice(editing
         ? 'Training updated'
         : bookable
           ? `${group ? 'Group' : 'Private'} training listed — players can book a session any time.`
-          : 'Training published — share it with your players!')
+          : series
+            ? `${seriesStarts.length} training dates scheduled — players see the next one first.`
+            : 'Training published — share it with your players!')
       navigate(`/coach/trainings/${saved?.id || trainingId}`, { replace: true })
     } catch (err) {
       setError(err.message || 'Could not save the training.')
@@ -211,21 +242,36 @@ function TrainingForm({ existing }) {
         <h2 className="coach-card__label">What</h2>
         <label className="tr-field"><span>Title</span><input className="tr-input" value={form.title} onChange={set('title')} placeholder="Beginner footwork clinic" maxLength={80} required /></label>
         <label className="tr-field"><span>Description</span><textarea className="tr-input" rows={3} value={form.description} onChange={set('description')} placeholder="What you'll cover, what to bring" maxLength={1000} /></label>
-        <ImagePickerField label="Cover photo" value={form.image} onChange={(url) => setForm((f) => ({ ...f, image: url || '' }))} folder="trainings" aspectRatio={16 / 9} deferUpload={false} />
-        <div className="tr-field-row">
-          <label className="tr-field"><span>Sport</span>
-            <select className="tr-input" value={form.sport} onChange={set('sport')}>{TRAINING_SPORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
-          </label>
-          <label className="tr-field"><span>Skill level</span>
-            <select className="tr-input" value={form.skill} onChange={set('skill')}>{SKILLS.map((s) => <option key={s} value={s}>{skillLabel(s)}</option>)}</select>
-          </label>
+        <MultiImagePicker value={images} onChange={setImages} />
+        <label className="tr-field"><span>Sport</span>
+          <select className="tr-input" value={form.sport} onChange={set('sport')}>{TRAINING_SPORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
+        </label>
+        <div className="tr-field">
+          <span>Skill levels welcome</span>
+          <div className="coach-skills" role="group" aria-label="Skill levels">
+            {SKILLS.map((s) => (
+              <button key={s} type="button" aria-pressed={form.skills.includes(s)} className={form.skills.includes(s) ? 'is-on' : ''} onClick={() => toggleSkill(s)}>{skillLabel(s)}</button>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="coach-card">
         <h2 className="coach-card__label">{bookable ? 'Sessions' : 'When'}</h2>
+        {!bookable && !editing && (
+          <div className="coach-segment coach-segment--small" role="tablist">
+            <button type="button" role="tab" aria-selected={!multiple} className={!multiple ? 'is-active' : ''} onClick={() => setMultiple(false)}>Single</button>
+            <button type="button" role="tab" aria-selected={multiple} className={multiple ? 'is-active' : ''} onClick={() => setMultiple(true)}>Multiple dates</button>
+          </div>
+        )}
+        {series && (
+          <>
+            <MultiDateCalendar selected={days} onToggle={toggleDay} />
+            <p className="coach-hint">{days.size ? `${days.size} dates picked · uses ${days.size} training credits. Players see the next date; the rest show as scheduled.` : 'Tap the days this training runs. Each date uses one training credit.'}</p>
+          </>
+        )}
         {!bookable && <div className="tr-field-row">
-          <label className="tr-field"><span>Date</span><input className="tr-input" type="date" value={form.date} min={editing ? undefined : toDateInput(new Date())} onChange={set('date')} required /></label>
+          {!series && <label className="tr-field"><span>Date</span><input className="tr-input" type="date" value={form.date} min={editing ? undefined : toDateInput(new Date())} onChange={set('date')} required /></label>}
           <label className="tr-field"><span>Start time</span><input className="tr-input" type="time" value={form.time} onChange={set('time')} required /></label>
         </div>}
         <div className="tr-field">
@@ -259,12 +305,12 @@ function TrainingForm({ existing }) {
             {editing && bookable && <p className="coach-hint">New bookings pay this — existing ones keep their price.</p>}
             {price >= MIN_PRICE && bookable && (
               <p className="coach-hint">
-                {group ? `Each player in a group pays ${formatPeso(price)}` : `Players pay ${formatPeso(price)} per session`} (QR or cash). Versus keeps 15% of each session, settled when you mark it complete — QR payments minus the commission go to your Versus Wallet.
+                {group ? `Each player in a group pays ${formatPeso(price)}` : `Players pay ${formatPeso(price)} per session`} (QR or cash). Versus keeps {feeLabel(fees.training)} of each session, settled when you mark it complete — QR payments minus the commission go to your Versus Wallet.
               </p>
             )}
             {price >= MIN_PRICE && !bookable && (
               <p className="coach-hint">
-                Players pay {formatPeso(price)}. Versus keeps 15% ({formatPeso(commissionFor(price))} per player, QR or cash). When you complete the training, QR payments minus the commission go to your Versus Wallet; if cash seats leave commission uncovered, you settle the rest.
+                Players pay {formatPeso(price)}. Versus keeps {feeLabel(fees.training)} ({formatPeso(Math.round(price * fees.training.rate * 100) / 100)} per player, QR or cash). When you complete the training, QR payments minus the commission go to your Versus Wallet; if cash seats leave commission uncovered, you settle the rest.
               </p>
             )}
           </>

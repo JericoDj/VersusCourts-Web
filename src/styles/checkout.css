@@ -26,3 +26,8 @@
 .co-qr__hint { margin: 0; font-size: 12.5px; color: var(--vc-text-secondary); line-height: 1.5; }
 .co-success { align-items: center; text-align: center; color: var(--vc-success); padding: 12px 0; }
 .co-success b { color: var(--vc-text-primary); font-size: 16px; }
+
+.co-offer { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--vc-radius-md); border: 1px solid color-mix(in srgb, var(--vc-success) 35%, transparent); background: color-mix(in srgb, var(--vc-success) 8%, transparent); color: var(--vc-success); }
+.co-offer span { flex: 1; display: flex; flex-direction: column; gap: 2px; color: var(--vc-text-primary); }
+.co-offer small { color: var(--vc-text-secondary); font-size: 12px; }
+.co-offer .button { padding: 7px 14px; font-size: 13px; }

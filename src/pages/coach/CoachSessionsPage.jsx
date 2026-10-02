@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
-import { ChevronRight, History, Radio, UsersRound } from 'lucide-react'
+import { AlertCircle, CheckCircle2, ChevronRight, History, Radio, UsersRound } from 'lucide-react'
+import TransactionsDialog from '../../components/TransactionsDialog'
 import { useAuth } from '../../context/AuthContext'
-import { apiList } from '../../data/apiClient'
+import { apiList, apiRequest } from '../../data/apiClient'
 import { normalizeQueue } from '../../context/QueueContext'
 import { sportColor, sportLabel } from '../../data/sports'
 import { formatSessionTime, formatTrainingDate, formatTrainingTimeRange, kindLabel } from '../../data/trainings'
@@ -20,6 +21,16 @@ export default function CoachSessionsPage() {
   const [error, setError] = useState('')
   const [showPast, setShowPast] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  // Settlements card (`_SessionsTab`): what's owed in platform fees.
+  const [owed, setOwed] = useState(null)
+  const [settlementsOpen, setSettlementsOpen] = useState(false)
+  useEffect(() => {
+    let active = true
+    apiRequest('/wallet/queue-payments')
+      .then((res) => { if (active) setOwed(Number(res?.totalOutstanding) || 0) })
+      .catch(() => { if (active) setOwed(0) })
+    return () => { active = false }
+  }, [reloadKey, settlementsOpen])
 
   useEffect(() => {
     let active = true
@@ -57,6 +68,15 @@ export default function CoachSessionsPage() {
         <Stat icon={History} value={queues.length} label="All-time" tone="primary" onClick={() => setShowPast(true)} />
       </div>
 
+      <button type="button" className="coach-row coach-settlements" onClick={() => setSettlementsOpen(true)}>
+        {owed > 0 ? <AlertCircle size={20} color="var(--vc-danger)" /> : <CheckCircle2 size={20} color="var(--vc-brand-green)" />}
+        <span className="coach-row__body">
+          <b>Settlements</b>
+          <small>{owed === null ? 'Loading…' : owed > 0 ? `₱${Math.round(owed).toLocaleString('en-PH')} outstanding` : 'All settled'}</small>
+        </span>
+        <ChevronRight size={18} />
+      </button>
+
       <div className="coach-segment" role="tablist">
         <button type="button" role="tab" aria-selected={!showPast} className={!showPast ? 'is-active' : ''} onClick={() => setShowPast(false)}>Upcoming & live · {activeQueues.length}</button>
         <button type="button" role="tab" aria-selected={showPast} className={showPast ? 'is-active' : ''} onClick={() => setShowPast(true)}>Past · {pastQueues.length}</button>
@@ -78,6 +98,7 @@ export default function CoachSessionsPage() {
           <p>{showPast ? 'Queues you hosted will show up here.' : "You're not hosting any open queues. Tap + to create one."}</p>
         </div>
       )}
+      {settlementsOpen && <TransactionsDialog isOpen onClose={() => setSettlementsOpen(false)} />}
     </div>
   )
 }

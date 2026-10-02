@@ -25,7 +25,6 @@ import {
   formatPeso,
   formatTrainingDate,
   formatTrainingTimeRange,
-  skillLabel,
   trainingAppUrl,
   trainingShareUrl,
 } from '../data/trainings'
@@ -165,7 +164,7 @@ export default function TrainingBridgePage() {
             >
               {sportLabel(sport)}
             </span>
-            {training.skill && <span className="tr-pill">{skillLabel(training.skill)}</span>}
+            {training.skillsLabel && <span className="tr-pill">{training.skillsLabel}</span>}
             {closed && <span className="tr-pill tr-pill--muted">{training.status === 'COMPLETED' ? 'Completed' : 'Cancelled'}</span>}
           </div>
 

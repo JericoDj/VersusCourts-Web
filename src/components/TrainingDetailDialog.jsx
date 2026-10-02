@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Banknote,
   CalendarDays,
   GraduationCap,
   MapPin,
   MessageCircle,
-  QrCode,
   Share2,
-  Smartphone,
   Star,
   Users,
   Wallet,
@@ -16,6 +13,9 @@ import {
 import ProfileDialog from './ProfileDialog'
 import TrainingBookingPanel from './TrainingBookingPanel'
 import TrainingPackagesPanel from './TrainingPackagesPanel'
+import TrainingShareDialog from './TrainingShareDialog'
+import CheckoutDialog from './CheckoutDialog'
+import RefundDestinationDialog from './RefundDestinationDialog'
 import '../styles/profile.css'
 import { useAuth } from '../context/AuthContext'
 import { useChat } from '../context/ChatContext'
@@ -30,14 +30,13 @@ import {
   formatPeso,
   formatTrainingDate,
   formatTrainingTimeRange,
+  confirmTrainingJoin,
   joinTraining,
+  joinTrainingQr,
   kindLabel,
   joinTrainingCash,
   leaveTraining,
   rateCoach,
-  shareTraining,
-  skillLabel,
-  trainingAppUrl,
   trainingRole,
 } from '../data/trainings'
 
@@ -58,6 +57,8 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
   const [step, setStep] = useState(null) // 'pay' | 'leave' | 'rate' | 'paid-leave'
   const [rating, setRating] = useState(0)
   const [ratingText, setRatingText] = useState('')
+  const [refundAmount, setRefundAmount] = useState(0)
+  const [shareOpen, setShareOpen] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -105,13 +106,17 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
     if (t.price <= 0) apply(await joinTraining(t.id), `You're in! See you at ${t.title}.`)
     else setStep('pay')
   })
-  const joinCash = () => run(async () => apply(await joinTrainingCash(t.id), 'Request sent — pay the coach in cash to confirm your spot.'))
   const cancelRequest = () => run(async () => apply(await cancelTrainingJoin(t.id).catch(() => leaveTraining(t.id)), 'Request cancelled.'))
   const askLeave = () => run(async () => {
     const quote = await fetchRefundQuote(t.id).catch(() => null)
-    setStep(Number(quote?.refundable) > 0 ? 'paid-leave' : 'leave')
+    const refundable = Number(quote?.refundable) || 0
+    setRefundAmount(refundable)
+    setStep(refundable > 0 ? 'paid-leave' : 'leave')
   })
-  const leave = () => run(async () => apply(await leaveTraining(t.id), 'You left the training.'))
+  const leave = (payoutAccountId) => run(async () => apply(
+    await leaveTraining(t.id, payoutAccountId),
+    payoutAccountId ? `You left the training. ${formatPeso(refundAmount)} is on its way to your account.` : 'You left the training.',
+  ))
 
   const openRate = () => run(async () => {
     const existing = await fetchMyCoachReview(t.coachProfileId)
@@ -137,25 +142,17 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
     if (threadId) navigate(`/app/messages/${encodeURIComponent(threadId)}`)
   })
 
-  const share = async () => {
-    try {
-      const result = await shareTraining(t)
-      if (result === 'copied') setNotice('Training link copied')
-    } catch {
-      setNotice('Could not share this training')
-    }
-  }
 
-  const openInApp = () => { window.location.href = trainingAppUrl(t.id) }
 
   return (
     <ProfileDialog
       title="Training"
       onClose={onClose}
       busy={busy}
-      actions={<button type="button" className="pf-icon-button" aria-label="Share training" onClick={share}><Share2 size={18} /></button>}
+      actions={<button type="button" className="pf-icon-button" aria-label="Share training" onClick={() => setShareOpen(true)}><Share2 size={18} /></button>}
     >
       <div className="tr-detail">
+        {shareOpen && <TrainingShareDialog training={t} onClose={() => setShareOpen(false)} />}
         <div
           className="tr-detail__cover"
           style={t.imageUrl ? { backgroundImage: `url(${JSON.stringify(t.imageUrl)})` } : { background: sportGradient(t.sport) }}
@@ -167,7 +164,7 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
         </div>
 
         <h3 className="tr-detail__title">{t.title || 'Training session'}</h3>
-        {t.skill && <span className="tr-pill">{skillLabel(t.skill)}</span>}
+        {t.skillsLabel && <span className="tr-pill">{t.skillsLabel}</span>}
 
         <div className="tr-coach-row">
           {t.coachAvatarUrl ? <img src={t.coachAvatarUrl} alt="" /> : <span className="tr-coach-row__initial">{t.coachName[0]}</span>}
@@ -241,18 +238,29 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
           )}
 
           {step === 'pay' && (
-            <div className="tr-pay">
-              <p className="tr-pay__title">How would you like to pay {formatPeso(t.price)}?</p>
-              <button type="button" className="tr-pay__option" disabled={busy} onClick={joinCash}>
-                <Banknote size={22} />
-                <span><b>Cash at the session</b><small>Your spot is requested until the coach confirms payment.</small></span>
-              </button>
-              <button type="button" className="tr-pay__option" disabled={busy} onClick={openInApp}>
-                <QrCode size={22} />
-                <span><b>QR Ph (GCash, Maya, banks)</b><small>Opens the Versus Courts app to pay securely.</small></span>
-              </button>
-              <button type="button" className="button button--outline button--full" onClick={() => setStep(null)}>Back</button>
-            </div>
+            <CheckoutDialog
+              couponScope="TRAINING"
+              title="Join training"
+              itemTitle={t.title || 'Training session'}
+              venueLabel={[t.courtName, t.area].filter(Boolean).join(' · ')}
+              timeLabel={`${formatTrainingDate(t.startTime)} · ${formatTrainingTimeRange(t.startTime, t.durationHours)}`}
+              amount={t.price}
+              priceLabel="Training fee"
+              purposeLabel={`Training · ${t.title}`}
+              cashNote="Pay the coach at the session — your spot is requested until they confirm it."
+              successMessage="Payment received — you're in!"
+              onSubmitQr={(paymentIntentId, clientKey, couponCode) => joinTrainingQr(t.id, { paymentIntentId, clientKey, couponCode }).then((u) => setTraining(u))}
+              onConfirmQr={() => confirmTrainingJoin(t.id).then((u) => { setTraining(u); onChanged?.(u) })}
+              onCancelQr={() => cancelTrainingJoin(t.id).then((u) => { setTraining(u); onChanged?.(u) })}
+              onSubmitCash={(couponCode) => joinTrainingCash(t.id, couponCode).then((u) => setTraining(u))}
+              onSubmitFree={(couponCode) => joinTrainingCash(t.id, couponCode).then((u) => setTraining(u))}
+              onDone={(method) => {
+                setStep(null)
+                fetchTraining(t.id).then((u) => { setTraining(u); onChanged?.(u) }).catch(() => {})
+                setNotice(method === 'CASH' ? 'Request sent — pay the coach in cash to confirm your spot.' : `You're in! See you at ${t.title}.`)
+              }}
+              onClose={() => { setStep(null); fetchTraining(t.id).then(setTraining).catch(() => {}) }}
+            />
           )}
 
           {role === 'requested' && (
@@ -279,19 +287,20 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
               <p>Leave <b>{t.title}</b>? Your spot opens up for someone else.</p>
               <div className="tr-confirm__row">
                 <button type="button" className="button button--outline" onClick={() => setStep(null)}>Stay</button>
-                <button type="button" className="button pf-button--danger" disabled={busy} onClick={leave}>Leave</button>
+                <button type="button" className="button pf-button--danger" disabled={busy} onClick={() => leave()}>Leave</button>
               </div>
             </div>
           )}
 
           {step === 'paid-leave' && (
-            <div className="tr-confirm">
-              <p>You paid online, so leaving opens a refund to your saved GCash, Maya or bank account. Refunds are handled in the app.</p>
-              <div className="tr-confirm__row">
-                <button type="button" className="button button--outline" onClick={() => setStep(null)}>Cancel</button>
-                <button type="button" className="button button--primary" onClick={openInApp}><Smartphone size={16} /> Open app</button>
-              </div>
-            </div>
+            <RefundDestinationDialog
+              amount={refundAmount}
+              title={t.title}
+              busy={busy}
+              confirmLabel={`Leave & send ${formatPeso(refundAmount)} here`}
+              onPick={(accountId) => leave(accountId)}
+              onClose={() => setStep(null)}
+            />
           )}
 
           {step === 'rate' && (

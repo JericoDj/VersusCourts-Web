@@ -67,3 +67,11 @@
 .queue-scoreboard button:focus-visible { outline: 2px solid #22d3ee; outline-offset: -3px; }
 .queue-scoreboard__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (max-height: 500px) { .queue-scoreboard__court { min-height: 180px; } .queue-scoreboard__points { font-size: 90px; } .queue-scoreboard__sets { font-size: 24px; margin-top: 0; } .queue-scoreboard__rule { margin: 4px 0; } }
+
+/* Pickleball side-out serve (call, server, rally buttons) */
+.pb-serve { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 6px 0 10px; text-align: center; }
+.pb-serve__call { font-size: 22px; font-weight: 800; letter-spacing: 1px; color: var(--vc-sport-pickleball-dark, #a16207); }
+.pb-serve small { color: var(--vc-text-secondary); font-size: 12px; }
+.pb-serve__rally { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; justify-content: center; }
+.pb-serve__rally button { border: 1px solid var(--vc-border); background: var(--vc-surface); border-radius: 9999px; padding: 7px 12px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.pb-serve__rally button:disabled { opacity: 0.5; cursor: default; }

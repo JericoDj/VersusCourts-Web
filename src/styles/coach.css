@@ -543,3 +543,19 @@ button.coach-stat:hover { border-color: var(--vc-accent); }
 .coach-card__label .tr-pill { margin-left: 8px; }
 .coach-package-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr auto; gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--vc-border); }
 .coach-package-row .coach-hint { grid-column: 1 / -1; margin: 0; }
+.coach-settlements { margin-bottom: 12px; }
+
+/* Multiple-dates calendar + skill chips (training form) */
+.mdc { border: 1px solid var(--vc-border); border-radius: var(--vc-radius-md); padding: 10px; background: var(--vc-surface); }
+.mdc__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.mdc__grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.mdc__dow { font-size: 11px; font-weight: 800; color: var(--vc-text-tertiary); }
+.mdc__day { aspect-ratio: 1; border: 0; border-radius: 9999px; background: transparent; color: var(--vc-text-primary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 180ms ease-out; }
+.mdc__day:hover:not(:disabled) { background: var(--vc-surface-alt); }
+.mdc__day:disabled { color: var(--vc-text-tertiary); opacity: 0.45; cursor: default; }
+.mdc__day.is-today { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-primary) 45%, transparent); }
+.mdc__day.is-on { background: var(--vc-primary); color: #fff; box-shadow: 0 3px 8px color-mix(in srgb, var(--vc-primary) 30%, transparent); }
+.coach-skills { display: flex; flex-wrap: wrap; gap: 8px; }
+.coach-skills button { border: 1px solid var(--vc-border); background: var(--vc-surface); color: var(--vc-text-secondary); border-radius: 9999px; padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 180ms ease-out; }
+.coach-skills button.is-on { background: var(--vc-accent); border-color: var(--vc-accent); color: #fff; font-weight: 700; box-shadow: 0 3px 8px color-mix(in srgb, var(--vc-accent) 30%, transparent); }
+.coach-segment--scroll { overflow-x: auto; scrollbar-width: none; } .coach-segment--scroll button { white-space: nowrap; flex: none; }

@@ -25,6 +25,8 @@ import { usePlayer } from '../context/PlayerContext'
 import { useQueues } from '../context/QueueContext'
 import LoginDialog from './LoginDialog'
 import CheckoutDialog from './CheckoutDialog'
+import ProfileDialog from './ProfileDialog'
+import '../styles/profile.css'
 import { apiRequest } from '../data/apiClient'
 import QueueSportIcon from './QueueSportIcon'
 import ManageQueue from './ManageQueue'
@@ -97,6 +99,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
   /// once the host accepts a request.
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [pendingBusy, setPendingBusy] = useState(false)
+  const [leaveOpen, setLeaveOpen] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -113,8 +116,8 @@ export default function QueueDetailDialog({ queue, onClose }) {
 
   useEffect(() => {
     const onKeyDown = (event) => {
-      // The checkout dialog handles its own Escape.
-      if (event.key !== 'Escape' || loginOpen || checkoutOpen) return
+      // The checkout / leave dialogs handle their own Escape.
+      if (event.key !== 'Escape' || loginOpen || checkoutOpen || leaveOpen) return
       if (shareModalOpen) setShareModalOpen(false)
       else if (analyticsOpen) setAnalyticsOpen(false)
       else if (leaderboardOpen) setLeaderboardOpen(false)
@@ -126,7 +129,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [loginOpen, checkoutOpen, onClose, manageOpen, chatOpen, headerAction, analyticsOpen, leaderboardOpen, playerListOpen, shareModalOpen])
+  }, [loginOpen, checkoutOpen, leaveOpen, onClose, manageOpen, chatOpen, headerAction, analyticsOpen, leaderboardOpen, playerListOpen, shareModalOpen])
 
   const sport = String(detail.sport || queue.sport || 'badminton').toLowerCase()
 
@@ -283,6 +286,26 @@ export default function QueueDetailDialog({ queue, onClose }) {
       ? `You're in! Pay ₱${fee} in cash to the host.`
       : 'Payment received — you’re in! We’ll remind you before game time.')
   }
+
+  /// Gives up the player's slot — only before the queue starts (the backend
+  /// enforces the same cutoff). Cash or QR paid: refunds are arranged with
+  /// the host, as in the app.
+  const leaveQueue = async () => {
+    setPendingBusy(true)
+    try {
+      await apiRequest(`/queues/${queue.id}/leave`, { method: 'POST' })
+      setLeaveOpen(false)
+      if (joinedQueues.includes(queue.id)) toggleQueue(queue.id)
+      setJoinState('idle')
+      await reloadDetail()
+      setNotice('You left the queue.')
+    } catch (error) {
+      setNotice(error.message || 'Could not leave. Try again.')
+    } finally {
+      setPendingBusy(false)
+    }
+  }
+  const canLeave = alreadyJoined && myStatus === 'JOINED' && !(user?.id && hostId === user.id) && !detail.isOngoing && !isFinished
 
   /// Backs out of a pending join: a request, an accepted-but-unpaid spot,
   /// or an unfinished QR payment.
@@ -725,6 +748,9 @@ export default function QueueDetailDialog({ queue, onClose }) {
                     <span>Open in App</span>
                   </button>
 
+                  {canLeave && (
+                    <button type="button" className="queue-pending__cancel" disabled={pendingBusy} onClick={() => setLeaveOpen(true)}>Leave</button>
+                  )}
                   {pendingStatus && !alreadyJoined ? (
                     <div className="queue-pending">
                       <span className="queue-pending__text">
@@ -775,8 +801,19 @@ export default function QueueDetailDialog({ queue, onClose }) {
       {/* Sub Modals */}
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
 
+      {leaveOpen && (
+        <ProfileDialog title="Leave this queue?" onClose={() => setLeaveOpen(false)} busy={pendingBusy}>
+          <p>{fee > 0 ? "You'll give up your slot. If you already paid, arrange any refund with the host directly." : "You'll give up your slot in this queue."}</p>
+          <div className="tr-confirm__row">
+            <button type="button" className="button button--outline" onClick={() => setLeaveOpen(false)}>Stay</button>
+            <button type="button" className="button pf-button--danger" disabled={pendingBusy} onClick={leaveQueue}>Leave</button>
+          </div>
+        </ProfileDialog>
+      )}
+
       {checkoutOpen && (
         <CheckoutDialog
+          couponScope="QUEUE"
           title="Join queue"
           itemTitle={title}
           venueLabel={venue}

@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Banknote, CalendarCheck, Minus, Plus, QrCode, Smartphone, Star } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { CalendarCheck, Minus, Plus, Star } from 'lucide-react'
+import CheckoutDialog from './CheckoutDialog'
+import RefundDestinationDialog from './RefundDestinationDialog'
 import { usePlayer } from '../context/PlayerContext'
 import {
   BOOKING_STATUS,
   bookTraining,
   cancelBooking,
+  confirmBookingPayment,
   fetchMyBookings,
   formatPeso,
   formatSessionTime,
-  trainingAppUrl,
 } from '../data/trainings'
 
 const DAYS = 30
@@ -69,13 +71,16 @@ export default function TrainingBookingPanel({ training: t, me, busy, run, onRat
       : 'Request sent! The coach will confirm your session.')
   })
 
-  const cancel = (b) => run(async () => {
-    put(await cancelBooking(b.id))
+  const cancel = (b, payoutAccountId) => run(async () => {
+    put(await cancelBooking(b.id, payoutAccountId))
     setStep(null)
-    setNotice('Booking cancelled.')
+    setNotice(b.fromPackage
+      ? 'Session cancelled — it’s back in your package.'
+      : payoutAccountId ? `Booking cancelled. ${formatPeso(b.refundable)} is on its way to your account.` : 'Booking cancelled.')
   })
 
-  const openInApp = () => { window.location.href = trainingAppUrl(t.id) }
+  // The QR callbacks run from closures made before the booking exists.
+  const bookingIdRef = useRef(null)
 
   return (
     <>
@@ -102,16 +107,17 @@ export default function TrainingBookingPanel({ training: t, me, busy, run, onRat
               {step === `cancel:${b.id}` && (
                 <div className="tr-confirm">
                   {b.refundable > 0 ? (
-                    <>
-                      <p>You paid {formatPeso(b.refundable)} online — cancel in the app to choose where your refund goes.</p>
-                      <div className="tr-confirm__row">
-                        <button type="button" className="button button--outline" onClick={() => setStep(null)}>Keep it</button>
-                        <button type="button" className="button button--primary" onClick={openInApp}><Smartphone size={16} /> Open app</button>
-                      </div>
-                    </>
+                    <RefundDestinationDialog
+                      amount={b.refundable}
+                      title={t.title}
+                      busy={busy}
+                      confirmLabel={`Cancel & send ${formatPeso(b.refundable)} here`}
+                      onPick={(accountId) => cancel(b, accountId)}
+                      onClose={() => setStep(null)}
+                    />
                   ) : (
                     <>
-                      <p>Cancel this booking? The coach will be told.</p>
+                      <p>{b.fromPackage ? 'Cancel this session? It goes back to your package to use on another time.' : 'Cancel this booking? The coach will be told.'}</p>
                       <div className="tr-confirm__row">
                         <button type="button" className="button button--outline" onClick={() => setStep(null)}>Keep it</button>
                         <button type="button" className="button pf-button--danger" disabled={busy} onClick={() => cancel(b)}>Cancel booking</button>
@@ -192,18 +198,32 @@ export default function TrainingBookingPanel({ training: t, me, busy, run, onRat
         )}
 
         {step === 'pay' && (
-          <div className="tr-pay">
-            <p className="tr-pay__title">How would you like to pay {formatPeso(total)}?</p>
-            <button type="button" className="tr-pay__option" disabled={busy} onClick={() => submit('CASH')}>
-              <Banknote size={22} />
-              <span><b>Cash at the session</b><small>Your request goes to the coach now; pay them on the day.</small></span>
-            </button>
-            <button type="button" className="tr-pay__option" disabled={busy} onClick={openInApp}>
-              <QrCode size={22} />
-              <span><b>QR Ph (GCash, Maya, banks)</b><small>Opens the Versus Courts app to book and pay securely.</small></span>
-            </button>
-            <button type="button" className="button button--outline button--full" onClick={() => setStep('form')}>Back</button>
-          </div>
+          <CheckoutDialog
+            couponScope="TRAINING"
+            title={`Book a ${t.isGroup ? 'group' : 'private'} session`}
+            itemTitle={`${t.title} · ${t.isGroup ? 'Group' : 'Private'} session`}
+            venueLabel={t.courtName || t.businessName}
+            timeLabel={`Requested for ${formatSessionTime(start)}`}
+            amount={total}
+            priceLabel={players > 1 ? `${players} × ${formatPeso(t.price)}` : 'Session fee'}
+            purposeLabel={`${t.isGroup ? 'Group' : 'Private'} session · ${t.title}`}
+            cashNote="Your request goes to the coach now — pay them on the day."
+            successMessage="Payment received — your request is with the coach."
+            onSubmitQr={(paymentIntentId, clientKey, couponCode) =>
+              bookTraining(t.id, { preferredStart: start, players, note, paymentMethod: 'QRPH', paymentIntentId, clientKey, couponCode })
+                .then((b) => { bookingIdRef.current = b.id; put(b) })}
+            onConfirmQr={() => bookingIdRef.current && confirmBookingPayment(bookingIdRef.current).then(put)}
+            onCancelQr={() => bookingIdRef.current && cancelBooking(bookingIdRef.current).then(put)}
+            onSubmitCash={(couponCode) => bookTraining(t.id, { preferredStart: start, players, note, paymentMethod: 'CASH', couponCode }).then(put)}
+            onSubmitFree={(couponCode) => bookTraining(t.id, { preferredStart: start, players, note, couponCode }).then(put)}
+            onDone={(method) => {
+              setStep(null)
+              setNote('')
+              fetchMyBookings(t.id).then(setBookings).catch(() => {})
+              setNotice(method === 'CASH' ? 'Request sent — pay the coach in cash at the session.' : 'Request sent! The coach will confirm your session.')
+            }}
+            onClose={() => { setStep('form'); fetchMyBookings(t.id).then(setBookings).catch(() => {}) }}
+          />
         )}
       </div>
     </>

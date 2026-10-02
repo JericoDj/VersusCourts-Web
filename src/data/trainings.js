@@ -1,5 +1,6 @@
 import { apiList, apiRequest } from './apiClient'
 import { sportFromApi } from './sports'
+import { feeOn, feeRules } from './platformFees'
 
 /// Web port of the Flutter player's training models and calls:
 ///   - `normalizeTraining`      ← lib/data/models/training.dart (`GET /trainings[/:id]`)
@@ -18,13 +19,23 @@ export const formatPeso = (value) => {
   return n % 1 === 0 ? `₱${n.toFixed(0)}` : `₱${n.toFixed(2)}`
 }
 
-export const SKILLS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED']
+export const SKILLS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'PROFESSIONAL']
 
 /// 'Beginner' from 'BEGINNER'.
 export const skillLabel = (skill) => {
   const s = String(skill || '')
   return s ? s[0] + s.slice(1).toLowerCase() : ''
 }
+
+/// The levels welcome on a training — `skills`, or the single legacy `skill`.
+const levelsOf = (json) => {
+  const list = (Array.isArray(json.skills) ? json.skills : []).map((x) => String(x).toUpperCase()).filter((x) => SKILLS.includes(x))
+  return list.length ? list : [String(json.skill || 'BEGINNER').toUpperCase()]
+}
+
+/// "All Levels", "Beginner · Intermediate", or one level (`skillsLabel`).
+export const skillsLabel = (skills = []) =>
+  skills.length >= SKILLS.length ? 'All Levels' : skills.map(skillLabel).join(' · ')
 
 export const TRAINING_STATUS_LABEL = {
   SCHEDULED: 'Scheduled',
@@ -48,9 +59,9 @@ const kindOf = (json) => {
 }
 export const isBookableKind = (kind) => kind === 'PRIVATE' || kind === 'GROUP'
 
-/// Versus keeps 15% of everything collected — mirrors `Training.commissionRate`.
-export const COMMISSION_RATE = 0.15
-export const commissionFor = (amount) => Math.round(amount * COMMISSION_RATE * 100) / 100
+/// Versus's training fee on [amount] — the admin-set rate and ₱ minimum
+/// (see platformFees.js), mirroring `Training.commissionFor`.
+export const commissionFor = (amount) => feeOn(amount, feeRules().training)
 
 const fullName = (user) =>
   [user?.firstName, user?.lastName].filter((n) => typeof n === 'string' && n.trim()).join(' ').trim()
@@ -135,6 +146,8 @@ export function normalizeTraining(json = {}) {
     durationHours: Number(json.durationHours) || 1,
     sport: sportFromApi(json.sport),
     skill: String(json.skill || ''),
+    skills: levelsOf(json),
+    skillsLabel: skillsLabel(levelsOf(json)),
     status: String(json.status || 'SCHEDULED').toUpperCase(),
     capacity,
     participantCount,
@@ -213,6 +226,9 @@ export function normalizeCoachTraining(json = {}) {
     imageUrl: Array.isArray(json.images) && json.images.length ? json.images[0] : '',
     sport: sportFromApi(json.sport),
     skill: String(json.skill || 'BEGINNER').toUpperCase(),
+    skills: levelsOf(json),
+    skillsLabel: skillsLabel(levelsOf(json)),
+    seriesIndex: Number(json.seriesIndex) || 0,
     capacity,
     pricePerPlayer: price,
     startTime,
@@ -282,14 +298,16 @@ export function normalizeBooking(j = {}) {
     couponCode: j.couponCode || '',
     createdAt: j.createdAt ? new Date(j.createdAt) : new Date(),
     paymentLabel: isFree ? 'Free' : paysCash ? (isPaid ? 'Paid · Cash' : 'Cash on the day') : isPaid ? 'Paid · QR Ph' : 'QR Ph · awaiting payment',
-    /// QR money that would come back on cancel (needs the app's refund flow).
-    refundable: !paysCash && isPaid ? amountPaid : 0,
+    /// From a package: cancelling returns it to the balance, no refund.
+    fromPackage: Boolean(j.packagePurchaseId),
+    /// QR money that would come back on cancel.
+    refundable: !paysCash && isPaid && !j.packagePurchaseId ? amountPaid : 0,
     canComplete: status === 'CONFIRMED' && sessionStart <= new Date(),
   }
 }
 
 /// Free or cash bookings (QR Ph is paid in the app). `players` for GROUP.
-export const bookTraining = async (id, { preferredStart, players = 1, note, paymentMethod, couponCode }) =>
+export const bookTraining = async (id, { preferredStart, players = 1, note, paymentMethod, paymentIntentId, clientKey, couponCode }) =>
   normalizeBooking(await apiRequest(`/trainings/${encodeURIComponent(id)}/bookings`, {
     method: 'POST',
     body: {
@@ -297,13 +315,16 @@ export const bookTraining = async (id, { preferredStart, players = 1, note, paym
       ...(players > 1 ? { players } : {}),
       ...(note?.trim() ? { note: note.trim() } : {}),
       ...(paymentMethod ? { paymentMethod } : {}),
+      ...(paymentIntentId ? { paymentIntentId, clientKey } : {}),
       ...(couponCode ? { couponCode } : {}),
     },
   }))
+export const confirmBookingPayment = async (bookingId) =>
+  normalizeBooking(await apiRequest(`/trainings/bookings/${encodeURIComponent(bookingId)}/confirm-payment`, { method: 'PATCH' }))
 export const fetchMyBookings = async (id) =>
   (await apiList(`/trainings/${encodeURIComponent(id)}/bookings/mine`)).map(normalizeBooking)
-export const cancelBooking = async (bookingId) =>
-  normalizeBooking(await apiRequest(`/trainings/bookings/${encodeURIComponent(bookingId)}/cancel`, { method: 'PATCH', body: {} }))
+export const cancelBooking = async (bookingId, payoutAccountId) =>
+  normalizeBooking(await apiRequest(`/trainings/bookings/${encodeURIComponent(bookingId)}/cancel`, { method: 'PATCH', body: payoutAccountId ? { payoutAccountId } : {} }))
 
 /// "Sat, Oct 10 · 9:00 AM".
 export const formatSessionTime = (date) =>
@@ -424,8 +445,8 @@ export const schedulePackageSession = async (purchaseId, { start, trainingId, no
     method: 'POST',
     body: { ...(start ? { start: start.toISOString() } : {}), ...(trainingId ? { trainingId } : {}), ...(note?.trim() ? { note: note.trim() } : {}) },
   }))
-export const cancelPackage = async (purchaseId) =>
-  normalizePurchase(await apiRequest(`/trainings/package-purchases/${encodeURIComponent(purchaseId)}/cancel`, { method: 'PATCH', body: {} }))
+export const cancelPackage = async (purchaseId, payoutAccountId) =>
+  normalizePurchase(await apiRequest(`/trainings/package-purchases/${encodeURIComponent(purchaseId)}/cancel`, { method: 'PATCH', body: payoutAccountId ? { payoutAccountId } : {} }))
 
 // ─── Player endpoints (TrainingProvider) ────────────────────────────────
 
@@ -443,7 +464,13 @@ export const joinTraining = async (id) => normalizeTraining(await post(`/trainin
 export const joinTrainingCash = async (id, couponCode) =>
   normalizeTraining(await post(`/trainings/${id}/join`, { paymentMethod: 'CASH', ...(couponCode ? { couponCode } : {}) }))
 export const cancelTrainingJoin = async (id) => normalizeTraining(await patch(`/trainings/${id}/join/cancel`))
-export const leaveTraining = async (id) => normalizeTraining(await post(`/trainings/${id}/leave`, {}))
+/// [payoutAccountId] is required when the seat was paid by QR — the refund goes there.
+export const leaveTraining = async (id, payoutAccountId) =>
+  normalizeTraining(await post(`/trainings/${id}/leave`, payoutAccountId ? { payoutAccountId } : {}))
+/// QR Ph join: the PayMongo intent is verified against the price (minus coupon).
+export const joinTrainingQr = async (id, { paymentIntentId, clientKey, couponCode }) =>
+  normalizeTraining(await post(`/trainings/${id}/join`, { paymentMethod: 'QRPH', paymentIntentId, clientKey, ...(couponCode ? { couponCode } : {}) }))
+export const confirmTrainingJoin = async (id) => normalizeTraining(await patch(`/trainings/${id}/join/confirm`))
 export const fetchRefundQuote = (id) => apiRequest(`/trainings/${id}/refund-quote`)
 
 export const fetchMyCoachReview = (coachProfileId) =>
@@ -460,6 +487,9 @@ export const coachApi = {
   overview: () => apiRequest('/coach/overview'),
   trainings: async () => (await apiList('/coach/trainings')).map(normalizeCoachTraining),
   create: (body) => post('/coach/trainings', body),
+  /// "Multiple dates": one training per start time (one credit each),
+  /// linked as a series. Returns them in date order.
+  createSeries: (body) => post('/coach/trainings/series', body),
   update: (id, body) => patch(`/coach/trainings/${id}`, body),
   start: (id) => patch(`/coach/trainings/${id}/start`),
   settlementPreview: (id) => apiRequest(`/coach/trainings/${id}/settlement-preview`),

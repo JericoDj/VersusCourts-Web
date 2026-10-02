@@ -1709,3 +1709,14 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Per-queue levels, courts, pairing options, deletion request */
+.manage-queue__level { border: 1px solid var(--vc-border); border-radius: 9999px; background: var(--vc-surface); color: var(--vc-text-secondary); font: inherit; font-size: 12px; font-weight: 600; padding: 4px 8px; max-width: 120px; }
+.manage-match-queue__options { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.manage-match-queue__options label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: var(--vc-text-secondary); }
+.manage-match-queue__options select, .manage-court-bar select { border: 1px solid var(--vc-border); border-radius: 10px; padding: 6px 10px; font: inherit; font-size: 13px; background: var(--vc-surface); color: var(--vc-text-primary); }
+.manage-court-bar { display: flex; align-items: center; gap: 8px; margin: 12px 0 -4px; font-size: 13px; font-weight: 700; color: var(--vc-primary); }
+.manage-court-bar select { margin-left: auto; }
+.manage-queue__deletion { margin: 12px 0; font-size: 13px; color: var(--vc-text-secondary); }
+.manage-queue__deletion p { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; }
+.manage-queue__deletion-btn { color: var(--vc-danger); }

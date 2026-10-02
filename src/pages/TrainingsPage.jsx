@@ -11,7 +11,6 @@ import {
   formatTrainingDate,
   formatTrainingTimeRange,
   kindLabel,
-  skillLabel,
   trainingRole,
 } from '../data/trainings'
 import '../styles/play.css'
@@ -191,7 +190,7 @@ export function TrainingCard({ training: t, me, onOpen }) {
         <strong className="tr-card__title">{t.title || 'Training session'}</strong>
         <span className="tr-card__coach">
           {t.coachAvatarUrl ? <img src={t.coachAvatarUrl} alt="" /> : <i aria-hidden="true">{t.coachName[0]}</i>}
-          {t.coachName}{t.skill ? ` · ${skillLabel(t.skill)}` : ''}
+          {t.coachName}{t.skillsLabel ? ` · ${t.skillsLabel}` : ''}
         </span>
         <span className="tr-card__meta"><CalendarDays size={14} /> {formatTrainingDate(t.startTime)} · {formatTrainingTimeRange(t.startTime, t.durationHours)}</span>
         {(t.courtName || t.businessName) && <span className="tr-card__meta"><MapPin size={14} /> {t.courtName || t.businessName}</span>}
@@ -220,7 +219,7 @@ function BookableCard({ training: t, onOpen }) {
         <strong className="tr-card__title">{t.title || 'Training session'}</strong>
         <span className="tr-card__coach">
           {t.coachAvatarUrl ? <img src={t.coachAvatarUrl} alt="" /> : <i aria-hidden="true">{t.coachName[0]}</i>}
-          {t.coachName}{t.skill ? ` · ${skillLabel(t.skill)}` : ''}
+          {t.coachName}{t.skillsLabel ? ` · ${t.skillsLabel}` : ''}
         </span>
         <span className="tr-card__meta tr-card__meta--kind"><CalendarCheck size={14} /> Book anytime · {t.durationHours}h sessions</span>
         {(t.courtName || t.businessName) && <span className="tr-card__meta"><MapPin size={14} /> {t.courtName || t.businessName}</span>}

@@ -35,6 +35,25 @@ import QueueVenueFields from './QueueVenueFields'
 import { sportColor, sportLabel } from '../data/sports'
 import '../styles/manage-queue.css'
 
+/// Per-queue skill levels the host can give a player or guest (never their
+/// profile) — like the app's level picker on Manage Queue.
+const LEVELS = [
+  { id: '', label: 'No level' },
+  { id: 'BEGINNER', label: 'Beginner' },
+  { id: 'INTERMEDIATE', label: 'Intermediate' },
+  { id: 'ADVANCED', label: 'Advanced' },
+  { id: 'PROFESSIONAL', label: 'Pro' },
+]
+
+/// A tiny level <select> for a roster row.
+function LevelSelect({ value, disabled, onChange, label }) {
+  return (
+    <select className="manage-queue__level" aria-label={`Level for ${label}`} value={value || ''} disabled={disabled} onChange={(e) => onChange(e.target.value || null)}>
+      {LEVELS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+    </select>
+  )
+}
+
 const nameOf = (p) => p?.name || [p?.firstName, p?.lastName].filter(Boolean).join(' ') || 'Player'
 const shortName = (p) => p?.firstName ? `${p.firstName}${p.lastName ? ` ${p.lastName[0]}.` : ''}` : nameOf(p)
 
@@ -330,6 +349,12 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
   const [coHostSearching, setCoHostSearching] = useState(false)
   const [coHostInvitedIds, setCoHostInvitedIds] = useState(new Set())
   const [descLength, setDescLength] = useState(0)
+  // Auto-pairing: who plays whom (RANDOM / LEVEL / MIXED), and the court for
+  // the next match when the queue runs several.
+  const [autoMode, setAutoMode] = useState('RANDOM')
+  const [nextCourt, setNextCourt] = useState('')
+  // Host's request to have an admin delete this queue (null = none yet).
+  const [deletion, setDeletion] = useState(null)
 
   const base = `/queues/${queue.id}`
   const primaryHost = user?.id && (game.hostId === user.id || game.host?.id === user.id)
@@ -338,6 +363,9 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
   const basketball = String(game.sport).toUpperCase() === 'BASKETBALL'
   const teamSize = queueTeamSize(game)
   const ongoing = matches.filter((m) => m.status === 'ONGOING')
+  const courtCount = Math.max(1, Number(game.rules?.courtCount) || 1)
+  const courtBody = () => (courtCount > 1 && nextCourt ? { courtNumber: Number(nextCourt) } : {})
+  const setLevel = (body) => run(`${base}/player-level`, body)
   const occupied = new Set(ongoing.flatMap((m) => [...m.teamA, ...m.teamB]))
   const roster = [
     ...(game.participants || []).filter((p) => p.status === 'JOINED' && (game.hostIsPlaying !== false || p.userId !== game.hostId)).map((p) => ({ id: p.userId || p.user?.id, name: nameOf(p.user) })),
@@ -450,6 +478,28 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
       socketService.removeEventListener('queue:match_update', handleMatchUpdate)
     }
   }, [queue.id, base, refreshData, editor])
+
+  useEffect(() => {
+    if (!primaryHost) return undefined
+    let active = true
+    apiRequest(`${base}/deletion-request`).then((r) => { if (active) setDeletion(r || null) }).catch(() => {})
+    return () => { active = false }
+  }, [base, primaryHost])
+
+  const requestDeletion = () => setConfirmModal({
+    title: 'Ask to delete this queue?',
+    description: 'An admin reviews it — use this for a queue made by mistake or a duplicate. Players are told if it is deleted.',
+    inputPlaceholder: 'Reason (required)',
+    confirmText: 'Send request',
+    variant: 'danger',
+    icon: Trash2,
+    onConfirm: async (reason) => {
+      if (!reason?.trim()) { setError('Add a reason for the admins.'); return false }
+      const ok = await run(`${base}/deletion-request`, { reason: reason.trim() }, 'POST')
+      if (ok) apiRequest(`${base}/deletion-request`).then(setDeletion).catch(() => {})
+      return ok
+    },
+  })
 
   const run = async (path, body, method = 'PATCH') => {
     if (busy) return false
@@ -1180,6 +1230,19 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
             </p>
           )}
           {ongoing.map((m) => (
+            <div key={`court-${m.id}`}>
+            {courtCount > 1 && (
+              <div className="manage-court-bar">
+                <Grid2X2 size={15} />
+                <span>{m.courtNumber ? `Court ${m.courtNumber}` : 'No court yet'}</span>
+                {primaryHost && !finished && (
+                  <select aria-label="Move to court" value={m.courtNumber || ''} disabled={busy} onChange={(e) => run(`/queues/matches/${m.id}/court`, { courtNumber: e.target.value ? Number(e.target.value) : null })}>
+                    <option value="">Move to…</option>
+                    {Array.from({ length: courtCount }, (_, i) => <option key={i + 1} value={i + 1}>Court {i + 1}</option>)}
+                  </select>
+                )}
+              </div>
+            )}
             <MatchEditor
               key={m.id}
               match={m}
@@ -1190,6 +1253,7 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
               finished={finished}
               onConfirmModal={setConfirmModal}
             />
+            </div>
           ))}
           {!ongoing.length && !(game.liveMatches || []).some((m) => !m.completed) && (
             <p className="manage-queue__empty">No ongoing matches.</p>
@@ -1223,12 +1287,31 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
                 )}
 
                 <fieldset disabled={busy || !primaryHost || !canStartMatch}>
+                  <div className="manage-match-queue__options">
+                    <label>
+                      <span>Auto pairs</span>
+                      <select value={autoMode} onChange={(e) => setAutoMode(e.target.value)}>
+                        <option value="RANDOM">Randomly</option>
+                        <option value="LEVEL">Similar levels</option>
+                        <option value="MIXED">Balanced teams</option>
+                      </select>
+                    </label>
+                    {courtCount > 1 && (
+                      <label>
+                        <span>Court</span>
+                        <select value={nextCourt} onChange={(e) => setNextCourt(e.target.value)}>
+                          <option value="">Any</option>
+                          {Array.from({ length: courtCount }, (_, i) => <option key={i + 1} value={i + 1}>Court {i + 1}</option>)}
+                        </select>
+                      </label>
+                    )}
+                  </div>
                   <div className="manage-match-queue__actions">
                     <button
                       className="manage-match-queue__auto"
                       type="button"
                       disabled={!canStartMatch || busy || !primaryHost}
-                      onClick={() => { setManual(false); run(`${base}/matches`, { teamSize }, 'POST') }}
+                      onClick={() => { setManual(false); run(`${base}/matches`, { teamSize, randomize: true, mode: autoMode, ...courtBody() }, 'POST') }}
                     >
                       <Shuffle size={18} />Auto
                     </button>
@@ -1325,6 +1408,30 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
                     <div className="manage-queue__player-info">
                       <span className="manage-queue__player-name">{name}</span>
                     </div>
+                    <LevelSelect label={name} value={game.localPlayerLevels?.[name]} disabled={finished} onChange={(level) => setLevel({ guestName: name, level })} />
+                    {!finished && (
+                      <button
+                        type="button"
+                        className="manage-queue__remove-btn"
+                        aria-label={`Rename guest ${name}`}
+                        onClick={() => setConfirmModal({
+                          title: 'Rename guest',
+                          description: 'Their level and match history follow the new name.',
+                          inputPlaceholder: 'New name',
+                          initialInputValue: name,
+                          confirmText: 'Rename',
+                          variant: 'primary',
+                          icon: Pencil,
+                          onConfirm: (to) => {
+                            const next = to?.trim()
+                            if (!next || next === name) return false
+                            return run(`${base}/guests/rename`, { from: name, to: next })
+                          },
+                        })}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
                     <span className="manage-queue__badge manage-queue__badge--guest">
                       <span className="manage-queue__badge-dot" />
                       Guest
@@ -1369,6 +1476,7 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
                           </span>
                         )}
                       </div>
+                      <LevelSelect label={pName} value={p.level} disabled={finished} onChange={(level) => setLevel({ userId: uid, level })} />
                       {isHost && (
                         <span className="manage-queue__badge manage-queue__badge--host">
                           <span className="manage-queue__badge-dot" />
@@ -1541,6 +1649,23 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
             </fieldset>
           </section>
 
+          {/* Ask an admin to delete the queue (host only) */}
+          {primaryHost && (
+            <section className="manage-queue__deletion">
+              {deletion && deletion.status !== 'REJECTED' ? (
+                <p>
+                  <Trash2 size={14} /> Deletion requested{deletion.status === 'PENDING' ? ' — waiting for an admin.' : deletion.status === 'APPROVED' ? ' — approved.' : '.'}
+                  {deletion.reason ? ` “${deletion.reason}”` : ''}
+                </p>
+              ) : (
+                <>
+                  {deletion?.status === 'REJECTED' && <p>Your last deletion request was declined{deletion.resolution ? `: ${deletion.resolution}` : '.'}</p>}
+                  <button type="button" className="coach-link-btn manage-queue__deletion-btn" disabled={busy} onClick={requestDeletion}>Request queue deletion</button>
+                </>
+              )}
+            </section>
+          )}
+
           {/* Action Buttons Section */}
           {!finished && (
             <section className="manage-queue__actions">
@@ -1690,7 +1815,7 @@ export default function ManageQueue({ queue, user, onBack, onUpdated }) {
               {error && <p className="manage-pairing-error" role="alert">{error}</p>}
               <button type="button" className="manage-pairing-submit" disabled={!ready} onClick={async () => {
                 if (!ready) return
-                const saved = await run(`${base}/matches`, { teamSize, teamA, teamB }, 'POST')
+                const saved = await run(`${base}/matches`, { teamSize, teamA, teamB, ...courtBody() }, 'POST')
                 if (saved) { setManual(false); setTeams({}) }
               }}>{busy ? 'Queuing Match…' : 'Queue Match'}</button>
             </section>

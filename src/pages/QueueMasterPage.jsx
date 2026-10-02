@@ -25,6 +25,9 @@ import { useAuth } from '../context/AuthContext'
 import ImagePickerField from '../components/ImagePickerField'
 import QmDialog from '../components/QmDialog'
 import '../styles/queue-master.css'
+import { feeLabel, feeRules, loadPlatformFees } from '../data/platformFees'
+
+loadPlatformFees()
 
 export default function QueueMasterPage({ isDialog = false, onClose }) {
   const { user } = useAuth()
@@ -744,7 +747,7 @@ export default function QueueMasterPage({ isDialog = false, onClose }) {
           <div className="qm-terms-bullet">
             <Info size={16} />
             <span>
-              The platform charges a 15% fee (minimum ₱20) on top of paid queue entry fees. Processing of payments take 2-3 days for verification of the queue.
+              The platform charges a {feeLabel(feeRules().queue)} fee on paid queue entry fees. Processing of payments take 2-3 days for verification of the queue.
             </span>
           </div>
 

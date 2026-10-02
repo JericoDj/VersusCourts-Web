@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useAuth } from './AuthContext'
 import { apiRequest } from '../data/apiClient'
 import { coachApi } from '../data/trainings'
+import { loadPlatformFees } from '../data/platformFees'
 import { sportFromApi } from '../data/sports'
 
 /// Web port of the Flutter `CoachProvider`, scoped to coach mode (`/coach`).
@@ -35,6 +36,8 @@ export function CoachProvider({ children }) {
     setLoading(true)
     setError('')
     try {
+      // Fees first: earnings estimates use this coach's rate.
+      await loadPlatformFees()
       const [ov, list, profile] = await Promise.all([coachApi.overview(), coachApi.trainings(), coachApi.profile()])
       setOverview({
         upcomingTrainings: Number(ov?.upcomingTrainings) || 0,

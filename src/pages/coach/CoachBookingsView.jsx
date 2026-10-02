@@ -5,9 +5,10 @@ import ProfileDialog from '../../components/ProfileDialog'
 import { useCoach } from '../../context/CoachContext'
 import { usePlayer } from '../../context/PlayerContext'
 import { sportColor, sportGradient, sportLabel } from '../../data/sports'
-import { BOOKING_STATUS, coachApi, formatPeso, formatSessionTime, kindLabel, shareTraining, skillLabel } from '../../data/trainings'
+import { BOOKING_STATUS, coachApi, formatPeso, formatSessionTime, kindLabel } from '../../data/trainings'
 import '../../styles/profile.css'
 import CoachPackagesPanel from './CoachPackagesPanel'
+import TrainingShareDialog from '../../components/TrainingShareDialog'
 
 const TABS = [
   { key: 'requests', label: 'Requests', icon: Inbox, empty: 'No requests waiting — new bookings land here and you get a notification.' },
@@ -39,6 +40,7 @@ export default function CoachBookingsView({ training: t }) {
   const [settlement, setSettlement] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [shareOpen, setShareOpen] = useState(false)
 
   const load = useCallback(() => coachApi.bookings(t.id).then(
     (list) => { setBookings(list); setLoadError(''); return list },
@@ -125,13 +127,6 @@ export default function CoachBookingsView({ training: t }) {
     const ok = await run(() => coachApi.cancel(t.id, reason), `${kindLabel(t.kind)} training closed.`)
     if (ok) { setMode(null); setReason('') }
   }
-  const share = async () => {
-    try {
-      if ((await shareTraining(t)) === 'copied') setNotice('Training link copied')
-    } catch {
-      setNotice('Could not share this training')
-    }
-  }
 
   const openCount = (bookings || []).filter((b) => b.status === 'PENDING' || b.status === 'CONFIRMED').length
   const list = inTab[tab]
@@ -142,9 +137,10 @@ export default function CoachBookingsView({ training: t }) {
       <div className="coach-page__head">
         <button type="button" className="tr-icon-btn" onClick={() => navigate('/coach/trainings')} aria-label="Back"><ArrowLeft size={18} /></button>
         <h1>{kindLabel(t.kind)} training</h1>
-        <button type="button" className="tr-icon-btn" onClick={share} aria-label="Share training"><Share2 size={18} /></button>
+        <button type="button" className="tr-icon-btn" onClick={() => setShareOpen(true)} aria-label="Share training"><Share2 size={18} /></button>
         {listed && <Link to={`/coach/trainings/${t.id}/edit`} className="tr-icon-btn" aria-label="Edit training"><Pencil size={18} /></Link>}
       </div>
+      {shareOpen && <TrainingShareDialog training={t} asCoach onClose={() => setShareOpen(false)} />}
 
       <div className="tr-detail__cover" style={t.imageUrl ? { backgroundImage: `url(${JSON.stringify(t.imageUrl)})` } : { background: sportGradient(t.sport) }}>
         <span className="tr-card__sport" style={{ color: sportColor(t.sport) }}>{sportLabel(t.sport)}</span>
@@ -152,7 +148,7 @@ export default function CoachBookingsView({ training: t }) {
       </div>
 
       <h2 className="tr-detail__title">{t.title || 'Training'}</h2>
-      <span className="tr-pill">{skillLabel(t.skill)}</span>
+      <span className="tr-pill">{t.skillsLabel}</span>
 
       <ul className="tr-facts">
         <li><CalendarCheck size={16} /><span><strong>Book anytime</strong> · {t.durationHours === 1 ? '1 hour' : `${t.durationHours} hours`} per session</span></li>

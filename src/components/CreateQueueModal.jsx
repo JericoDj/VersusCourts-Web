@@ -24,6 +24,8 @@ import {
 import { useAuth } from '../context/AuthContext'
 import { apiRequest } from '../data/apiClient'
 import { uploadImage } from '../data/imageUploadService'
+import MultiDateCalendar from './MultiDateCalendar'
+import '../styles/coach.css'
 import { SportGlyph } from './SportIcon'
 import CourtPickerModal from './CourtPickerModal'
 import { TimePickerSheet, formatTimeDisplay, isOvernightTime } from './TimePickerSheet'
@@ -53,6 +55,16 @@ export default function CreateQueueModal({ open, onClose, onCreated, initialCour
   const [expandDescOpen, setExpandDescOpen] = useState(false)
 
   // Date selection: 14 days
+  /// "Multiple dates": the same queue on every picked day (one queue
+  /// credit each), linked as a series — like the app.
+  const [multiDates, setMultiDates] = useState(false)
+  const [seriesDays, setSeriesDays] = useState(() => new Set())
+  const toggleSeriesDay = (key) => setSeriesDays((prev) => {
+    const next = new Set(prev)
+    if (next.has(key)) next.delete(key)
+    else if (next.size < 30) next.add(key)
+    return next
+  })
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -344,6 +356,10 @@ export default function CreateQueueModal({ open, onClose, onCreated, initialCour
       }
     }
 
+    if (multiDates && seriesDays.size < 2) {
+      errors.time = 'Pick at least two dates, or switch to a single date.'
+    }
+
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors)
       const firstKey = Object.keys(errors)[0]
@@ -441,10 +457,27 @@ export default function CreateQueueModal({ open, onClose, onCreated, initialCour
         clubId: linkedClubId || undefined,
       }
 
-      const res = await apiRequest('/queues', {
+      // Multiple dates: every picked day at the same start time; the backend
+      // keeps each date's length the same as the first's.
+      const startTimes = multiDates
+        ? [...seriesDays].sort().map((day) => new Date(`${day}T${startTime}:00`))
+        : []
+      if (multiDates && startTimes.some((t) => t <= new Date())) {
+        throw new Error('Every date has to be in the future — check today’s start time.')
+      }
+      if (multiDates) {
+        payload.startTime = startTimes[0].toISOString()
+        payload.startTimes = startTimes.map((t) => t.toISOString())
+        if (payload.rules?.endTime && endDateTime) {
+          // Re-anchor the end to the first date.
+          payload.rules.endTime = new Date(startTimes[0].getTime() + (endDateTime - startDateTime)).toISOString()
+        }
+      }
+      const created = await apiRequest(multiDates ? '/queues/series' : '/queues', {
         method: 'POST',
         body: JSON.stringify(payload),
       })
+      const res = Array.isArray(created) ? created[0] : created
 
       setCreatedResult(res)
       onCreated?.(res)
@@ -689,6 +722,20 @@ export default function CreateQueueModal({ open, onClose, onCreated, initialCour
                 <span className="create-queue-section-label" style={{ display: 'block', marginBottom: 8 }}>
                   Date
                 </span>
+                <div className="coach-segment coach-segment--small" role="tablist">
+                  <button type="button" role="tab" aria-selected={!multiDates} className={!multiDates ? 'is-active' : ''} onClick={() => setMultiDates(false)}>Single</button>
+                  <button type="button" role="tab" aria-selected={multiDates} className={multiDates ? 'is-active' : ''} onClick={() => setMultiDates(true)}>Multiple dates</button>
+                </div>
+                {multiDates ? (
+                  <>
+                    <MultiDateCalendar selected={seriesDays} onToggle={toggleSeriesDay} />
+                    <p style={{ fontSize: 12, color: 'var(--vc-text-secondary)', margin: '6px 0 0' }}>
+                      {seriesDays.size
+                        ? `${seriesDays.size} dates picked · uses ${seriesDays.size} queue credits. Players see the next date; the rest show as scheduled.`
+                        : 'Tap the days this queue runs. Each date uses one queue credit.'}
+                    </p>
+                  </>
+                ) : (
                 <div className="queue-date-scroll">
                   {dateChips.map((d) => {
                     const isSelected =
@@ -719,6 +766,7 @@ export default function CreateQueueModal({ open, onClose, onCreated, initialCour
                     )
                   })}
                 </div>
+                )}
               </div>
 
               {/* 5. Time (Start -> End) */}

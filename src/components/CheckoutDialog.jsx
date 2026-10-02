@@ -8,6 +8,7 @@ import {
   createQrPhMethod,
   intentStatus,
   qrphAvailableFor,
+  couponOffers,
   validateCoupon,
 } from '../data/payments'
 import '../styles/trainings.css'
@@ -37,6 +38,9 @@ export default function CheckoutDialog({
   priceLabel = 'Price',
   purposeLabel,
   allowCoupon = true,
+  /// What's being paid for (TRAINING, QUEUE, …): coupons are checked with
+  /// every rule for this player, and eligible promos are offered.
+  couponScope,
   cashNote = 'Pay in person — the host confirms it.',
   successMessage = 'Payment received!',
   onSubmitQr,
@@ -53,6 +57,15 @@ export default function CheckoutDialog({
   const [coupon, setCoupon] = useState(null) // { code, discount }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+
+  // The best promo this player can use here (auto-offer coupons).
+  const [offer, setOffer] = useState(null)
+  useEffect(() => {
+    if (!allowCoupon || !couponScope) return undefined
+    let active = true
+    couponOffers(couponScope, amount).then((list) => { if (active && list.length) setOffer(list[0]) })
+    return () => { active = false }
+  }, [allowCoupon, couponScope, amount])
 
   const discount = coupon?.discount || 0
   const payable = Math.max(0, amount - discount)
@@ -75,13 +88,13 @@ export default function CheckoutDialog({
   }
   useEffect(() => stopTimers, [])
 
-  const applyCoupon = async () => {
-    const c = code.trim().toUpperCase()
+  const applyCoupon = async (preset) => {
+    const c = (typeof preset === 'string' ? preset : code).trim().toUpperCase()
     if (!c) return
     setBusy(true)
     setError('')
     try {
-      const res = await validateCoupon(c, amount)
+      const res = await validateCoupon(c, amount, couponScope)
       if (res.valid) setCoupon({ code: c, discount: res.discountAmount })
       else setError(res.reason || 'That coupon code is not valid.')
     } catch (err) {
@@ -190,6 +203,16 @@ export default function CheckoutDialog({
             {timeLabel && <small><Clock size={13} /> {timeLabel}</small>}
           </div>
 
+          {allowCoupon && offer && !coupon && (
+            <div className="co-offer">
+              <Tag size={18} />
+              <span>
+                <b>{offer.description || `${peso(offer.discountAmount)} off with ${offer.code}`}</b>
+                <small>Save {peso(offer.discountAmount)} on this checkout</small>
+              </span>
+              <button type="button" className="button button--primary" disabled={busy} onClick={() => { setCode(offer.code); applyCoupon(offer.code) }}>Apply</button>
+            </div>
+          )}
           {allowCoupon && (
             <div className="co-coupon">
               {coupon ? (
