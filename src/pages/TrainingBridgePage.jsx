@@ -173,12 +173,16 @@ export default function TrainingBridgePage() {
           <p className="tr-bridge-coach"><GraduationCap size={15} /> with <strong>{training.coachName}</strong></p>
 
           <ul className="tr-facts">
-            <li><CalendarDays size={16} /><span><strong>{formatTrainingDate(training.startTime)}</strong> · {formatTrainingTimeRange(training.startTime, training.durationHours)}</span></li>
+            {training.isBookable
+              ? <li><CalendarDays size={16} /><span><strong>Book anytime</strong> · {training.isGroup ? 'group' : 'private'} sessions, you pick the time</span></li>
+              : <li><CalendarDays size={16} /><span><strong>{formatTrainingDate(training.startTime)}</strong> · {formatTrainingTimeRange(training.startTime, training.durationHours)}</span></li>}
             {(training.courtName || training.area) && (
               <li><MapPin size={16} /><span>{[training.courtName, training.area].filter(Boolean).join(' · ')}</span></li>
             )}
-            <li><Users size={16} /><span><strong>{training.spotsLeft}</strong> of {training.capacity} spots left</span></li>
-            <li><Wallet size={16} /><span>{training.price > 0 ? `${formatPeso(training.price)} per player` : 'Free'}</span></li>
+            {training.isBookable
+              ? <li><Users size={16} /><span>{training.isGroup ? <>Groups of up to <strong>{training.capacity}</strong></> : <strong>One-on-one</strong>}</span></li>
+              : <li><Users size={16} /><span><strong>{training.spotsLeft}</strong> of {training.capacity} spots left</span></li>}
+            <li><Wallet size={16} /><span>{training.price > 0 ? `${formatPeso(training.price)} per ${training.isBookable && !training.isGroup ? 'session' : 'player'}` : 'Free'}</span></li>
           </ul>
 
           {training.description && <p className="tr-bridge-desc">{training.description}</p>}
@@ -186,7 +190,7 @@ export default function TrainingBridgePage() {
           <div className="club-bridge-prompt">
             {device.isMobile ? (
               <>
-                <p className="club-bridge-prompt__text">Join this training, pay, and chat with the coach in the app:</p>
+                <p className="club-bridge-prompt__text">{training.isBookable ? 'Book a session' : 'Join this training'}, pay, and chat with the coach in the app:</p>
                 <div className="club-bridge-actions">
                   <button type="button" className="club-bridge-btn club-bridge-btn--primary" onClick={() => { window.location.href = appUrl }}>
                     <Smartphone size={18} /><span>Open in Versus Courts App</span>

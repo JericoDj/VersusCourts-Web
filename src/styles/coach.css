@@ -453,3 +453,93 @@ button.coach-stat:hover { border-color: var(--vc-accent); }
 .ci-detail__row b { margin-left: auto; color: var(--vc-text-primary); }
 .ci-detail__desc { margin: 12px 0 0; color: var(--vc-text-secondary); font-size: 14px; line-height: 1.45; white-space: pre-line; }
 .ci-detail__criteria { margin: 0; font-size: 14px; line-height: 1.45; white-space: pre-line; }
+.ci-card__top .ci-badge { flex: none; }
+.ci-badge {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: var(--vc-radius-pill);
+  background: color-mix(in srgb, var(--tone) 12%, transparent); color: var(--tone); font-size: 11px; font-weight: 700;
+}
+.ci-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ci-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+.ci-tabs button {
+  flex: 1; padding: 8px 10px; border-radius: var(--vc-radius-pill); border: 1px solid var(--vc-border);
+  background: var(--vc-surface); color: var(--vc-text-secondary); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all 180ms ease-out;
+}
+.ci-tabs button.is-active {
+  background: var(--vc-accent); border-color: var(--vc-accent); color: #fff; font-weight: 700;
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--vc-accent) 32%, transparent);
+}
+.ci-empty { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 12px; text-align: center; color: var(--vc-text-secondary); }
+.ci-empty b { color: var(--vc-text-primary); font-size: 15px; font-weight: 800; margin-top: 8px; }
+.ci-empty p { margin: 0; font-size: 13px; line-height: 1.4; }
+.ci-empty__icon {
+  width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--vc-accent) 8%, transparent); color: var(--vc-accent);
+}
+.ci-progress { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; color: var(--vc-text-primary); }
+.ci-progress.on-gradient { color: #fff; }
+.ci-progress__nums { display: flex; align-items: flex-end; gap: 4px; }
+.ci-progress__nums > b { font-size: 20px; font-weight: 800; line-height: 1; }
+.ci-progress__nums > small { font-size: 12px; font-weight: 600; opacity: 0.8; }
+.ci-progress__earned { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; }
+.ci-progress__earned small { font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; opacity: 0.85; }
+.ci-progress__earned b { font-size: 15px; font-weight: 800; }
+.ci-progress__track { position: relative; height: 6px; margin: 4px 7px; border-radius: var(--vc-radius-pill); background: var(--vc-surface-alt, #f1f5f9); }
+.ci-progress.on-gradient .ci-progress__track { background: rgba(255, 255, 255, 0.28); }
+.ci-progress__fill { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: var(--vc-accent); transition: width 180ms ease-out; }
+.ci-progress.on-gradient .ci-progress__fill { background: #fff; }
+.ci-progress__tick {
+  position: absolute; top: 50%; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%);
+  background: var(--vc-surface-alt, #f1f5f9); border: 2px solid var(--vc-surface);
+}
+.ci-progress__tick.is-reached { background: var(--vc-accent); }
+.ci-progress.on-gradient .ci-progress__tick { background: rgba(255, 255, 255, 0.45); border-color: #f97316; }
+.ci-progress.on-gradient .ci-progress__tick.is-reached { background: #fff; }
+.ci-progress__caption { font-size: 12px; font-weight: 600; opacity: 0.85; }
+.ci-verdict {
+  display: flex; gap: 10px; align-items: flex-start; padding: 12px; margin-bottom: 10px; border-radius: var(--vc-radius-md);
+  background: color-mix(in srgb, var(--tone) 10%, transparent); color: var(--tone);
+}
+.ci-verdict span { display: flex; flex-direction: column; gap: 2px; }
+.ci-verdict b { font-size: 14.5px; font-weight: 800; }
+.ci-verdict small { font-size: 12.5px; line-height: 1.4; color: var(--vc-text-secondary); }
+.ci-detail__hint { margin: 0 0 8px; font-size: 12.5px; line-height: 1.4; color: var(--vc-text-secondary); }
+.ci-tiers { padding: 0; overflow: hidden; }
+.ci-tier { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.ci-tier + .ci-tier { border-top: 1px solid var(--vc-border); }
+.ci-tier b { flex: 1; font-size: 13.5px; }
+.ci-tier strong { color: var(--vc-accent); font-weight: 800; }
+.ci-tier.is-reached strong { color: var(--vc-success, #16a34a); }
+.ci-detail__progress { margin: 12px 0; padding: 12px; }
+.ci-trainings { list-style: none; margin: 0; padding: 0; }
+.ci-trainings li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
+.ci-trainings span { display: flex; flex-direction: column; min-width: 0; }
+.ci-trainings b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ci-trainings small { font-size: 12px; color: var(--vc-text-secondary); }
+.ci-trainings em { font-style: normal; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.ci-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.ci-chip {
+  padding: 4px 9px; border-radius: var(--vc-radius-pill); font-size: 11.5px; font-weight: 800;
+  background: color-mix(in srgb, var(--vc-accent) 12%, transparent); color: var(--vc-accent);
+}
+.ci-chip.is-reached { background: var(--vc-success, #16a34a); color: #fff; }
+.ci-card:not(.is-upcoming) .ci-chip { background: rgba(255, 255, 255, 0.2); color: #fff; }
+.ci-card:not(.is-upcoming) .ci-chip.is-reached { background: #fff; color: var(--vc-accent); }
+.ci-card.is-compact { min-height: 170px; }
+
+/* Bookable (Private/Group) trainings */
+.coach-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--vc-warning); margin-right: 6px; vertical-align: middle; }
+.coach-fee--three { grid-template-columns: repeat(3, 1fr); }
+.coach-kind-note { margin: 4px 0 0; padding: 10px 12px; border-radius: var(--vc-radius-md); background: color-mix(in srgb, var(--vc-primary) 8%, transparent); color: var(--vc-text-secondary); font-size: 12.5px; line-height: 1.45; }
+.coach-kind-note.is-scheduled { background: color-mix(in srgb, var(--vc-accent) 8%, transparent); }
+.coach-bookings-tabs { margin: 12px 0; }
+.coach-booking-detail dl { display: grid; grid-template-columns: 120px 1fr; gap: 6px 10px; margin: 0 0 12px; font-size: 13px; }
+.coach-booking-detail dt { color: var(--vc-text-secondary); }
+.coach-booking-detail dd { margin: 0; font-weight: 600; }
+.coach-booking-note { padding: 10px 12px; border-radius: var(--vc-radius-md); background: var(--vc-surface-alt); font-size: 13px; margin-bottom: 10px; }
+.coach-booking-note small { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.8px; color: var(--vc-text-secondary); margin-bottom: 3px; }
+.coach-packages { display: flex; flex-direction: column; gap: 10px; }
+.coach-packages__offers { display: flex; flex-wrap: wrap; gap: 6px; }
+.coach-card__label .tr-pill { margin-left: 8px; }
+.coach-package-row { display: grid; grid-template-columns: 1fr 1.4fr 1fr auto; gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--vc-border); }
+.coach-package-row .coach-hint { grid-column: 1 / -1; margin: 0; }

@@ -14,6 +14,8 @@ import {
   Wallet,
 } from 'lucide-react'
 import ProfileDialog from './ProfileDialog'
+import TrainingBookingPanel from './TrainingBookingPanel'
+import TrainingPackagesPanel from './TrainingPackagesPanel'
 import '../styles/profile.css'
 import { useAuth } from '../context/AuthContext'
 import { useChat } from '../context/ChatContext'
@@ -29,6 +31,7 @@ import {
   formatTrainingDate,
   formatTrainingTimeRange,
   joinTraining,
+  kindLabel,
   joinTrainingCash,
   leaveTraining,
   rateCoach,
@@ -158,7 +161,9 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
           style={t.imageUrl ? { backgroundImage: `url(${JSON.stringify(t.imageUrl)})` } : { background: sportGradient(t.sport) }}
         >
           <span className="tr-card__sport" style={{ color: sportColor(t.sport) }}>{sportLabel(t.sport)}</span>
-          {t.status !== 'SCHEDULED' && <span className="tr-card__badge">{TRAINING_STATUS_LABEL[t.status] || t.status}</span>}
+          {t.status !== 'SCHEDULED'
+            ? <span className="tr-card__badge">{t.isBookable && t.status === 'CANCELLED' ? 'Closed' : TRAINING_STATUS_LABEL[t.status] || t.status}</span>
+            : t.isBookable && <span className="tr-card__badge tr-card__badge--kind">{kindLabel(t.kind)}</span>}
         </div>
 
         <h3 className="tr-detail__title">{t.title || 'Training session'}</h3>
@@ -178,15 +183,19 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
         </div>
 
         <ul className="tr-facts">
-          <li><CalendarDays size={16} /><span><strong>{formatTrainingDate(t.startTime)}</strong> · {formatTrainingTimeRange(t.startTime, t.durationHours)}</span></li>
+          {t.isBookable
+            ? <li><CalendarDays size={16} /><span><strong>Book anytime</strong> · you pick the time · {t.durationHours === 1 ? '1 hour' : `${t.durationHours} hours`} per session</span></li>
+            : <li><CalendarDays size={16} /><span><strong>{formatTrainingDate(t.startTime)}</strong> · {formatTrainingTimeRange(t.startTime, t.durationHours)}</span></li>}
           {(t.courtName || t.area) && <li><MapPin size={16} /><span>{[t.courtName, t.area].filter(Boolean).join(' · ')}{t.businessName && t.businessName !== t.courtName ? ` · ${t.businessName}` : ''}</span></li>}
-          <li><Users size={16} /><span><strong>{t.participantCount}</strong> / {t.capacity} players · {t.spotsLeft} left</span></li>
-          <li><Wallet size={16} /><span>{t.price > 0 ? `${formatPeso(t.price)} per player` : 'Free'}</span></li>
+          {t.isBookable
+            ? <li><Users size={16} /><span>{t.isGroup ? <>Groups of up to <strong>{t.capacity}</strong> players</> : <strong>One-on-one</strong>}</span></li>
+            : <li><Users size={16} /><span><strong>{t.participantCount}</strong> / {t.capacity} players · {t.spotsLeft} left</span></li>}
+          <li><Wallet size={16} /><span>{t.price > 0 ? `${formatPeso(t.price)} per ${t.isBookable && !t.isGroup ? 'session' : 'player'}` : 'Free'}</span></li>
         </ul>
 
         {t.description && <p className="tr-detail__desc">{t.description}</p>}
 
-        {t.participants.length > 0 && (
+        {!t.isBookable && t.participants.length > 0 && (
           <div className="tr-roster">
             <small>Players</small>
             <div className="tr-roster__faces">
@@ -202,15 +211,30 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
 
         {error && <p className="tr-error">{error}</p>}
 
+        {t.isBookable && role === 'coach' && (
+          <div className="tr-actions">
+            <button type="button" className="button button--primary button--full" onClick={() => navigate(`/coach/trainings/${t.id}`)}>
+              See bookings in coach mode
+            </button>
+          </div>
+        )}
+        {t.isBookable && role !== 'coach' && step !== 'rate' && (
+          <TrainingBookingPanel training={t} me={me} busy={busy} run={run} onRate={openRate} />
+        )}
+
+        {/* Packages: bundles on sale + the player's own (any training type). */}
+        {step !== 'rate' && <TrainingPackagesPanel training={t} me={me} />}
+
         {/* ── Action area ─────────────────────────────────────────────── */}
-        <div className="tr-actions">
-          {role === 'coach' && (
+        {/* Bookable listings use TrainingBookingPanel; this area only shows their rating step. */}
+        <div className="tr-actions" style={t.isBookable && step !== 'rate' ? { display: 'none' } : undefined}>
+          {role === 'coach' && !t.isBookable && (
             <button type="button" className="button button--primary button--full" onClick={() => navigate(`/coach/trainings/${t.id}`)}>
               Manage in coach mode
             </button>
           )}
 
-          {role === 'none' && scheduled && step !== 'pay' && (
+          {role === 'none' && scheduled && !t.isBookable && step !== 'pay' && (
             <button type="button" className="button button--primary button--full" disabled={busy || t.isFull} onClick={join}>
               {t.isFull ? 'Training is full' : t.price > 0 ? `Join · ${formatPeso(t.price)}` : 'Join for free'}
             </button>
@@ -288,7 +312,7 @@ export default function TrainingDetailDialog({ trainingId, initial, onClose, onC
             </div>
           )}
 
-          {role === 'none' && !scheduled && (
+          {role === 'none' && !scheduled && !t.isBookable && (
             <p className="tr-status">This session is {String(TRAINING_STATUS_LABEL[t.status] || t.status).toLowerCase()}.</p>
           )}
         </div>

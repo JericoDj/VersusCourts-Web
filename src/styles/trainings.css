@@ -182,3 +182,54 @@ textarea.tr-input { resize: vertical; }
 .tr-bridge-coach { display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin: 4px 0 0; color: var(--vc-text-secondary); font-size: 14px; }
 .tr-bridge-coach svg { color: var(--vc-accent); }
 .tr-bridge-desc { margin: 0 0 12px; text-align: left; color: var(--vc-text-secondary); font-size: 13.5px; line-height: 1.5; white-space: pre-line; }
+
+/* Bookable (Private/Group) trainings */
+.tr-card__badge--kind { background: var(--vc-primary); color: #fff; }
+.tr-card__meta--kind { color: var(--vc-primary); font-weight: 700; }
+.tr-book { display: flex; flex-direction: column; gap: 12px; }
+.tr-book__days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.tr-book__day {
+  flex: none; width: 56px; padding: 8px 0; border-radius: var(--vc-radius-md);
+  border: 1px solid transparent; background: var(--vc-surface-alt); color: var(--vc-text-primary);
+  display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer;
+  font: inherit; transition: background 180ms ease-out, box-shadow 180ms ease-out;
+}
+.tr-book__day small { font-size: 10px; font-weight: 800; letter-spacing: 0.6px; color: var(--vc-text-tertiary); }
+.tr-book__day b { font-size: 18px; font-weight: 800; }
+.tr-book__day span { font-size: 10.5px; font-weight: 600; color: var(--vc-text-secondary); }
+.tr-book__day.is-today { border-color: color-mix(in srgb, var(--vc-primary) 40%, transparent); }
+.tr-book__day.is-today span { color: var(--vc-primary); }
+.tr-book__day.is-active { background: var(--vc-primary); color: #fff; box-shadow: 0 4px 10px color-mix(in srgb, var(--vc-primary) 30%, transparent); }
+.tr-book__day.is-active small, .tr-book__day.is-active span { color: rgba(255, 255, 255, 0.85); }
+.tr-book__total { display: flex; justify-content: space-between; align-items: center; font-weight: 700; }
+.tr-book__total b { color: var(--vc-accent); font-size: 16px; }
+.tr-booking {
+  border: 1px solid var(--vc-border); border-radius: var(--vc-radius-md); padding: 12px;
+  display: flex; flex-direction: column; gap: 6px; background: var(--vc-surface);
+}
+.tr-booking.is-closed { opacity: 0.72; }
+.tr-booking__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tr-booking__head b { font-size: 14px; }
+.tr-booking small { color: var(--vc-text-secondary); font-size: 12.5px; }
+.tr-booking__note { font-style: italic; font-size: 13px; }
+.tr-pill--ok { background: color-mix(in srgb, var(--vc-success) 14%, transparent); color: var(--vc-success); }
+.tr-pill--danger { background: color-mix(in srgb, var(--vc-danger) 12%, transparent); color: var(--vc-danger); }
+.tr-pill--primary { background: color-mix(in srgb, var(--vc-primary) 12%, transparent); color: var(--vc-primary); }
+
+/* Training packages */
+.tr-package { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-md); background: var(--vc-surface); }
+.tr-package__count { flex: none; width: 46px; height: 46px; display: grid; place-items: center; border-radius: var(--vc-radius-md); background: color-mix(in srgb, var(--vc-primary) 12%, transparent); color: var(--vc-primary); font-weight: 800; }
+.tr-package__body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tr-package__body b { font-size: 14px; }
+.tr-package__body small { color: var(--vc-text-secondary); font-size: 12px; }
+.tr-package__price { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.tr-package__price b { color: var(--vc-brand-green); font-size: 15px; }
+.tr-package__price small { color: var(--vc-text-tertiary); font-size: 10.5px; }
+.tr-package__price .button { padding: 6px 12px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; }
+.tr-package__bar { height: 6px; border-radius: 9999px; background: color-mix(in srgb, var(--vc-primary) 10%, transparent); overflow: hidden; }
+.tr-package__bar span { display: block; height: 100%; background: var(--vc-primary); border-radius: 9999px; }
+.tr-book--panel { padding: 14px; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-md); background: var(--vc-surface-alt); }
+.tr-check { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: var(--vc-radius-sm); background: var(--vc-surface); font-size: 13.5px; font-weight: 600; }
+.tr-check span { flex: 1; }
+.tr-check small { font-weight: 500; color: var(--vc-text-secondary); }
+.tr-check.is-off { opacity: 0.55; }

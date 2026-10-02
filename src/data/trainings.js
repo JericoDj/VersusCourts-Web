@@ -33,6 +33,21 @@ export const TRAINING_STATUS_LABEL = {
   CANCELLED: 'Cancelled',
 }
 
+/// SCHEDULED = a set date players join. PRIVATE (one-on-one) and GROUP
+/// (a player's group, up to `capacity`, priced per player) are "bookable":
+/// no date, players book sessions any time, and they use no training credits.
+export const TRAINING_KINDS = [
+  { id: 'SCHEDULED', label: 'Scheduled', caption: 'Set dates' },
+  { id: 'PRIVATE', label: 'Private', caption: '1-on-1 · anytime' },
+  { id: 'GROUP', label: 'Group', caption: 'Groups · anytime' },
+]
+export const kindLabel = (kind) => TRAINING_KINDS.find((k) => k.id === kind)?.label || 'Scheduled'
+const kindOf = (json) => {
+  const k = String(json.kind || 'SCHEDULED').toUpperCase()
+  return TRAINING_KINDS.some((x) => x.id === k) ? k : 'SCHEDULED'
+}
+export const isBookableKind = (kind) => kind === 'PRIVATE' || kind === 'GROUP'
+
 /// Versus keeps 15% of everything collected — mirrors `Training.commissionRate`.
 export const COMMISSION_RATE = 0.15
 export const commissionFor = (amount) => Math.round(amount * COMMISSION_RATE * 100) / 100
@@ -90,9 +105,17 @@ export function normalizeTraining(json = {}) {
   const coachName = identity?.name?.trim() || fullName(coach) || 'Coach'
   const capacity = Number(json.capacity) || 0
   const participantCount = count.participants != null ? countParticipants : confirmed.size
+  const kind = kindOf(json)
 
   return {
     id: String(json.id ?? ''),
+    kind,
+    // No date: `startTime` is when it was listed. Players book sessions.
+    isBookable: isBookableKind(kind),
+    isGroup: kind === 'GROUP',
+    seriesId: json.seriesId || null,
+    // Bundles on sale — on this listing, or on its series (Scheduled).
+    packages: (Array.isArray(json.packages) ? json.packages : []).map(normalizePackageOffer),
     title: json.title || '',
     description: json.description || '',
     images: Array.isArray(json.images) ? json.images : [],
@@ -144,6 +167,16 @@ export function normalizeCoachTraining(json = {}) {
   const price = Number(json.pricePerPlayer) || 0
   const startTime = json.startTime ? new Date(json.startTime) : new Date()
   const status = String(json.status || 'SCHEDULED').toUpperCase()
+  const kind = kindOf(json)
+  const isBookable = isBookableKind(kind)
+  // Bookable listings: live bookings (PENDING/CONFIRMED) for the list badges.
+  const liveBookings = (Array.isArray(json.bookings) ? json.bookings : []).map((b) => ({
+    status: String(b.status || '').toUpperCase(),
+    start: new Date(b.scheduledStart || b.preferredStart),
+  }))
+  const nextSession = liveBookings
+    .filter((b) => b.status === 'CONFIRMED' && b.start > new Date())
+    .sort((a, b) => a.start - b.start)[0]?.start || null
   const students = (Array.isArray(json.participants) ? json.participants : [])
     .filter((p) => p && typeof p === 'object')
     .map((p) => {
@@ -164,6 +197,16 @@ export function normalizeCoachTraining(json = {}) {
 
   return {
     id: String(json.id ?? ''),
+    kind,
+    isBookable,
+    isGroup: kind === 'GROUP',
+    pendingBookings: liveBookings.filter((b) => b.status === 'PENDING').length,
+    pendingPackages: Number(json.pendingPackages) || 0,
+    seriesId: json.seriesId || null,
+    seriesCount: Number(json.seriesCount) || 1,
+    canHavePackages: isBookable || Boolean(json.seriesId),
+    confirmedBookings: liveBookings.filter((b) => b.status === 'CONFIRMED').length,
+    nextSession,
     title: json.title || '',
     description: json.description || '',
     images: Array.isArray(json.images) ? json.images : [],
@@ -188,10 +231,201 @@ export function normalizeCoachTraining(json = {}) {
     students,
     totalRevenue: revenue,
     estimatedEarnings: revenue - commissionFor(revenue),
-    // Mirrors `PATCH /coach/trainings/:id/complete` eligibility.
-    canComplete: status === 'ONGOING' || (status === 'SCHEDULED' && startTime <= new Date()),
+    // Mirrors `PATCH /coach/trainings/:id/complete` eligibility; bookable
+    // listings complete per session instead.
+    canComplete: !isBookable && (status === 'ONGOING' || (status === 'SCHEDULED' && startTime <= new Date())),
   }
 }
+
+// ─── Bookings (sessions booked from a PRIVATE/GROUP training) ───────────
+
+export const BOOKING_STATUS = {
+  PROCESSING: { label: 'Awaiting payment', tone: 'warn', open: true },
+  PENDING: { label: 'Requested', tone: 'warn', open: true },
+  CONFIRMED: { label: 'Confirmed', tone: 'ok', open: true },
+  COMPLETED: { label: 'Completed', tone: 'primary', open: false },
+  DECLINED: { label: 'Declined', tone: 'danger', open: false },
+  CANCELLED: { label: 'Cancelled', tone: 'muted', open: false },
+}
+
+/// Web port of lib/data/models/training_booking.dart.
+export function normalizeBooking(j = {}) {
+  const status = BOOKING_STATUS[String(j.status || '').toUpperCase()] ? String(j.status).toUpperCase() : 'PENDING'
+  const preferredStart = j.preferredStart ? new Date(j.preferredStart) : new Date()
+  const scheduledStart = j.scheduledStart ? new Date(j.scheduledStart) : null
+  const paysCash = String(j.paymentMethod || '').toUpperCase() === 'CASH'
+  const isPaid = String(j.paymentStatus || '').toUpperCase() === 'PAID'
+  const amountPaid = Number(j.amountPaid) || 0
+  const isFree = amountPaid === 0 && !(Number(j.discountAmount) > 0)
+  const sessionStart = scheduledStart || preferredStart
+  return {
+    id: String(j.id ?? ''),
+    trainingId: String(j.trainingId ?? j.training?.id ?? ''),
+    trainingTitle: j.training?.title || '',
+    userId: String(j.userId ?? j.user?.id ?? ''),
+    playerName: fullName(j.user) || 'Player',
+    playerAvatarUrl: j.user?.avatarUrl || '',
+    preferredStart,
+    scheduledStart,
+    sessionStart,
+    wasRescheduled: Boolean(scheduledStart) && scheduledStart.getTime() !== preferredStart.getTime(),
+    durationHours: Number(j.durationHours) || 1,
+    players: Number(j.players) || 1,
+    note: j.note || '',
+    coachNote: j.coachNote || '',
+    status,
+    isOpen: BOOKING_STATUS[status].open,
+    paysCash,
+    isPaid,
+    isFree,
+    amountPaid,
+    couponCode: j.couponCode || '',
+    createdAt: j.createdAt ? new Date(j.createdAt) : new Date(),
+    paymentLabel: isFree ? 'Free' : paysCash ? (isPaid ? 'Paid · Cash' : 'Cash on the day') : isPaid ? 'Paid · QR Ph' : 'QR Ph · awaiting payment',
+    /// QR money that would come back on cancel (needs the app's refund flow).
+    refundable: !paysCash && isPaid ? amountPaid : 0,
+    canComplete: status === 'CONFIRMED' && sessionStart <= new Date(),
+  }
+}
+
+/// Free or cash bookings (QR Ph is paid in the app). `players` for GROUP.
+export const bookTraining = async (id, { preferredStart, players = 1, note, paymentMethod, couponCode }) =>
+  normalizeBooking(await apiRequest(`/trainings/${encodeURIComponent(id)}/bookings`, {
+    method: 'POST',
+    body: {
+      preferredStart: preferredStart.toISOString(),
+      ...(players > 1 ? { players } : {}),
+      ...(note?.trim() ? { note: note.trim() } : {}),
+      ...(paymentMethod ? { paymentMethod } : {}),
+      ...(couponCode ? { couponCode } : {}),
+    },
+  }))
+export const fetchMyBookings = async (id) =>
+  (await apiList(`/trainings/${encodeURIComponent(id)}/bookings/mine`)).map(normalizeBooking)
+export const cancelBooking = async (bookingId) =>
+  normalizeBooking(await apiRequest(`/trainings/bookings/${encodeURIComponent(bookingId)}/cancel`, { method: 'PATCH', body: {} }))
+
+/// "Sat, Oct 10 · 9:00 AM".
+export const formatSessionTime = (date) =>
+  `${formatTrainingDate(date)} · ${new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(date)}`
+
+// ─── Training packages ("10 sessions · ₱4,500") ─────────────────────────
+
+export function normalizePackageOffer(p = {}) {
+  const sessions = Number(p.sessions) || 0
+  const price = Number(p.price) || 0
+  const validityDays = p.validityDays == null ? null : Number(p.validityDays)
+  return {
+    id: String(p.id ?? ''),
+    sessions,
+    price,
+    validityDays,
+    perSession: sessions ? price / sessions : 0,
+    validityLabel: validityDays == null ? 'No expiry' : `Use within ${validityDays} days`,
+  }
+}
+export const packageSizeLabel = (offer, durationHours = 1) => {
+  const hours = offer.sessions * (durationHours || 1)
+  return `${offer.sessions} sessions · ${hours} ${hours === 1 ? 'hour' : 'hours'}`
+}
+
+export const PACKAGE_STATUS = {
+  PROCESSING: { label: 'Awaiting payment', tone: 'warn', open: true },
+  PENDING: { label: 'Waiting for coach', tone: 'warn', open: true },
+  ACTIVE: { label: 'Active', tone: 'ok', open: true },
+  DECLINED: { label: 'Declined', tone: 'danger', open: false },
+  CANCELLED: { label: 'Cancelled', tone: 'muted', open: false },
+  EXPIRED: { label: 'Expired', tone: 'muted', open: false },
+}
+
+/// Web port of lib/data/models/training_package.dart `PackagePurchase`.
+export function normalizePurchase(j = {}) {
+  const status = PACKAGE_STATUS[String(j.status || '').toUpperCase()] ? String(j.status).toUpperCase() : 'PENDING'
+  const now = new Date()
+  const sessions = (Array.isArray(j.sessions) ? j.sessions : []).map((x) => {
+    const start = new Date(x.start)
+    const st = String(x.status || '').toUpperCase()
+    return {
+      id: String(x.id ?? ''),
+      trainingId: String(x.trainingId ?? ''),
+      status: st,
+      start,
+      durationHours: Number(x.durationHours) || 1,
+      isSeriesDate: x.kind === 'DATE',
+      isDone: st === 'COMPLETED' || start <= now,
+      isPending: st === 'PENDING',
+    }
+  })
+  const sessionsTotal = Number(j.sessionsTotal) || 0
+  const sessionsLeft = Number(j.sessionsLeft) || 0
+  const paysCash = String(j.paymentMethod || '').toUpperCase() === 'CASH'
+  const isPaid = String(j.paymentStatus || '').toUpperCase() === 'PAID'
+  const amountPaid = Number(j.amountPaid) || 0
+  const expiresAt = j.expiresAt ? new Date(j.expiresAt) : null
+  const upcoming = sessions.filter((x) => !x.isDone)
+  return {
+    id: String(j.id ?? ''),
+    title: j.title || 'Training package',
+    trainingId: j.trainingId || null,
+    seriesId: j.seriesId || null,
+    isSeries: Boolean(j.seriesId),
+    sessionsTotal,
+    sessionsLeft,
+    sessionsScheduled: sessionsTotal - sessionsLeft,
+    sessionsDone: sessions.filter((x) => x.isDone).length,
+    players: Number(j.players) || 1,
+    status,
+    isOpen: PACKAGE_STATUS[status].open,
+    paysCash,
+    isPaid,
+    amountPaid,
+    expiresAt,
+    note: j.note || '',
+    coachNote: j.coachNote || '',
+    playerName: fullName(j.user) || 'Player',
+    playerAvatarUrl: j.user?.avatarUrl || '',
+    createdAt: j.createdAt ? new Date(j.createdAt) : now,
+    sessions,
+    upcoming,
+    canSchedule: status === 'ACTIVE' && sessionsLeft > 0 && (!expiresAt || expiresAt > now),
+    /// Unused QR value a cancel gives back (approximate — the server decides).
+    refundOnCancel: !paysCash && isPaid && sessionsTotal ? Math.round((amountPaid / sessionsTotal) * (sessionsLeft + upcoming.length)) : 0,
+  }
+}
+
+export const fetchSeriesDates = async (id) =>
+  (await apiList(`/trainings/${encodeURIComponent(id)}/series-dates`)).map((d) => ({
+    id: String(d.id),
+    start: new Date(d.startTime),
+    spotsLeft: Number(d.spotsLeft) || 0,
+    mine: Boolean(d.mine),
+    available: !d.mine && Number(d.spotsLeft) > 0,
+  }))
+export const fetchMyPackages = async (id) =>
+  (await apiList(`/trainings/${encodeURIComponent(id)}/packages/mine`)).map(normalizePurchase)
+/// `starts` (Private/Group) or `trainingIds` (series dates) picked now.
+export const buyPackage = async (id, packageId, { players = 1, starts = [], trainingIds = [], note, paymentMethod, paymentIntentId, clientKey, couponCode } = {}) =>
+  normalizePurchase(await apiRequest(`/trainings/${encodeURIComponent(id)}/packages/${encodeURIComponent(packageId)}/buy`, {
+    method: 'POST',
+    body: {
+      ...(players > 1 ? { players } : {}),
+      ...(starts.length ? { starts: starts.map((d) => d.toISOString()) } : {}),
+      ...(trainingIds.length ? { trainingIds } : {}),
+      ...(note?.trim() ? { note: note.trim() } : {}),
+      ...(paymentMethod ? { paymentMethod } : {}),
+      ...(paymentIntentId ? { paymentIntentId, clientKey } : {}),
+      ...(couponCode ? { couponCode } : {}),
+    },
+  }))
+export const confirmPackagePayment = async (purchaseId) =>
+  normalizePurchase(await apiRequest(`/trainings/package-purchases/${encodeURIComponent(purchaseId)}/confirm-payment`, { method: 'PATCH' }))
+export const schedulePackageSession = async (purchaseId, { start, trainingId, note } = {}) =>
+  normalizePurchase(await apiRequest(`/trainings/package-purchases/${encodeURIComponent(purchaseId)}/sessions`, {
+    method: 'POST',
+    body: { ...(start ? { start: start.toISOString() } : {}), ...(trainingId ? { trainingId } : {}), ...(note?.trim() ? { note: note.trim() } : {}) },
+  }))
+export const cancelPackage = async (purchaseId) =>
+  normalizePurchase(await apiRequest(`/trainings/package-purchases/${encodeURIComponent(purchaseId)}/cancel`, { method: 'PATCH', body: {} }))
 
 // ─── Player endpoints (TrainingProvider) ────────────────────────────────
 
@@ -231,10 +465,34 @@ export const coachApi = {
   settlementPreview: (id) => apiRequest(`/coach/trainings/${id}/settlement-preview`),
   complete: (id) => patch(`/coach/trainings/${id}/complete`),
   cancel: (id, reason) => patch(`/coach/trainings/${id}/cancel`, reason?.trim() ? { reason: reason.trim() } : undefined),
-  /// `{ current, upcoming }` — admin-created incentives for me (display only).
+  /// `{ active, upcoming, past }` — admin-created incentives for me, with my progress.
   incentives: () => apiRequest('/coach/incentives'),
   confirmCash: (id, userId) => patch(`/trainings/${id}/participants/${userId}/confirm-cash`),
   declineCash: (id, userId) => patch(`/trainings/${id}/participants/${userId}/decline-cash`),
+  // Bookable (PRIVATE/GROUP) listings: their booked sessions.
+  bookings: async (id) => (await apiList(`/coach/trainings/${id}/bookings`)).map(normalizeBooking),
+  acceptBooking: async (id, bookingId, { scheduledStart, coachNote } = {}) =>
+    normalizeBooking(await patch(`/coach/trainings/${id}/bookings/${bookingId}/accept`, {
+      ...(scheduledStart ? { scheduledStart: scheduledStart.toISOString() } : {}),
+      ...(coachNote?.trim() ? { coachNote: coachNote.trim() } : {}),
+    })),
+  declineBooking: async (id, bookingId, reason) =>
+    normalizeBooking(await patch(`/coach/trainings/${id}/bookings/${bookingId}/decline`, reason?.trim() ? { reason: reason.trim() } : undefined)),
+  bookingSettlementPreview: (id, bookingId) => apiRequest(`/coach/trainings/${id}/bookings/${bookingId}/settlement-preview`),
+  completeBooking: (id, bookingId) => patch(`/coach/trainings/${id}/bookings/${bookingId}/complete`),
+  // Training packages
+  packages: async (id) => {
+    const res = await apiRequest(`/coach/trainings/${id}/packages`)
+    return {
+      packages: (res?.packages || []).map(normalizePackageOffer),
+      purchases: (res?.purchases || []).map(normalizePurchase),
+    }
+  },
+  acceptPackage: async (purchaseId, coachNote) =>
+    normalizePurchase(await patch(`/coach/package-purchases/${purchaseId}/accept`, coachNote?.trim() ? { coachNote: coachNote.trim() } : {})),
+  declinePackage: async (purchaseId, reason) =>
+    normalizePurchase(await patch(`/coach/package-purchases/${purchaseId}/decline`, reason?.trim() ? { reason: reason.trim() } : {})),
+  extendPackage: async (purchaseId, days) => normalizePurchase(await patch(`/coach/package-purchases/${purchaseId}/extend`, { days })),
   /// Listed courts that offer coaching (`CoachProvider.searchCourts`).
   searchCourts: async (q) => {
     const list = await apiList('/courts', { query: { q: q?.trim() || undefined, limit: 20 } })

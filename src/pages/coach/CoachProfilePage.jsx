@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Award, ChevronRight, History, LogOut, Pencil, Receipt, Star, StarHalf, UserRound } from 'lucide-react'
+import { Award, ChevronRight, Gift, History, LogOut, Pencil, Receipt, Star, StarHalf, UserRound } from 'lucide-react'
+import { CoachIncentivesDialog, CoachIncentivesStrip } from '../../components/CoachIncentives'
 import EarningsWallet from '../../components/EarningsWallet'
 import EditProfileDialog from '../../components/EditProfileDialog'
 import { ModeSwitcherBar } from '../../components/ModeSwitcher'
@@ -25,7 +26,7 @@ export default function CoachProfilePage() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const { setNotice } = usePlayer()
-  const [dialog, setDialog] = useState(null) // 'identity' | 'credits' | 'history' | 'host' | 'player' | 'logout'
+  const [dialog, setDialog] = useState(null) // 'identity' | 'incentives' | 'credits' | 'history' | 'host' | 'player' | 'logout'
   const [playerProfile, setPlayerProfile] = useState(null)
   const [walletKey, setWalletKey] = useState(0)
   const isHost = Boolean(user?.roles?.includes('QUEUE_MASTER'))
@@ -41,6 +42,7 @@ export default function CoachProfilePage() {
   }
 
   const MENU = [
+    { id: 'incentives', icon: Gift, tone: 'var(--vc-accent)', title: 'Incentives', onClick: () => setDialog('incentives') },
     { id: 'credits', icon: Receipt, tone: 'var(--vc-primary)', title: 'Host credits & fees', onClick: () => setDialog('credits') },
     { id: 'history', icon: History, tone: 'var(--vc-brand-green)', title: 'Queue history', onClick: () => setDialog('history') },
     ...(isHost ? [{ id: 'host', icon: Award, tone: 'var(--vc-accent)', title: 'Host application', onClick: () => setDialog('host') }] : []),
@@ -87,6 +89,8 @@ export default function CoachProfilePage() {
 
       <ModeSwitcherBar coachName={identity.name} avatarUrl={user?.avatarUrl || user?.photoURL} />
 
+      <CoachIncentivesStrip />
+
       <div className="cp-section-head">
         <h2 className="cp-section-title">Versus Wallet</h2>
         <button type="button" className="coach-link-btn cp-refresh" onClick={() => setWalletKey((k) => k + 1)}>Refresh</button>
@@ -109,6 +113,7 @@ export default function CoachProfilePage() {
           <CoachIdentityForm onDone={() => setDialog(null)} />
         </ProfileDialog>
       )}
+      {dialog === 'incentives' && <CoachIncentivesDialog onClose={() => setDialog(null)} />}
       {dialog === 'credits' && <TransactionsDialog isOpen onClose={() => setDialog(null)} />}
       {dialog === 'history' && <QueueHistoryDialog isOpen onClose={() => setDialog(null)} />}
       {dialog === 'host' && <QueueMasterDialog isOpen onClose={() => setDialog(null)} />}

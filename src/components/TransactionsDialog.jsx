@@ -15,8 +15,10 @@ import {
 import { apiRequest, apiList } from '../data/apiClient'
 import { useAccountData } from '../pages/ProfileAccountPage'
 import QmDialog from './QmDialog'
+import CheckoutDialog from './CheckoutDialog'
 import ProfileDialog from './ProfileDialog'
 import '../styles/queue-master.css'
+import '../styles/checkout.css'
 
 const money = (value) =>
   new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value || 0))
@@ -40,6 +42,9 @@ function formatTxnType(type = '') {
 function isCreditTxn(type = '') {
   return type === 'TOPUP' || type === 'REFUND'
 }
+
+/// "Oct 9, 2026" — due dates.
+const formatDate = (d) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(d)
 
 function formatTxnDate(dateVal) {
   if (!dateVal) return ''
@@ -67,7 +72,8 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
   const state = useAccountData(loadWallet)
   const [selected, setSelected] = useState(null)
   const [copiedId, setCopiedId] = useState(false)
-  const [feesOpen, setFeesOpen] = useState(false)
+  // Open by default while something is owed (null = follow that).
+  const [feesOpenPref, setFeesOpen] = useState(null)
   const [filter, setFilter] = useState('ALL') // ALL | CREDITS | DEBITS
 
   const credits = state.data?.credits || { availableCredits: 0, maxCredits: 0, usedCredits: 0, totalOutstanding: 0, payments: [] }
@@ -78,6 +84,12 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
   const maxCredits = credits.maxCredits ?? 0
   const used = credits.usedCredits ?? 0
   const outstanding = Number(credits.totalOutstanding || 0)
+  const feesOpen = feesOpenPref ?? Boolean(credits.payments?.length)
+  // Trainings have their own pool (older servers only send the queue one).
+  const trainingAvailable = credits.availableTrainingCredits ?? available
+  const trainingMax = credits.maxTrainingCredits ?? maxCredits
+  const blockThreshold = Number(credits.blockThreshold || 1500)
+  const dueSoon = credits.dueSoonDate ? new Date(credits.dueSoonDate) : null
   const qmBalance = Number(wallet.queueMasterBalance || 0)
   const currency = wallet.currency || 'PHP'
 
@@ -153,33 +165,29 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
                   <Ticket size={20} />
                 </div>
                 <div>
-                  <h3 className="qm-card-title">Queue Credits</h3>
-                  <p className="qm-card-subtitle">{available} of {maxCredits} available to host</p>
+                  <h3 className="qm-card-title">Host credits</h3>
+                  <p className="qm-card-subtitle">Queues and dated trainings each have their own pool</p>
                 </div>
               </div>
-              <div style={{ margin: '14px 0 8px' }}>
-                <div style={{ height: 8, background: '#e2e8f0', borderRadius: 9999, overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${maxCredits ? Math.min(100, Math.round((available / maxCredits) * 100)) : 0}%`,
-                      background: 'var(--vc-primary, #0c4dd1)',
-                      borderRadius: 9999,
-                      transition: 'width 0.3s ease',
-                    }}
-                  />
-                </div>
+              <div className="tx-pools">
+                <CreditPool label="Queues" available={available} max={maxCredits} />
+                <CreditPool label="Trainings" available={trainingAvailable} max={trainingMax} />
               </div>
               <p style={{ fontSize: 13, color: 'var(--vc-text-secondary)', margin: 0 }}>
                 {used === 0
-                  ? 'Every credit allows you to host queues freely.'
-                  : `${used} ${used === 1 ? 'credit is' : 'credits are'} tied up in active or unsettled queues.`}
+                  ? 'A credit is held by each active queue or dated training, and by each finished one until its platform fee is settled. Private and Group trainings use none.'
+                  : `${used} queue ${used === 1 ? 'credit is' : 'credits are'} tied up in active or unsettled queues. Settling a fee frees its credit.`}
               </p>
 
               {outstanding > 0 && (
                 <div className="qm-error-box" style={{ marginTop: 14 }}>
                   <AlertCircle size={16} />
-                  <span>{money(outstanding)} in platform fees to settle.</span>
+                  <span>
+                    {money(outstanding)} in platform fees to settle{dueSoon ? ` — next due ${formatDate(dueSoon)}` : ''}.
+                    {outstanding >= blockThreshold * 0.7 && (
+                      <> {outstanding >= blockThreshold ? 'You’ve reached' : 'Nearing'} the {money(blockThreshold)} limit — settle to keep creating paid queues and trainings.</>
+                    )}
+                  </span>
                 </div>
               )}
             </div>
@@ -209,7 +217,7 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
                   cursor: 'pointer',
                   userSelect: 'none',
                 }}
-                onClick={() => setFeesOpen((prev) => !prev)}
+                onClick={() => setFeesOpen(!feesOpen)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div className="qm-card-icon qm-card-icon--orange">
@@ -400,50 +408,114 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
   )
 }
 
+function CreditPool({ label, available, max }) {
+  return (
+    <div className="tx-pool">
+      <div className="tx-pool__head"><b>{label}</b><span>{available} of {max} free</span></div>
+      <div className="tx-pool__bar"><span style={{ width: `${max ? Math.min(100, Math.round((available / max) * 100)) : 0}%` }} /></div>
+    </div>
+  )
+}
+
+/// One platform fee to settle — web port of the app's `_PaymentCard`
+/// (queue_payments_screen.dart): the breakdown, a coupon, and Settle, which
+/// clears it for free when a coupon covers it all, or opens a QR Ph payment
+/// (₱20 minimum). A paid one waits for an admin to confirm it.
 function OutstandingPaymentRow({ payment, onUpdated }) {
   const [busy, setBusy] = useState(false)
-  const amount = Number(payment.amount || 0)
+  const [error, setError] = useState('')
+  const [code, setCode] = useState('')
+  const [paying, setPaying] = useState(false)
+  const owed = Number(payment.amountOwedByHost || 0)
+  const discount = Number(payment.discountAmount || 0)
+  const payable = Math.max(0, owed - discount)
+  // PayMongo can't charge under ₱20 — the backend expects ₱20 then.
+  const charge = payable > 0 && payable < 20 ? 20 : Math.round(payable)
+  const inProgress = payment.status === 'IN_PROGRESS'
+  const isTraining = payment.kind === 'TRAINING'
+  const title = payment.title || payment.queueTitle || (isTraining ? 'Training' : 'Queue')
+  const due = payment.dueAt ? new Date(payment.dueAt) : null
+  const base = `/wallet/queue-payments/${payment.id}`
+
+  const run = async (fn) => {
+    setBusy(true)
+    setError('')
+    try {
+      await fn()
+      onUpdated?.()
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const settle = () => {
+    if (payable <= 0) run(() => apiRequest(`${base}/settle-free`, { method: 'POST' }))
+    else setPaying(true)
+  }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '12px 14px',
-        background: '#f8fafc',
-        borderRadius: 14,
-        border: '1px solid #e2e8f0',
-      }}
-    >
-      <div>
-        <div style={{ fontWeight: 700, fontSize: 13.5 }}>{payment.queueTitle || 'Queue'}</div>
-        <div style={{ fontSize: 12, color: 'var(--vc-text-secondary)' }}>{payment.courtName || 'Court fee'}</div>
+    <div className="tx-fee">
+      <div className="tx-fee__head">
+        <b>{title}</b>
+        {isTraining && <span className="tx-tag tx-tag--accent">Training</span>}
+        <span className={`tx-tag${inProgress ? ' tx-tag--ok' : ''}`}>{inProgress ? 'Paid · awaiting confirmation' : 'To settle'}</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontWeight: 800, fontSize: 14, color: 'var(--vc-danger, #dc2626)' }}>
-          {money(amount)}
-        </span>
-        <button
-          type="button"
-          className="qm-btn qm-btn--sm qm-btn--primary"
-          style={{ padding: '5px 12px', fontSize: 12 }}
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true)
-            try {
-              await apiRequest(`/wallet/queue-payments/${payment.id}/settle`, { method: 'POST' })
-              onUpdated?.()
-            } catch (err) {
-              alert(err.message || 'Payment settlement failed.')
-            } finally {
-              setBusy(false)
-            }
-          }}
-        >
-          {busy ? 'Processing…' : 'Settle'}
-        </button>
-      </div>
+      <dl className="tx-fee__rows">
+        <div><dt>Collected by QR</dt><dd>{money(payment.totalOnlinePaid)}</dd></div>
+        <div><dt>Collected in cash</dt><dd>{money(payment.totalCashPaid)}</dd></div>
+        <div><dt>Platform fee</dt><dd>{money(payment.totalPlatformFee)}</dd></div>
+        {discount > 0 && <div className="is-discount"><dt>Coupon ({payment.couponCode})</dt><dd>−{money(discount)}</dd></div>}
+        <div className="is-strong"><dt>You owe</dt><dd>{money(payable)}</dd></div>
+      </dl>
+      {due && !inProgress && <p className="tx-fee__note">Due {formatDate(due)}</p>}
+
+      {!inProgress && (
+        <>
+          {payment.hasStartedIntent ? (
+            <p className="tx-fee__note">
+              A payment for this {isTraining ? 'training' : 'queue'} wasn't finished.{' '}
+              <button type="button" className="coach-link-btn" disabled={busy} onClick={() => run(() => apiRequest(`${base}/cancel-intent`, { method: 'POST' }))}>Start over</button>
+              {' '}to use a coupon.
+            </p>
+          ) : payment.couponCode ? (
+            <p className="tx-fee__note">
+              {payment.couponCode} applied.{' '}
+              <button type="button" className="coach-link-btn" disabled={busy} onClick={() => run(() => apiRequest(`${base}/remove-coupon`, { method: 'POST' }))}>Remove</button>
+            </p>
+          ) : (
+            <div className="co-coupon__row">
+              <input className="tr-input" placeholder="Coupon code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
+              <button type="button" className="button button--outline" disabled={busy || !code.trim()} onClick={() => run(async () => {
+                await apiRequest(`${base}/apply-coupon`, { method: 'POST', body: { couponCode: code.trim() } })
+                setCode('')
+              })}>Apply</button>
+            </div>
+          )}
+          {error && <p className="tr-error">{error}</p>}
+          <button type="button" className="qm-btn qm-btn--primary tx-fee__pay" disabled={busy} onClick={settle}>
+            {busy ? 'Please wait…' : payable <= 0 ? 'Settle (covered by coupon)' : `Settle ${money(charge)} with QR Ph`}
+          </button>
+          {payable > 0 && payable < 20 && <p className="tx-fee__note">QR Ph has a ₱20 minimum, so ₱20 is charged.</p>}
+        </>
+      )}
+
+      {paying && (
+        <CheckoutDialog
+          title="Settle platform fee"
+          itemTitle={title}
+          amount={charge}
+          priceLabel="Platform fee"
+          purposeLabel={`Platform fee · ${title}`}
+          allowCoupon={false}
+          successMessage="Payment received! We'll confirm it with our team shortly."
+          onSubmitQr={(paymentIntentId) => apiRequest(`${base}/settle-intent`, { method: 'POST', body: { paymentIntentId } })}
+          onConfirmQr={() => apiRequest(`${base}/confirm`, { method: 'POST' })}
+          onDone={() => { setPaying(false); onUpdated?.() }}
+          onClose={() => { setPaying(false); onUpdated?.() }}
+        />
+      )}
     </div>
   )
 }

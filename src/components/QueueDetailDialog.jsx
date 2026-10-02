@@ -24,6 +24,8 @@ import { useAuth } from '../context/AuthContext'
 import { usePlayer } from '../context/PlayerContext'
 import { useQueues } from '../context/QueueContext'
 import LoginDialog from './LoginDialog'
+import CheckoutDialog from './CheckoutDialog'
+import { apiRequest } from '../data/apiClient'
 import QueueSportIcon from './QueueSportIcon'
 import ManageQueue from './ManageQueue'
 import QueueHeaderAction from './QueueHeaderAction'
@@ -91,6 +93,10 @@ export default function QueueDetailDialog({ queue, onClose }) {
   const [actionMessage, setActionMessage] = useState('')
   const [activeMatches, setActiveMatches] = useState([])
   const [joinState, setJoinState] = useState(joinedQueues.includes(queue.id) ? 'joined' : 'idle')
+  /// Paid-queue checkout (Cash / QR Ph) — before the queue starts, or to pay
+  /// once the host accepts a request.
+  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [pendingBusy, setPendingBusy] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -107,7 +113,8 @@ export default function QueueDetailDialog({ queue, onClose }) {
 
   useEffect(() => {
     const onKeyDown = (event) => {
-      if (event.key !== 'Escape' || loginOpen) return
+      // The checkout dialog handles its own Escape.
+      if (event.key !== 'Escape' || loginOpen || checkoutOpen) return
       if (shareModalOpen) setShareModalOpen(false)
       else if (analyticsOpen) setAnalyticsOpen(false)
       else if (leaderboardOpen) setLeaderboardOpen(false)
@@ -119,7 +126,7 @@ export default function QueueDetailDialog({ queue, onClose }) {
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [loginOpen, onClose, manageOpen, chatOpen, headerAction, analyticsOpen, leaderboardOpen, playerListOpen, shareModalOpen])
+  }, [loginOpen, checkoutOpen, onClose, manageOpen, chatOpen, headerAction, analyticsOpen, leaderboardOpen, playerListOpen, shareModalOpen])
 
   const sport = String(detail.sport || queue.sport || 'badminton').toLowerCase()
 
@@ -179,13 +186,18 @@ export default function QueueDetailDialog({ queue, onClose }) {
       detail.participants?.some((p) => (p.userId || p.user?.id) === user.id && p.isHost))
   )
 
+  // My own row, as the app reads it: REQUESTED (asked to join a started
+  // queue), ACCEPTED (host said yes — pay to confirm), PROCESSING (a QR
+  // payment in flight), or JOINED.
+  const myRow = user?.id
+    ? (detail.participants || []).find((p) => (p.userId || p.user?.id) === user.id)
+    : null
+  const myStatus = myRow ? String(myRow.status || 'JOINED').toUpperCase() : null
+  const pendingStatus = ['REQUESTED', 'ACCEPTED', 'PROCESSING'].includes(myStatus) ? myStatus : null
   const alreadyJoined =
-    joinState === 'joined' ||
-    Boolean(
-      user?.id &&
-      (hostId === user.id ||
-        (detail.participants || []).some((p) => (p.userId || p.user?.id) === user.id))
-    )
+    Boolean(user?.id && hostId === user.id) ||
+    myStatus === 'JOINED' ||
+    (!myRow && joinState === 'joined')
 
   const openChat = () => {
     if (!user) {
@@ -219,20 +231,71 @@ export default function QueueDetailDialog({ queue, onClose }) {
       setLoginOpen(true)
       return
     }
-    if (joinedQueues.includes(queue.id)) {
+    if (alreadyJoined) {
       setJoinState('joined')
+      return
+    }
+    // Paid and not started yet: pay first (Cash or QR Ph), like the app's
+    // checkout. Once it has started, joining is a free request — payment
+    // comes after the host accepts.
+    if (fee > 0 && !detail.isOngoing) {
+      setCheckoutOpen(true)
       return
     }
     setJoinState('joining')
     try {
       const refreshed = await joinRemoteQueue(queue.id)
       setDetail(refreshed)
+      const mine = (refreshed.participants || []).find((p) => (p.userId || p.user?.id) === user.id)
+      if (String(mine?.status || '').toUpperCase() === 'REQUESTED') {
+        setJoinState('idle')
+        setNotice('Request sent — waiting for the host to approve you.')
+        return
+      }
       if (!joinedQueues.includes(queue.id)) toggleQueue(queue.id)
       setJoinState('joined')
       setNotice('You joined the queue. We’ll remind you before game time.')
     } catch (error) {
       setJoinState('error')
       setNotice(error.message || 'Unable to join this queue right now.')
+    }
+  }
+
+  const reloadDetail = async () => {
+    try {
+      const fresh = await getQueueDetail(queue.id)
+      if (fresh) setDetail((current) => ({ ...current, ...fresh }))
+    } catch {
+      // Keep what's on screen; the next open refreshes it.
+    }
+  }
+
+  /// Posts the join with a payment choice (the backend verifies a QR intent
+  /// against the entry fee minus any coupon).
+  const payJoin = (body) => apiRequest(`/queues/${queue.id}/join`, { method: 'POST', body })
+
+  const onPaid = async (method) => {
+    setCheckoutOpen(false)
+    await reloadDetail()
+    if (!joinedQueues.includes(queue.id)) toggleQueue(queue.id)
+    setJoinState('joined')
+    setNotice(method === 'CASH'
+      ? `You're in! Pay ₱${fee} in cash to the host.`
+      : 'Payment received — you’re in! We’ll remind you before game time.')
+  }
+
+  /// Backs out of a pending join: a request, an accepted-but-unpaid spot,
+  /// or an unfinished QR payment.
+  const cancelPending = async () => {
+    setPendingBusy(true)
+    try {
+      await apiRequest(`/queues/${queue.id}/join/cancel`, { method: 'PATCH' })
+      await reloadDetail()
+      setNotice(pendingStatus === 'REQUESTED' ? 'Request cancelled.' : 'Join cancelled.')
+    } catch (error) {
+      setNotice(error.message || 'Could not cancel. Try again.')
+    } finally {
+      setPendingBusy(false)
     }
   }
 
@@ -662,6 +725,24 @@ export default function QueueDetailDialog({ queue, onClose }) {
                     <span>Open in App</span>
                   </button>
 
+                  {pendingStatus && !alreadyJoined ? (
+                    <div className="queue-pending">
+                      <span className="queue-pending__text">
+                        <b>{pendingStatus === 'REQUESTED' ? 'Request sent' : pendingStatus === 'ACCEPTED' ? 'Host accepted you' : 'Finish your payment'}</b>
+                        <small>{pendingStatus === 'REQUESTED'
+                          ? 'Waiting for the host to approve you.'
+                          : `Pay ₱${fee} to confirm your spot.`}</small>
+                      </span>
+                      {pendingStatus !== 'REQUESTED' && fee > 0 && (
+                        <button type="button" className="queue-detail-action-btn queue-detail-action-btn--primary" style={{ width: 'auto', padding: '11px 16px' }} disabled={pendingBusy} onClick={() => setCheckoutOpen(true)}>
+                          Pay now
+                        </button>
+                      )}
+                      <button type="button" className="queue-pending__cancel" disabled={pendingBusy} onClick={cancelPending}>
+                        {pendingStatus === 'REQUESTED' ? 'Cancel request' : 'Cancel'}
+                      </button>
+                    </div>
+                  ) : (
                   <button
                     type="button"
                     className="queue-detail-action-btn queue-detail-action-btn--primary"
@@ -679,10 +760,11 @@ export default function QueueDetailDialog({ queue, onClose }) {
                     ) : (
                       <>
                         <Users size={18} />
-                        Join Queue
+                        {fee > 0 && !detail.isOngoing ? `Join Queue · ₱${fee}` : detail.isOngoing && !isFinished ? 'Request to Join' : 'Join Queue'}
                       </>
                     )}
                   </button>
+                  )}
                 </div>
               )}
             </footer>
@@ -692,6 +774,27 @@ export default function QueueDetailDialog({ queue, onClose }) {
 
       {/* Sub Modals */}
       <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
+
+      {checkoutOpen && (
+        <CheckoutDialog
+          title="Join queue"
+          itemTitle={title}
+          venueLabel={venue}
+          timeLabel={[dateLabel, timeRangeLabel].filter(Boolean).join(' · ')}
+          amount={Number(fee)}
+          priceLabel="Entry fee"
+          purposeLabel={`Queue entry · ${title}`}
+          cashNote="Pay the host in person — your spot is held now."
+          successMessage="Payment received — you're in!"
+          onSubmitQr={(paymentIntentId, clientKey, couponCode) => payJoin({ paymentIntentId, clientKey, ...(couponCode ? { couponCode } : {}) })}
+          onConfirmQr={() => apiRequest(`/queues/${queue.id}/join/confirm`, { method: 'PATCH' })}
+          onCancelQr={() => apiRequest(`/queues/${queue.id}/join/cancel`, { method: 'PATCH' }).then(reloadDetail)}
+          onSubmitCash={(couponCode) => payJoin({ paymentMethod: 'CASH', ...(couponCode ? { couponCode } : {}) })}
+          onSubmitFree={(couponCode) => payJoin({ ...(couponCode ? { couponCode } : {}) })}
+          onDone={onPaid}
+          onClose={() => { setCheckoutOpen(false); reloadDetail() }}
+        />
+      )}
 
       {leaderboardOpen && (
         <QueueLeaderboardModal

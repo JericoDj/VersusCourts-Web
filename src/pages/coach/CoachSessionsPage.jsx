@@ -5,9 +5,8 @@ import { useAuth } from '../../context/AuthContext'
 import { apiList } from '../../data/apiClient'
 import { normalizeQueue } from '../../context/QueueContext'
 import { sportColor, sportLabel } from '../../data/sports'
-import { formatTrainingDate, formatTrainingTimeRange } from '../../data/trainings'
+import { formatSessionTime, formatTrainingDate, formatTrainingTimeRange, kindLabel } from '../../data/trainings'
 import CoachHeader from './CoachHeader'
-import { CoachIncentivesStrip } from '../../components/CoachIncentives'
 
 const ACTIVE_QUEUE = new Set(['OPEN', 'FULL', 'STARTED'])
 
@@ -47,7 +46,6 @@ export default function CoachSessionsPage() {
     <div className="coach-page">
       <CoachHeader title="Sessions" subtitle={`${activeQueues.length} active · ${pastQueues.length} past queues`} />
 
-      <CoachIncentivesStrip />
 
       {error && (
         <p className="tr-error">{error} <button type="button" className="coach-link-btn" onClick={() => setReloadKey((k) => k + 1)}>Retry</button></p>
@@ -96,6 +94,24 @@ export function Stat({ icon: Icon, value, label, tone, onClick }) {
 }
 
 export function SessionRow({ t, live = false }) {
+  if (t.isBookable) {
+    return (
+      <Link to={`/coach/trainings/${t.id}`} className="coach-row">
+        <span className="coach-row__dot" style={{ background: sportColor(t.sport) }} />
+        <span className="coach-row__body">
+          <b>{t.title || 'Training'}</b>
+          <small>
+            {kindLabel(t.kind)}{t.isGroup ? ` · up to ${t.capacity}` : ''} · {t.nextSession ? `next ${formatSessionTime(t.nextSession)}` : 'book anytime'} · {t.courtName}
+          </small>
+        </span>
+        {t.status === 'CANCELLED' && <span className="tr-pill tr-pill--muted">Closed</span>}
+        {t.pendingBookings > 0 && <span className="tr-pill tr-pill--warn">{t.pendingBookings} {t.pendingBookings === 1 ? 'request' : 'requests'}</span>}
+        {t.pendingPackages > 0 && <span className="tr-pill tr-pill--primary">{t.pendingPackages} package {t.pendingPackages === 1 ? 'request' : 'requests'}</span>}
+        {t.pendingBookings === 0 && t.confirmedBookings > 0 && <span className="tr-pill tr-pill--live">{t.confirmedBookings} confirmed</span>}
+        <ChevronRight size={18} />
+      </Link>
+    )
+  }
   return (
     <Link to={`/coach/trainings/${t.id}`} className="coach-row">
       <span className="coach-row__dot" style={{ background: sportColor(t.sport) }} />
@@ -105,6 +121,7 @@ export function SessionRow({ t, live = false }) {
       </span>
       <span className="coach-row__count">{t.participantCount}/{t.capacity}</span>
       {live && <span className="tr-pill tr-pill--live">Live</span>}
+      {t.pendingPackages > 0 && <span className="tr-pill tr-pill--primary">{t.pendingPackages} package {t.pendingPackages === 1 ? 'request' : 'requests'}</span>}
       {t.students.some((s) => s.isPendingCash) && <span className="tr-pill tr-pill--warn">Cash to confirm</span>}
       <ChevronRight size={18} />
     </Link>

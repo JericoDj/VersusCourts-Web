@@ -1,0 +1,28 @@
+/* CheckoutDialog — review, coupon, Cash / QR Ph */
+.co { display: flex; flex-direction: column; gap: 14px; }
+.co-item { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-md); }
+.co-item b { font-size: 15px; font-weight: 800; }
+.co-item small { display: inline-flex; align-items: center; gap: 6px; color: var(--vc-text-secondary); font-size: 12.5px; }
+.co-coupon__row { display: flex; gap: 8px; }
+.co-coupon__row .tr-input { flex: 1; text-transform: uppercase; }
+.co-coupon__applied { display: flex; align-items: center; gap: 6px; color: var(--vc-success); font-size: 13.5px; }
+.co-coupon__applied .coach-link-btn { margin-left: auto; }
+.co-price { margin: 0; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: var(--vc-radius-md); background: var(--vc-surface-alt); }
+.co-price div { display: flex; justify-content: space-between; font-size: 13.5px; }
+.co-price dt { color: var(--vc-text-secondary); }
+.co-price dd { margin: 0; font-weight: 700; }
+.co-price .is-discount dd { color: var(--vc-success); }
+.co-price .is-total { padding-top: 6px; border-top: 1px solid var(--vc-border); }
+.co-price .is-total dt, .co-price .is-total dd { color: var(--vc-text-primary); font-weight: 800; font-size: 15px; }
+.co-methods { display: flex; flex-direction: column; gap: 10px; }
+.co-methods .tr-pay__option.is-active { border-color: var(--vc-primary); background: color-mix(in srgb, var(--vc-primary) 6%, transparent); }
+.co-methods .tr-pay__option:disabled { opacity: 0.55; cursor: default; }
+.co-qr { align-items: center; text-align: center; }
+.co-qr__amount { margin: 0; font-size: 26px; font-weight: 800; display: flex; flex-direction: column; }
+.co-qr__amount small { font-size: 12.5px; font-weight: 600; color: var(--vc-text-secondary); }
+.co-qr__frame { width: 260px; height: 260px; max-width: 100%; display: grid; place-items: center; border: 1px solid var(--vc-border); border-radius: var(--vc-radius-lg); background: #fff; padding: 10px; }
+.co-qr__frame img { width: 100%; height: 100%; object-fit: contain; }
+.co-qr__frame p { color: var(--vc-text-secondary); margin: 0; }
+.co-qr__hint { margin: 0; font-size: 12.5px; color: var(--vc-text-secondary); line-height: 1.5; }
+.co-success { align-items: center; text-align: center; color: var(--vc-success); padding: 12px 0; }
+.co-success b { color: var(--vc-text-primary); font-size: 16px; }

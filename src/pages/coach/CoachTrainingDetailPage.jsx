@@ -15,6 +15,8 @@ import {
   skillLabel,
 } from '../../data/trainings'
 import '../../styles/profile.css'
+import CoachBookingsView from './CoachBookingsView'
+import CoachPackagesPanel from './CoachPackagesPanel'
 
 /// Web port of the coach `TrainingDetailScreen`: roster with cash
 /// confirmations, Start, Complete (with the settlement preview), Cancel
@@ -40,6 +42,8 @@ export default function CoachTrainingDetailPage() {
       </div>
     )
   }
+  // Private/Group listings are managed through their booked sessions.
+  if (t.isBookable) return <CoachBookingsView training={t} />
 
   const run = async (key, fn, message) => {
     setBusy(key)
@@ -164,6 +168,16 @@ export default function CoachTrainingDetailPage() {
           </div>
         )) : <p className="coach-hint">No one has joined yet. Share the link to fill your session.</p>}
       </section>
+
+      {/* A "Multiple dates" training sells packages of its dates (shared by the series). */}
+      {t.seriesId && (
+        <section className="coach-card">
+          <h2 className="coach-card__label">
+            Packages{t.pendingPackages > 0 && <span className="tr-pill tr-pill--warn">{t.pendingPackages} to accept</span>}
+          </h2>
+          <CoachPackagesPanel training={t} />
+        </section>
+      )}
 
       <Link to={`/t/${t.id}`} className="coach-hint coach-preview-link">See what players see →</Link>
 

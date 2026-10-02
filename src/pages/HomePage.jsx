@@ -10,7 +10,7 @@ import { usePlayer } from '../context/PlayerContext'
 import { isQueueActive, useQueues } from '../context/QueueContext'
 import { useAuth } from '../context/AuthContext'
 import { fetchTrainings } from '../data/trainings'
-import { TrainingCard } from './TrainingsPage'
+import { TrainingCard, datedFirst } from './TrainingsPage'
 import '../styles/trainings.css'
 import '../styles/play.css'
 import '../styles/home.css'
@@ -32,9 +32,10 @@ export default function HomePage() {
     return () => { active = false }
   }, [])
   const now = new Date()
-  const sportTrainings = trainings.list
-    .filter((t) => t.status === 'SCHEDULED' && t.startTime > now && (sport === 'all' || t.sport === sport))
-    .sort((a, b) => a.startTime - b.startTime)
+  // Dated sessions soonest first, then bookable (Private/Group) listings.
+  const sportTrainings = datedFirst(trainings.list
+    .filter((t) => t.status === 'SCHEDULED' && (t.isBookable || t.startTime > now) && (sport === 'all' || t.sport === sport))
+    .sort((a, b) => a.startTime - b.startTime))
   const sportQueues = queues.filter((queue) => isQueueActive(queue) && !queue.isPrivate && (sport === 'all' || queue.sport === sport))
   /// Only the very first load shows skeletons; later refreshes keep the
   /// current feed on screen rather than flashing it away.

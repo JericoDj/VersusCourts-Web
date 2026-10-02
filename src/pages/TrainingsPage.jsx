@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, CalendarDays, Dumbbell, MapPin, RefreshCw, Search, Users } from 'lucide-react'
+import { ArrowLeft, CalendarCheck, CalendarDays, Dumbbell, MapPin, RefreshCw, Search, Ticket, User, Users } from 'lucide-react'
 import TrainingDetailDialog from '../components/TrainingDetailDialog'
 import { useAuth } from '../context/AuthContext'
 import { SPORT_FILTERS, sportColor, sportGradient, sportLabel } from '../data/sports'
@@ -10,6 +10,7 @@ import {
   formatPeso,
   formatTrainingDate,
   formatTrainingTimeRange,
+  kindLabel,
   skillLabel,
   trainingRole,
 } from '../data/trainings'
@@ -65,7 +66,7 @@ export default function TrainingsPage() {
 
   const list = useMemo(() => {
     const active = TABS.find((t) => t.key === tab)
-    const source = tab === 'upcoming' ? upcoming : mine.filter((t) => t.status === active.status)
+    const source = tab === 'upcoming' ? datedFirst(upcoming) : mine.filter((t) => t.status === active.status)
     const q = query.trim().toLowerCase()
     return source.filter((t) =>
       (sport === 'all' || t.sport === sport) &&
@@ -168,8 +169,13 @@ export default function TrainingsPage() {
   )
 }
 
+/// Dated sessions (soonest first, as the feed sends them), then bookable
+/// Private/Group listings.
+export const datedFirst = (list) => [...list.filter((t) => !t.isBookable), ...list.filter((t) => t.isBookable)]
+
 export function TrainingCard({ training: t, me, onOpen }) {
   const role = trainingRole(t, me)
+  if (t.isBookable) return <BookableCard training={t} onOpen={onOpen} />
   return (
     <button type="button" className="tr-card" onClick={onOpen}>
       <span
@@ -189,6 +195,7 @@ export function TrainingCard({ training: t, me, onOpen }) {
         </span>
         <span className="tr-card__meta"><CalendarDays size={14} /> {formatTrainingDate(t.startTime)} · {formatTrainingTimeRange(t.startTime, t.durationHours)}</span>
         {(t.courtName || t.businessName) && <span className="tr-card__meta"><MapPin size={14} /> {t.courtName || t.businessName}</span>}
+        {t.packages?.length > 0 && <PackagesHint packages={t.packages} />}
         <span className="tr-card__foot">
           <span><Users size={14} /> {t.participantCount}/{t.capacity}</span>
           <b>{t.price > 0 ? formatPeso(t.price) : 'Free'}</b>
@@ -196,4 +203,39 @@ export function TrainingCard({ training: t, me, onOpen }) {
       </span>
     </button>
   )
+}
+
+/// A Private/Group listing: no date — "book anytime", 1-on-1 or group size.
+function BookableCard({ training: t, onOpen }) {
+  return (
+    <button type="button" className="tr-card" onClick={onOpen}>
+      <span
+        className="tr-card__cover"
+        style={t.imageUrl ? { backgroundImage: `url(${JSON.stringify(t.imageUrl)})` } : { background: sportGradient(t.sport) }}
+      >
+        <span className="tr-card__sport" style={{ color: sportColor(t.sport) }}>{sportLabel(t.sport)}</span>
+        <span className="tr-card__badge tr-card__badge--kind">{kindLabel(t.kind)}</span>
+      </span>
+      <span className="tr-card__body">
+        <strong className="tr-card__title">{t.title || 'Training session'}</strong>
+        <span className="tr-card__coach">
+          {t.coachAvatarUrl ? <img src={t.coachAvatarUrl} alt="" /> : <i aria-hidden="true">{t.coachName[0]}</i>}
+          {t.coachName}{t.skill ? ` · ${skillLabel(t.skill)}` : ''}
+        </span>
+        <span className="tr-card__meta tr-card__meta--kind"><CalendarCheck size={14} /> Book anytime · {t.durationHours}h sessions</span>
+        {(t.courtName || t.businessName) && <span className="tr-card__meta"><MapPin size={14} /> {t.courtName || t.businessName}</span>}
+        {t.packages?.length > 0 && <PackagesHint packages={t.packages} />}
+        <span className="tr-card__foot">
+          <span>{t.isGroup ? <><Users size={14} /> Up to {t.capacity}</> : <><User size={14} /> 1-on-1</>}</span>
+          <b>{t.price > 0 ? `${formatPeso(t.price)}${t.isGroup ? '/player' : '/session'}` : 'Free'}</b>
+        </span>
+      </span>
+    </button>
+  )
+}
+
+/// "Packages from ₱450/session" on a card.
+function PackagesHint({ packages }) {
+  const best = Math.min(...packages.map((p) => p.perSession))
+  return <span className="tr-card__meta tr-card__meta--kind"><Ticket size={14} /> Packages · from {formatPeso(Math.round(best))}/session</span>
 }

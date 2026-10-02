@@ -16,8 +16,14 @@ export default function CoachNotificationsPage() {
     if (!n.read) markNotificationRead(n.id)
     const trainingId = n.data?.trainingId
     const queueId = n.data?.queueId
-    if (n.data?.kind === 'incentive') navigate('/coach')
-    else if (trainingId) navigate(`/coach/trainings/${trainingId}`)
+    if (n.data?.kind === 'incentive') navigate('/coach/profile')
+    // A booking request/cancellation opens that booking on the training.
+    else if (trainingId) {
+      // A package notice opens the Packages tab; a booking opens that booking.
+      const query = n.data?.type === 'TRAINING_PACKAGE' ? '?tab=packages'
+        : n.data?.bookingId ? `?booking=${encodeURIComponent(n.data.bookingId)}` : ''
+      navigate(`/coach/trainings/${trainingId}${query}`)
+    }
     else if (queueId) navigate(`/app/queues/${queueId}`)
     // "Withdrawal sent / declined" and earnings → the Versus Wallet on Profile.
     else if (n.data?.withdrawalId || n.data?.kind === 'withdrawal' || n.type === 'PAYMENT') navigate('/coach/profile')
@@ -44,7 +50,7 @@ export default function CoachNotificationsPage() {
       )) : (
         <div className="coach-empty">
           <Bell size={22} />
-          <p>Coach updates — new joins, cash requests, completed trainings — show up here.</p>
+          <p>Coach updates — new joins, booking requests, cash requests, completed trainings — show up here.</p>
         </div>
       )}
     </div>
