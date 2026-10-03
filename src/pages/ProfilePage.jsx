@@ -9,6 +9,7 @@ import {
   MapPin,
   Plus,
   Receipt,
+  Tag,
   Share2,
   Shield,
   ShieldCheck,
@@ -21,6 +22,7 @@ import EditProfileDialog from '../components/EditProfileDialog'
 import ShareStatsDialog from '../components/ShareStatsDialog'
 import { QueueMasterDialog } from './QueueMasterPage'
 import TransactionsDialog from '../components/TransactionsDialog'
+import CouponsDialog from '../components/CouponsDialog'
 import BookingsDialog from '../components/BookingsDialog'
 import QueueHistoryDialog from '../components/QueueHistoryDialog'
 import PrivacyPolicyDialog from '../components/PrivacyPolicyDialog'
@@ -59,6 +61,7 @@ const unlockedFor = (stats) => ACHIEVEMENTS.filter((a) => a.progress(stats) >= a
 const MENU_ITEMS = [
   { id: 'queue-master', icon: ShieldCheck, label: 'Become a Queue Master' },
   { id: 'transactions', icon: Receipt, label: 'Transactions' },
+  { id: 'coupons', icon: Tag, label: 'My Coupons' },
   { id: 'bookings', icon: Calendar, label: 'My Bookings' },
   { id: 'history', icon: History, label: 'Queue History' },
   { id: 'privacy', icon: Shield, label: 'Privacy Policy' },
@@ -83,6 +86,7 @@ export default function ProfilePage() {
     if (q) return q
     if (location.pathname.includes('/profile/queue-master')) return 'queue-master'
     if (location.pathname.includes('/profile/transactions')) return 'transactions'
+    if (location.pathname.includes('/profile/coupons')) return 'coupons'
     if (location.pathname.includes('/profile/history')) return 'history'
     if (location.pathname.includes('/profile/security')) return 'security'
     if (location.pathname.includes('/bookings')) return 'bookings'
@@ -342,6 +346,9 @@ export default function ProfilePage() {
       )}
       {activeDialog === 'transactions' && (
         <TransactionsDialog isOpen onClose={handleCloseDialog} />
+      )}
+      {activeDialog === 'coupons' && (
+        <CouponsDialog isOpen onClose={handleCloseDialog} />
       )}
       {activeDialog === 'bookings' && (
         <BookingsDialog isOpen onClose={handleCloseDialog} />

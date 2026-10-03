@@ -102,6 +102,12 @@ export default function NotificationsDropdown({ onClose }) {
       kind === 'QUEUE_MASTER_APPLICATION' ||
       n.data?.deepLink?.includes('queue-master-application')
 
+    if (kind === 'COUPON') {
+      onClose()
+      navigate('/app/profile/coupons')
+      return
+    }
+
     if (isMatchResult) {
       setMatchResultNotif(n)
       return

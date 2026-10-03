@@ -16,7 +16,8 @@ const METHODS = [
 ]
 const methodMeta = (id) => METHODS.find((m) => m.id === String(id || '').toUpperCase()) || METHODS[2]
 
-const EARNING_TYPES = new Set(['QUEUE_FEE', 'TRAINING_FEE', 'WITHDRAWAL', 'REFUND'])
+// ADJUSTMENT: an admin credited (+) or deducted (−) the balance.
+const EARNING_TYPES = new Set(['QUEUE_FEE', 'TRAINING_FEE', 'ADJUSTMENT', 'WITHDRAWAL', 'REFUND'])
 
 const money = (v) => {
   const n = Number(v) || 0
@@ -344,7 +345,7 @@ function WithdrawalRow({ w }) {
 }
 
 function ActivityRow({ t }) {
-  const credit = t.type !== 'WITHDRAWAL'
+  const credit = t.type === 'ADJUSTMENT' ? Number(t.amount) >= 0 : t.type !== 'WITHDRAWAL'
   return (
     <div className={`ew-activity${credit ? ' is-credit' : ''}`}>
       {credit ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}

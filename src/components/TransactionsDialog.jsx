@@ -35,12 +35,14 @@ function formatTxnType(type = '') {
     case 'COMMISSION': return 'Commission'
     case 'PAYOUT': return 'Payout'
     case 'PLATFORM_FEE_SETTLEMENT': return 'Platform fee settlement'
+    case 'ADJUSTMENT': return 'Balance adjustment'
     default: return type ? type.replace(/_/g, ' ') : 'Transaction'
   }
 }
 
-function isCreditTxn(type = '') {
-  return type === 'TOPUP' || type === 'REFUND'
+/// ADJUSTMENT carries its sign: + credited, − deducted by Versus.
+function isCreditTxn(type = '', amount = 0) {
+  return type === 'TOPUP' || type === 'REFUND' || (type === 'ADJUSTMENT' && Number(amount) >= 0)
 }
 
 /// "Oct 9, 2026" — due dates.
@@ -94,8 +96,8 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
   const currency = wallet.currency || 'PHP'
 
   const filteredTxns = transactions.filter((t) => {
-    if (filter === 'CREDITS') return isCreditTxn(t.type)
-    if (filter === 'DEBITS') return !isCreditTxn(t.type)
+    if (filter === 'CREDITS') return isCreditTxn(t.type, t.amount)
+    if (filter === 'DEBITS') return !isCreditTxn(t.type, t.amount)
     return true
   })
 
@@ -286,7 +288,7 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
                   </div>
                 ) : (
                   filteredTxns.map((item) => {
-                    const isCredit = isCreditTxn(item.type)
+                    const isCredit = isCreditTxn(item.type, item.amount)
                     return (
                       <div
                         key={item.id}
@@ -327,7 +329,7 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
                               color: isCredit ? '#16a34a' : 'var(--vc-text-primary)',
                             }}
                           >
-                            {isCredit ? '+' : '-'}{money(item.amount)}
+                            {isCredit ? '+' : '-'}{money(Math.abs(Number(item.amount) || 0))}
                           </div>
                           <span
                             className={`qm-badge ${
@@ -356,8 +358,8 @@ export default function TransactionsDialog({ isOpen = true, onClose }) {
           <ProfileDialog title="Transaction Details" onClose={() => setSelected(null)}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ textAlign: 'center', padding: '12px 0 16px' }}>
-                <div style={{ fontSize: 28, fontWeight: 900, color: isCreditTxn(selected.type) ? '#16a34a' : 'var(--vc-text-primary)' }}>
-                  {isCreditTxn(selected.type) ? '+' : '-'}{money(selected.amount)}
+                <div style={{ fontSize: 28, fontWeight: 900, color: isCreditTxn(selected.type, selected.amount) ? '#16a34a' : 'var(--vc-text-primary)' }}>
+                  {isCreditTxn(selected.type, selected.amount) ? '+' : '-'}{money(Math.abs(Number(selected.amount) || 0))}
                 </div>
                 <div style={{ fontSize: 14, color: 'var(--vc-text-secondary)', marginTop: 4 }}>
                   {formatTxnType(selected.type)}

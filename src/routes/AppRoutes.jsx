@@ -131,6 +131,7 @@ export default function AppRoutes() {
           <Route path="profile" element={<ProfilePage />} />
           <Route path="profile/queue-master" element={<QueueMasterPage />} />
           <Route path="profile/transactions" element={<TransactionsPage />} />
+          <Route path="profile/coupons" element={<ProfilePage />} />
           <Route path="profile/security" element={<AccountSecurityPage />} />
           <Route path="profile/:section" element={<ProfileAccountPage />} />
           <Route path="scoreboard" element={<ScoreboardPage />} />
